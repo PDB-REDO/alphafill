@@ -1,0 +1,6 @@
+.vscode
+rsrc/version.txt
+version-info*.txt
+mkdssp
+.vs/
+build
