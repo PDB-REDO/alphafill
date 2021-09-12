@@ -32,6 +32,7 @@
 #include <boost/program_options.hpp>
 
 #include "blast.hpp"
+#include "align-3d.hpp"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -106,9 +107,55 @@ std::string get_version_string()
 
 using mmcif::Point;
 
-std::vector<Point> getCAlphaForChain(const cif::Datablock& db, const std::string& asym_id)
+std::vector<Point> getCAlphaForChain(cif::Datablock& db, const std::string& asym_id)
 {
+	using namespace cif::literals;
+
+	std::vector<Point> result;
+
+	auto& atoms = db["atom_site"];
+	for (const auto& [x, y, z]: atoms.find<float,float,float>("auth_asym_id"_key == asym_id, { "Cartn_x", "Cartn_y", "Cartn_z" }))
+		result.emplace_back(x, y, z);
 	
+	return result;
+}
+
+std::tuple<std::vector<Point>, std::vector<Point>> getTrimmedCAlphaForHsp(
+	const std::vector<Point>& q, const std::vector<Point>& t,
+	const BlastHsp& hsp)
+{
+	std::vector<Point> rq, rt;
+
+	assert(hsp.mAlignedQuery.length() == hsp.mAlignedTarget.length());
+
+	size_t qix = hsp.mQueryStart;
+	size_t tix = hsp.mTargetStart;
+
+	auto& qa = hsp.mAlignedQuery;
+	auto& ta = hsp.mAlignedTarget;
+
+	for (size_t i = 0; i < hsp.mAlignedQuery.length(); ++i)
+	{
+		if (is_gap(qa[qix]))
+		{
+			++tix;
+			continue;
+		}
+
+		if (is_gap(ta[tix]))
+		{
+			++qix;
+			continue;
+		}
+
+		rq.push_back(q[qix++]);
+		rt.push_back(t[tix++]);
+	}
+
+	assert(qix == hsp.mQueryEnd);
+	assert(tix == hsp.mTargetEnd);
+
+	return { rq, rt };
 }
 
 // --------------------------------------------------------------------
@@ -123,6 +170,9 @@ int a_main(int argc, const char* argv[])
 															"Dictionary file containing restraints for residues in this specific target, can be specified multiple times.")
 
 		("pdb-fasta",	po::value<std::string>(),			"The PDB-REDO fasta file")
+
+		("pdb-dir",		po::value<std::string>()->default_value("/srv/data/pdb/mmCIF/"),
+															"Directory containing the mmCIF files for the PDB")
 
 		("help,h",											"Display help message")
 		("version",											"Print version")
@@ -163,25 +213,25 @@ int a_main(int argc, const char* argv[])
 
 	if (vm.count("help"))
 	{
-		std::cerr << visible_options << std::endl;
+		std::cout << visible_options << std::endl;
 		exit(0);
 	}
 	
 	if (vm.count("xyzin") == 0)
 	{
-		std::cerr << "Input file not specified" << std::endl;
+		std::cout << "Input file not specified" << std::endl;
 		exit(1);
 	}
 
 	if (vm.count("pdb-fasta") == 0)
 	{
-		std::cerr << "PDB-REDO fasta file not specified" << std::endl;
+		std::cout << "PDB-REDO fasta file not specified" << std::endl;
 		exit(1);
 	}
 
 	if (vm.count("output-format") and vm["output-format"].as<std::string>() != "dssp" and vm["output-format"].as<std::string>() != "mmcif")
 	{
-		std::cerr << "Output format should be one of 'dssp' or 'mmcif'" << std::endl;
+		std::cout << "Output format should be one of 'dssp' or 'mmcif'" << std::endl;
 		exit(1);
 	}
 
@@ -218,6 +268,10 @@ int a_main(int argc, const char* argv[])
 	if (not fs::exists(fasta))
 		throw std::runtime_error("PDB-Fasta file does not exist (" + fasta + ")");
 
+	fs::path pdbDir = vm["pdb-dir"].as<std::string>();
+	if (not fs::is_directory(pdbDir))
+		throw std::runtime_error("PDB directory does not exist");
+
 	// --------------------------------------------------------------------
 	
 	mmcif::File f(vm["xyzin"].as<std::string>());
@@ -225,7 +279,10 @@ int a_main(int argc, const char* argv[])
 
 	// fetch the (single) chain
 
+	const std::regex kIDRx(R"(^>(\w{4,8})_(\w)( .*)?)");
+
 	auto& db = f.data();
+
 	for (auto r: db["entity_poly"])
 	{
 		auto&& [id, seq] = r.get<std::string,std::string>({"entity_id", "pdbx_seq_one_letter_code"});
@@ -239,10 +296,52 @@ int a_main(int argc, const char* argv[])
 		std::cout << "Found " << result.size() << " hits" << std::endl;
 
 		for (auto &hit: result)
-			std::cout << hit.id << '\t'
-					  << hit.score << '\t'
-					  << hit.seq << std::endl;
+		{
+			std::cout << hit.mDefLine << '\t'
+					  << decode(hit.mTarget) << std::endl;
 
+			std::smatch m;
+			if (regex_match(hit.mDefLine, m, kIDRx))
+			{
+				std::string pdb_id = m[1].str();
+				std::string chain_id = m[2].str();
+
+				std::cout << "pdb id: " << pdb_id << '\t' << "chain id: " << chain_id << std::endl;
+
+				try
+				{
+					mmcif::File fp(pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz"));
+
+					auto af_ca = getCAlphaForChain(db, "A");
+					auto pdb_ca = getCAlphaForChain(fp.data(), chain_id);
+
+					if (pdb_ca.size() == 0)
+					{
+						std::cerr << "Missing chain " << chain_id << std::endl;
+						continue;
+					}
+
+					auto&& [af_ca_trimmed, pdb_ca_trimmed] = getTrimmedCAlphaForHsp(af_ca, pdb_ca, hit.mHsps.front());
+
+					std::cout << "rmsd before: " << mmcif::RMSd(af_ca_trimmed, pdb_ca_trimmed) << std::endl;
+
+					Point t_af, t_pdb;
+					mmcif::quaternion q;
+
+					AlignIterative(af_ca_trimmed, pdb_ca_trimmed, t_af, t_pdb, q);
+
+					const auto& [angle, axis] = mmcif::QuaternionToAngleAxis(q);
+					std::cout << "rotation: " << angle << " degrees rotation around axis " << axis << std::endl
+							  << "rmsd after: " << mmcif::RMSd(af_ca_trimmed, pdb_ca_trimmed) << std::endl;
+
+					// break;
+				}
+				catch(const std::exception& e)
+				{
+					std::cout << e.what() << '\n';
+				}
+			}
+		}
 	}
 
 
@@ -256,14 +355,14 @@ int a_main(int argc, const char* argv[])
 // recursively print exception whats:
 void print_what (const std::exception& e)
 {
-	std::cerr << e.what() << std::endl;
+	std::cout << e.what() << std::endl;
 	try
 	{
 		std::rethrow_if_nested(e);
 	}
 	catch (const std::exception& nested)
 	{
-		std::cerr << " >> ";
+		std::cout << " >> ";
 		print_what(nested);
 	}
 }

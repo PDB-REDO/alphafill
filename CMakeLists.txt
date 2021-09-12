@@ -101,7 +101,7 @@ set(THREADS_PREFER_PTHREAD_FLAG)
 find_package(Threads REQUIRED)
 
 set (Boost_DETAILED_FAILURE_MSG ON)
-find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options system iostreams regex date_time)
+find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options system iostreams date_time regex)
 
 find_package(ZLIB)
 find_package(BZip2)
@@ -128,6 +128,7 @@ include_directories(
 )
 
 add_executable(alphafill
+	${PROJECT_SOURCE_DIR}/src/align-3d.cpp
 	${PROJECT_SOURCE_DIR}/src/blast.cpp
 	${PROJECT_SOURCE_DIR}/src/matrix.cpp
 	${PROJECT_SOURCE_DIR}/src/alphafill.cpp)

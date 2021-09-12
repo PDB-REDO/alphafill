@@ -50,11 +50,36 @@ class blast_exception : public std::runtime_error
 
 // --------------------------------------------------------------------
 
+struct BlastHsp
+{
+	uint32_t mScore;
+	uint32_t mQueryStart, mQueryEnd, mTargetStart, mTargetEnd;
+	sequence mAlignedQuery, mAlignedTarget;
+	double mBitScore;
+	double mExpect;
+	bool mGapped;
+
+	bool operator>(const BlastHsp &inHsp) const { return mScore > inHsp.mScore; }
+	void CalculateExpect(int64_t inSearchSpace, double inLambda, double inLogKappa);
+	bool Overlaps(const BlastHsp &inOther) const
+	{
+		return mQueryEnd >= inOther.mQueryStart and mQueryStart <= inOther.mQueryEnd and
+		       mTargetEnd >= inOther.mTargetStart and mTargetStart <= inOther.mTargetEnd;
+	}
+};
+
 struct BlastHit
 {
-	std::string id;
-	double score;
-	std::string seq;
+	std::string mDefLine;
+	sequence mTarget;
+	std::vector<BlastHsp> mHsps;
+
+	BlastHit(const std::string &inDefLine, const sequence &inTarget)
+		: mDefLine(inDefLine)
+		, mTarget(inTarget) {}
+
+	BlastHit(const BlastHit& hit) = default;
+	BlastHit(BlastHit&& hit) = default;
 };
 
 // --------------------------------------------------------------------

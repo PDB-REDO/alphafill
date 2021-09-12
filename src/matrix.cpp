@@ -7,16 +7,7 @@
 
 #include "matrix.hpp"
 
-#include <sstream>
-#include <iostream>
 #include <cmath>
-
-#include <boost/iostreams/device/array.hpp>
-#include <boost/iostreams/stream.hpp>
-
-#include "utils.hpp"
-
-namespace io = boost::iostreams;
 
 // --------------------------------------------------------------------
 

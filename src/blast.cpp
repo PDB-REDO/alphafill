@@ -8,11 +8,12 @@
 #include <mutex>
 #include <numeric>
 #include <thread>
+#include <regex>
+#include <cmath>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
-#include <boost/regex.hpp>
 
 #include <cif++/CifUtils.hpp>
 
@@ -50,7 +51,7 @@ std::string decode(const sequence &s)
 
 // --------------------------------------------------------------------
 
-boost::regex
+std::regex
 	// kFastARE("^>(\\w+)((?:\\|([^| ]*))?(?:\\|([^| ]+))?(?:\\|([^| ]+))?(?:\\|([^| ]+))?)(?: (.+))\n?");
 	kFastARE(R"(^>(\w+)((?:\|([^| ]*))?(?:\|([^| ]+))?(?:\|([^| ]+))?(?:\|([^| ]+))?)(?: (.+))\n?)");
 
@@ -71,7 +72,7 @@ const int32_t
 	kHitWindow = 40;
 
 const double
-	kLn2 = log(2.);
+	kLn2 = std::log(2.);
 
 const int16_t
 	kSentinalScore = -9999;
@@ -164,7 +165,7 @@ Alphabet::Alphabet(const char *inChars)
 	: mAlphaChars(inChars)
 {
 	mAlphaSize = static_cast<int>(strlen(inChars));
-	mAlphaLnSize = log(static_cast<double>(mAlphaSize));
+	mAlphaLnSize = std::log(static_cast<double>(mAlphaSize));
 
 	for (uint32_t i = 0; i < 128; ++i)
 	{
@@ -264,9 +265,9 @@ void Window::CalcEntropy()
 		for (uint32_t i = 0; i < mState.size() and mState[i]; ++i)
 		{
 			double t = mState[i] / total;
-			mEntropy += t * log(t);
+			mEntropy += t * std::log(t);
 		}
-		mEntropy = fabs(mEntropy / log(0.5));
+		mEntropy = std::fabs(mEntropy / std::log(0.5));
 	}
 }
 
@@ -342,7 +343,7 @@ static double lnfac(long inN)
 	{
 		double x = inN + 1;
 		double t = x + 5.5;
-		t -= (x + 0.5) * log(t);
+		t -= (x + 0.5) * std::log(t);
 		double ser = 1.000000000190015;
 		for (int i = 0; i <= 5; i++)
 		{
@@ -650,7 +651,7 @@ int32_t BlastComputeLengthAdjustment(
 	int32_t query_length, int64_t db_length, int32_t db_num_seqs,
 	int32_t &length_adjustment)
 {
-	double logK = log(K);
+	double logK = std::log(K);
 
 	int32_t i;                 /* iteration index */
 	const int32_t maxits = 20; /* maximum allowed iterations */
@@ -725,7 +726,7 @@ int32_t BlastComputeLengthAdjustment(
          * assume that floor(ell_min) = floor(ell_fixed) */
 		length_adjustment = (int32_t)ell_min;
 		/* But verify that ceil(ell_min) != floor(ell_fixed) */
-		ell = ceil(ell_min);
+		ell = std::ceil(ell_min);
 		if (ell <= ell_max)
 		{
 			ss = (m - ell) * (n - N * ell);
@@ -1128,27 +1129,9 @@ inline void ReadEntry(const char *&inFasta, const char *inEnd, sequence &outTarg
 
 // --------------------------------------------------------------------
 
-struct Hsp
+void BlastHsp::CalculateExpect(int64_t inSearchSpace, double inLambda, double inLogKappa)
 {
-	uint32_t mScore;
-	uint32_t mQueryStart, mQueryEnd, mTargetStart, mTargetEnd;
-	sequence mAlignedQuery, mAlignedTarget;
-	double mBitScore;
-	double mExpect;
-	bool mGapped;
-
-	bool operator>(const Hsp &inHsp) const { return mScore > inHsp.mScore; }
-	void CalculateExpect(int64_t inSearchSpace, double inLambda, double inLogKappa);
-	bool Overlaps(const Hsp &inOther) const
-	{
-		return mQueryEnd >= inOther.mQueryStart and mQueryStart <= inOther.mQueryEnd and
-		       mTargetEnd >= inOther.mTargetStart and mTargetStart <= inOther.mTargetEnd;
-	}
-};
-
-void Hsp::CalculateExpect(int64_t inSearchSpace, double inLambda, double inLogKappa)
-{
-	mBitScore = floor((inLambda * mScore - inLogKappa) / kLn2);
+	mBitScore = std::floor((inLambda * mScore - inLogKappa) / kLn2);
 	mExpect = inSearchSpace / std::pow(2., mBitScore);
 }
 
@@ -1157,25 +1140,20 @@ void Hsp::CalculateExpect(int64_t inSearchSpace, double inLambda, double inLogKa
 struct Hit;
 typedef std::shared_ptr<Hit> HitPtr;
 
-struct Hit
+struct Hit : public BlastHit
 {
 	Hit(const char *inEntry, const sequence &inTarget);
 
-	void AddHsp(const Hsp &inHsp);
+	void AddHsp(const BlastHsp &inHsp);
 	void Cleanup(int64_t inSearchSpace, double inLambda, double inLogKappa, double inExpect);
-
-	std::string mDefLine;
-	sequence mTarget;
-	std::vector<Hsp> mHsps;
 };
 
 Hit::Hit(const char *inEntry, const sequence &inTarget)
-	: mDefLine(inEntry, const_cast<const char *>(strchr(inEntry, '\n')))
-	, mTarget(inTarget)
+	: BlastHit({ inEntry, const_cast<const char *>(strchr(inEntry, '\n'))}, inTarget)
 {
 }
 
-void Hit::AddHsp(const Hsp &inHsp)
+void Hit::AddHsp(const BlastHsp &inHsp)
 {
 	bool found = false;
 
@@ -1196,12 +1174,12 @@ void Hit::AddHsp(const Hsp &inHsp)
 
 void Hit::Cleanup(int64_t inSearchSpace, double inLambda, double inLogKappa, double inExpect)
 {
-	std::sort(mHsps.begin(), mHsps.end(), std::greater<Hsp>());
+	std::sort(mHsps.begin(), mHsps.end(), std::greater<BlastHsp>());
 
-	std::vector<Hsp>::iterator a = mHsps.begin();
+	std::vector<BlastHsp>::iterator a = mHsps.begin();
 	while (a != mHsps.end() and a + 1 != mHsps.end())
 	{
-		std::vector<Hsp>::iterator b = a + 1;
+		std::vector<BlastHsp>::iterator b = a + 1;
 		while (b != mHsps.end())
 		{
 			if (a->Overlaps(*b))
@@ -1212,13 +1190,13 @@ void Hit::Cleanup(int64_t inSearchSpace, double inLambda, double inLogKappa, dou
 		++a;
 	}
 
-	for_each(mHsps.begin(), mHsps.end(), [=](Hsp &hsp)
+	for_each(mHsps.begin(), mHsps.end(), [=](BlastHsp &hsp)
 		{ hsp.CalculateExpect(inSearchSpace, inLambda, inLogKappa); });
 
-	std::sort(mHsps.begin(), mHsps.end(), std::greater<Hsp>());
+	std::sort(mHsps.begin(), mHsps.end(), std::greater<BlastHsp>());
 
 	mHsps.erase(
-		remove_if(mHsps.begin(), mHsps.end(), [=](const Hsp &hsp) -> bool
+		remove_if(mHsps.begin(), mHsps.end(), [=](const BlastHsp &hsp) -> bool
 			{ return hsp.mExpect > inExpect; }),
 		mHsps.end());
 }
@@ -1250,8 +1228,8 @@ class BlastQuery
 		Iterator2 inTargetBegin, Iterator2 inTargetEnd,
 		TraceBack &inTraceBack, int32_t inDropOff, uint32_t &outBestX, uint32_t &outBestY) const;
 
-	int32_t AlignGappedFirst(const sequence &inTarget, Hsp &ioHsp) const;
-	int32_t AlignGappedSecond(const sequence &inTarget, Hsp &ioHsp) const;
+	int32_t AlignGappedFirst(const sequence &inTarget, BlastHsp &ioHsp) const;
+	int32_t AlignGappedSecond(const sequence &inTarget, BlastHsp &ioHsp) const;
 
 	void AddHit(HitPtr inHit, std::vector<HitPtr> &inHitList) const;
 
@@ -1300,13 +1278,13 @@ BlastQuery<WORDSIZE>::BlastQuery(const std::string &inQuery, bool inFilter, doub
 	transform(query.begin(), query.end(), back_inserter(mQuery), [](char aa) -> uint8_t
 		{ return ResidueNr(aa); });
 
-	mXu = static_cast<int32_t>(ceil((kLn2 * kUngappedDropOff) / mMatrix.UngappedLambda()));
+	mXu = static_cast<int32_t>(std::ceil((kLn2 * kUngappedDropOff) / mMatrix.UngappedLambda()));
 	mXg = static_cast<int32_t>((kLn2 * kGappedDropOff) / mMatrix.GappedLambda());
 	mXgFinal = static_cast<int32_t>((kLn2 * kGappedDropOffFinal) / mMatrix.GappedLambda());
-	mS1 = static_cast<int32_t>((kLn2 * kGapTrigger + log(mMatrix.UngappedKappa())) / mMatrix.UngappedLambda());
+	mS1 = static_cast<int32_t>((kLn2 * kGapTrigger + std::log(mMatrix.UngappedKappa())) / mMatrix.UngappedLambda());
 
 	// we're not using S2
-	mS2 = static_cast<int32_t>((kLn2 * kGapTrigger + log(mMatrix.GappedKappa())) / mMatrix.GappedLambda());
+	mS2 = static_cast<int32_t>((kLn2 * kGapTrigger + std::log(mMatrix.GappedKappa())) / mMatrix.GappedLambda());
 	; // yeah, that sucks... perhaps
 
 	IWordHitIterator::Init(mQuery, mMatrix, kThreshold, mWordHitData);
@@ -1385,7 +1363,7 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 		{
 			t.emplace_back([this, &ix]()
 				{
-					double lambda = mMatrix.GappedLambda(), logK = log(mMatrix.GappedKappa());
+					double lambda = mMatrix.GappedLambda(), logK = std::log(mMatrix.GappedKappa());
 
 					for (;;)
 					{
@@ -1395,7 +1373,7 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 
 						HitPtr hit = mHits[next];
 
-						for (Hsp &hsp : hit->mHsps)
+						for (BlastHsp &hsp : hit->mHsps)
 							hsp.mScore = this->AlignGappedSecond(hit->mTarget, hsp);
 
 						hit->Cleanup(mSearchSpace, lambda, logK, mExpect);
@@ -1441,7 +1419,7 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 //		transform(hit->mTarget.begin(), hit->mTarget.end(),
 //			back_inserter(h.mSequence), [](uint8_t r) -> char { return kResidues[r]; });
 //
-//		if (not boost::regex_match(h.mDefLine, m, kFastARE, boost::match_not_dot_newline))
+//		if (not std::regex_match(h.mDefLine, m, kFastARE, boost::match_not_dot_newline))
 //			throw blast_exception(boost::format("Invalid defline: %s") % h.mDefLine);
 //
 //		if (m[1] == "sp")
@@ -1523,13 +1501,7 @@ std::vector<BlastHit> BlastQuery<WORDSIZE>::BlastHits() const
 	std::vector<BlastHit> result;
 
 	for (HitPtr hit : mHits)
-	{
-		std::string id = hit->mDefLine;
-		std::string seq = decode(hit->mTarget);
-
-		for (Hsp& hsp: hit->mHsps)
-			result.push_back(BlastHit{id, hsp.mExpect, seq.substr(hsp.mTargetStart, hsp.mTargetEnd - hsp.mTargetStart)});
-	}
+		result.push_back(*hit);
 
 	return result;
 }
@@ -1598,7 +1570,7 @@ void BlastQuery<WORDSIZE>::SearchPart(const char *inFasta, size_t inLength, cif:
 				{
 					++successfulExtensions;
 
-					Hsp hsp;
+					BlastHsp hsp;
 
 					// extension results, to be updated later
 					hsp.mQueryStart = queryStart;
@@ -1833,7 +1805,7 @@ int32_t BlastQuery<WORDSIZE>::AlignGapped(
 }
 
 template <int WORDSIZE>
-int32_t BlastQuery<WORDSIZE>::AlignGappedFirst(const sequence &inTarget, Hsp &ioHsp) const
+int32_t BlastQuery<WORDSIZE>::AlignGappedFirst(const sequence &inTarget, BlastHsp &ioHsp) const
 {
 	int32_t score;
 
@@ -1859,7 +1831,7 @@ int32_t BlastQuery<WORDSIZE>::AlignGappedFirst(const sequence &inTarget, Hsp &io
 }
 
 template <int WORDSIZE>
-int32_t BlastQuery<WORDSIZE>::AlignGappedSecond(const sequence &inTarget, Hsp &ioHsp) const
+int32_t BlastQuery<WORDSIZE>::AlignGappedSecond(const sequence &inTarget, BlastHsp &ioHsp) const
 {
 	uint32_t x, y;
 	int32_t score = 0;
@@ -1981,7 +1953,7 @@ int32_t BlastQuery<WORDSIZE>::AlignGappedSecond(const sequence &inTarget, Hsp &i
 template <int WORDSIZE>
 void BlastQuery<WORDSIZE>::AddHit(HitPtr inHit, std::vector<HitPtr> &inHitList) const
 {
-	std::sort(inHit->mHsps.begin(), inHit->mHsps.end(), std::greater<Hsp>());
+	std::sort(inHit->mHsps.begin(), inHit->mHsps.end(), std::greater<BlastHsp>());
 
 	inHitList.push_back(inHit);
 
@@ -2115,8 +2087,8 @@ std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank,
 
 	if (ba::starts_with(inQuery, ">"))
 	{
-		boost::smatch m;
-		if (regex_search(inQuery, m, kFastARE, boost::match_not_dot_newline))
+		std::smatch m;
+		if (regex_search(inQuery, m, kFastARE))
 		{
 			queryID = m[4];
 			if (queryID.empty())
