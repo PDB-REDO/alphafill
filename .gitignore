@@ -4,3 +4,5 @@ version-info*.txt
 mkdssp
 .vs/
 build
+coot-backup/
+0-coot-history*

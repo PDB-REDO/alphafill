@@ -24,23 +24,26 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <thread>
 #include <filesystem>
+#include <fstream>
+#include <thread>
 
 #include <cif++/Structure.hpp>
 
+#include <boost/iostreams/filtering_stream.hpp>
 #include <boost/program_options.hpp>
 
 #include "blast.hpp"
-#include "align-3d.hpp"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
+namespace io = boost::iostreams;
 
 // --------------------------------------------------------------------
 
-namespace {
-	std::string gVersionNr, gVersionDate;
+namespace
+{
+std::string gVersionNr, gVersionDate;
 }
 
 void load_version_info()
@@ -54,8 +57,8 @@ void load_version_info()
 
 	struct membuf : public std::streambuf
 	{
-		membuf(char* data, size_t length)       { this->setg(data, data, data + length); }
-	} buffer(const_cast<char*>(kRevision), sizeof(kRevision));
+		membuf(char *data, size_t length) { this->setg(data, data, data + length); }
+	} buffer(const_cast<char *>(kRevision), sizeof(kRevision));
 
 	std::istream is(&buffer);
 
@@ -90,7 +93,7 @@ void load_version_info()
 
 std::string get_version_nr()
 {
-	return gVersionNr/* + '/' + cif::get_version_nr()*/;
+	return gVersionNr /* + '/' + cif::get_version_nr()*/;
 }
 
 std::string get_version_date()
@@ -106,23 +109,24 @@ std::string get_version_string()
 // --------------------------------------------------------------------
 
 using mmcif::Point;
+using mmcif::Quaternion;
 
-std::vector<Point> getCAlphaForChain(cif::Datablock& db, const std::string& asym_id)
+std::vector<Point> getCAlphaForChain(cif::Datablock &db, const std::string &asym_id)
 {
 	using namespace cif::literals;
 
 	std::vector<Point> result;
 
-	auto& atoms = db["atom_site"];
-	for (const auto& [x, y, z]: atoms.find<float,float,float>("auth_asym_id"_key == asym_id, { "Cartn_x", "Cartn_y", "Cartn_z" }))
+	auto &atoms = db["atom_site"];
+	for (const auto &[x, y, z] : atoms.find<float, float, float>("auth_asym_id"_key == asym_id and "label_atom_id"_key == "CA", {"Cartn_x", "Cartn_y", "Cartn_z"}))
 		result.emplace_back(x, y, z);
-	
+
 	return result;
 }
 
 std::tuple<std::vector<Point>, std::vector<Point>> getTrimmedCAlphaForHsp(
-	const std::vector<Point>& q, const std::vector<Point>& t,
-	const BlastHsp& hsp)
+	const std::vector<Point> &q, const std::vector<Point> &t,
+	const BlastHsp &hsp)
 {
 	std::vector<Point> rq, rt;
 
@@ -131,8 +135,8 @@ std::tuple<std::vector<Point>, std::vector<Point>> getTrimmedCAlphaForHsp(
 	size_t qix = hsp.mQueryStart;
 	size_t tix = hsp.mTargetStart;
 
-	auto& qa = hsp.mAlignedQuery;
-	auto& ta = hsp.mAlignedTarget;
+	auto &qa = hsp.mAlignedQuery;
+	auto &ta = hsp.mAlignedTarget;
 
 	for (size_t i = 0; i < hsp.mAlignedQuery.length(); ++i)
 	{
@@ -155,35 +159,108 @@ std::tuple<std::vector<Point>, std::vector<Point>> getTrimmedCAlphaForHsp(
 	assert(qix == hsp.mQueryEnd);
 	assert(tix == hsp.mTargetEnd);
 
-	return { rq, rt };
+	return {rq, rt};
+}
+
+double CalculateRMSD(const std::vector<mmcif::Point> &pa, const std::vector<mmcif::Point> &pb)
+{
+	return RMSd(pa, pb);
+}
+
+bool Align(std::vector<Point> &cAlphaA, std::vector<Point> &cAlphaB,
+	Point &outTranslationA, Point &outTranslationB, mmcif::Quaternion &outRotation)
+{
+	if (cAlphaA.size() != cAlphaB.size())
+		throw std::logic_error("Protein A and B should have the same number of c-alhpa atoms");
+
+	if (cAlphaA.size() < 3)
+		throw std::logic_error("Protein A and B should have at least 3 of c-alpha atoms");
+
+	outTranslationA = Centroid(cAlphaA);
+	for (Point &pt : cAlphaA)
+		pt -= outTranslationA;
+
+	outTranslationB = Centroid(cAlphaB);
+	for (Point &pt : cAlphaB)
+		pt -= outTranslationB;
+
+	outRotation = AlignPoints(cAlphaA, cAlphaB);
+	for (Point &pt : cAlphaB)
+		pt.rotate(outRotation);
+
+	double angle;
+	Point axis;
+	std::tie(angle, axis) = mmcif::QuaternionToAngleAxis(outRotation);
+	if (cif::VERBOSE > 1)
+		std::cerr << "before iterating, rotation: " << angle << " degrees rotation around axis " << axis << std::endl;
+
+	return angle > 0.01;
+}
+
+void AlignIterative(
+	mmcif::Structure &a, mmcif::Structure &b,
+	std::vector<Point> &cAlphaA, std::vector<Point> &cAlphaB,
+	uint32_t iterations = 32)
+{
+	auto ta = Centroid(cAlphaA);
+	for (auto &pt : cAlphaA)
+		pt -= ta;
+
+	auto tb = Centroid(cAlphaB);
+	for (auto &pt : cAlphaB)
+		pt -= tb;
+
+	auto rotation = AlignPoints(cAlphaA, cAlphaB);
+	for (auto &pt : cAlphaB)
+		pt.rotate(rotation);
+
+	double angle;
+	Point axis;
+	std::tie(angle, axis) = mmcif::QuaternionToAngleAxis(rotation);
+	if (cif::VERBOSE > 1)
+		std::cerr << "before iterating, rotation: " << angle << " degrees rotation around axis " << axis << std::endl;
+
+	uint32_t iteration = 0;
+	for (;;)
+	{
+		a.translate(-ta);
+		b.translate(-tb);
+		b.rotate(rotation);
+
+		if (cif::VERBOSE > 1)
+			std::cerr << "RMSd: (" << iteration << ") " << CalculateRMSD(cAlphaA, cAlphaB) << std::endl;
+
+		if (iteration++ >= iterations)
+			break;
+
+		if (not Align(cAlphaA, cAlphaB, ta, tb, rotation))
+			break;
+	}
+
+	a.getFile().file().save("a.cif");
+	b.getFile().file().save("b.cif");
 }
 
 // --------------------------------------------------------------------
 
-int a_main(int argc, const char* argv[])
+int a_main(int argc, const char *argv[])
 {
 	using namespace std::literals;
+	using namespace cif::literals;
 
 	po::options_description visible_options(argv[0] + " [options] input-file [output-file]"s);
-	visible_options.add_options()
-		("dict",		po::value<std::vector<std::string>>(),
-															"Dictionary file containing restraints for residues in this specific target, can be specified multiple times.")
+	visible_options.add_options()("dict", po::value<std::vector<std::string>>(),
+		"Dictionary file containing restraints for residues in this specific target, can be specified multiple times.")
 
-		("pdb-fasta",	po::value<std::string>(),			"The PDB-REDO fasta file")
+		("pdb-fasta", po::value<std::string>(), "The PDB-REDO fasta file")
 
-		("pdb-dir",		po::value<std::string>()->default_value("/srv/data/pdb/mmCIF/"),
-															"Directory containing the mmCIF files for the PDB")
+			("pdb-dir", po::value<std::string>()->default_value("/srv/data/pdb/mmCIF/"),
+				"Directory containing the mmCIF files for the PDB")
 
-		("help,h",											"Display help message")
-		("version",											"Print version")
-		("verbose,v",										"verbose output")
-		;
-	
+				("help,h", "Display help message")("version", "Print version")("verbose,v", "verbose output");
+
 	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()
-		("xyzin,i",				po::value<std::string>(),	"coordinates file")
-		("output,o",            po::value<std::string>(),	"Output to this file")
-		("debug,d",				po::value<int>(),			"Debug level (for even more verbose output)")
+	hidden_options.add_options()("xyzin,i", po::value<std::string>(), "coordinates file")("output,o", po::value<std::string>(), "Output to this file")("debug,d", po::value<int>(), "Debug level (for even more verbose output)")
 
 		// ("compounds",			po::value<std::string>(),	"Location of the components.cif file from CCD")
 		// ("components",			po::value<std::string>(),	"Location of the components.cif file from CCD, alias")
@@ -197,7 +274,7 @@ int a_main(int argc, const char* argv[])
 	po::positional_options_description p;
 	p.add("xyzin", 1);
 	p.add("output", 1);
-	
+
 	po::variables_map vm;
 	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
 
@@ -216,7 +293,7 @@ int a_main(int argc, const char* argv[])
 		std::cout << visible_options << std::endl;
 		exit(0);
 	}
-	
+
 	if (vm.count("xyzin") == 0)
 	{
 		std::cout << "Input file not specified" << std::endl;
@@ -247,10 +324,10 @@ int a_main(int argc, const char* argv[])
 		cif::addFileResource("components.cif", vm["compounds"].as<std::string>());
 	else if (vm.count("components"))
 		cif::addFileResource("components.cif", vm["components"].as<std::string>());
-	
+
 	if (vm.count("extra-compounds"))
 		mmcif::CompoundFactory::instance().pushDictionary(vm["extra-compounds"].as<std::string>());
-	
+
 	// And perhaps a private mmcif_pdbx dictionary
 
 	if (vm.count("mmcif-dictionary"))
@@ -258,12 +335,12 @@ int a_main(int argc, const char* argv[])
 
 	if (vm.count("dict"))
 	{
-		for (auto dict: vm["dict"].as<std::vector<std::string>>())
+		for (auto dict : vm["dict"].as<std::vector<std::string>>())
 			mmcif::CompoundFactory::instance().pushDictionary(dict);
 	}
 
 	// --------------------------------------------------------------------
-	
+
 	std::string fasta = vm["pdb-fasta"].as<std::string>();
 	if (not fs::exists(fasta))
 		throw std::runtime_error("PDB-Fasta file does not exist (" + fasta + ")");
@@ -273,20 +350,22 @@ int a_main(int argc, const char* argv[])
 		throw std::runtime_error("PDB directory does not exist");
 
 	// --------------------------------------------------------------------
-	
+
 	mmcif::File f(vm["xyzin"].as<std::string>());
-	// mmcif::Structure structure(f, 1, mmcif::StructureOpenOptions::SkipHydrogen);
+	mmcif::Structure structure(f, 1, mmcif::StructureOpenOptions::SkipHydrogen);
 
 	// fetch the (single) chain
 
 	const std::regex kIDRx(R"(^>(\w{4,8})_(\w)( .*)?)");
 
-	auto& db = f.data();
+	auto &db = f.data();
 
-	for (auto r: db["entity_poly"])
+	bool done = false;
+
+	for (auto r : db["entity_poly"])
 	{
-		auto&& [id, seq] = r.get<std::string,std::string>({"entity_id", "pdbx_seq_one_letter_code"});
-		
+		auto &&[id, seq] = r.get<std::string, std::string>({"entity_id", "pdbx_seq_one_letter_code"});
+
 		std::cout << "Blasting:" << std::endl
 				  << seq << std::endl
 				  << std::endl;
@@ -295,7 +374,7 @@ int a_main(int argc, const char* argv[])
 
 		std::cout << "Found " << result.size() << " hits" << std::endl;
 
-		for (auto &hit: result)
+		for (auto &hit : result)
 		{
 			std::cout << hit.mDefLine << '\t'
 					  << decode(hit.mTarget) << std::endl;
@@ -310,10 +389,10 @@ int a_main(int argc, const char* argv[])
 
 				try
 				{
-					mmcif::File fp(pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz"));
+					mmcif::File pdb_f(pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz"));
 
 					auto af_ca = getCAlphaForChain(db, "A");
-					auto pdb_ca = getCAlphaForChain(fp.data(), chain_id);
+					auto pdb_ca = getCAlphaForChain(pdb_f.data(), chain_id);
 
 					if (pdb_ca.size() == 0)
 					{
@@ -321,31 +400,55 @@ int a_main(int argc, const char* argv[])
 						continue;
 					}
 
-					auto&& [af_ca_trimmed, pdb_ca_trimmed] = getTrimmedCAlphaForHsp(af_ca, pdb_ca, hit.mHsps.front());
+					auto &&[af_ca_trimmed, pdb_ca_trimmed] = getTrimmedCAlphaForHsp(af_ca, pdb_ca, hit.mHsps.front());
 
-					std::cout << "rmsd before: " << mmcif::RMSd(af_ca_trimmed, pdb_ca_trimmed) << std::endl;
+					mmcif::Structure pdb_structure(pdb_f);
 
-					Point t_af, t_pdb;
-					mmcif::quaternion q;
+					AlignIterative(structure, pdb_structure, af_ca_trimmed, pdb_ca_trimmed);
 
-					AlignIterative(af_ca_trimmed, pdb_ca_trimmed, t_af, t_pdb, q);
+					auto &pdb_data = pdb_f.data();
 
-					const auto& [angle, axis] = mmcif::QuaternionToAngleAxis(q);
-					std::cout << "rotation: " << angle << " degrees rotation around axis " << axis << std::endl
-							  << "rmsd after: " << mmcif::RMSd(af_ca_trimmed, pdb_ca_trimmed) << std::endl;
+					for (auto &np : pdb_structure.nonPolymers())
+					{
+						auto comp_id = np.compoundID();
 
-					// break;
+						if (comp_id != "HEM")
+							continue;
+
+						auto entity_id = structure.createNonPolyEntity(comp_id);
+
+						// fetch the non poly atoms as cif::Rows
+						auto &atom_site = pdb_data["atom_site"];
+						auto atoms = atom_site.find("label_asym_id"_key == np.asymID());
+						std::vector<cif::Row> atom_data(atoms.begin(), atoms.end());
+
+						auto asym_id = structure.createNonpoly(entity_id, atom_data);
+
+						if (cif::VERBOSE)
+							std::cerr << "Created asym " << asym_id << std::endl;
+
+						done = true;
+						break;
+					}
+
+					break;
 				}
-				catch(const std::exception& e)
+				catch (const std::exception &e)
 				{
 					std::cout << e.what() << '\n';
 				}
 			}
+			if (done)
+				break;
 		}
+		if (done)
+			break;
 	}
 
-
-
+	if (vm.count("output"))
+		f.file().save(vm["output"].as<std::string>());
+	else
+		f.file().save(std::cout);
 
 	return 0;
 }
@@ -353,14 +456,14 @@ int a_main(int argc, const char* argv[])
 // --------------------------------------------------------------------
 
 // recursively print exception whats:
-void print_what (const std::exception& e)
+void print_what(const std::exception &e)
 {
 	std::cout << e.what() << std::endl;
 	try
 	{
 		std::rethrow_if_nested(e);
 	}
-	catch (const std::exception& nested)
+	catch (const std::exception &nested)
 	{
 		std::cout << " >> ";
 		print_what(nested);
@@ -369,7 +472,7 @@ void print_what (const std::exception& e)
 
 // --------------------------------------------------------------------
 
-int main(int argc, const char* argv[])
+int main(int argc, const char *argv[])
 {
 	int result = 0;
 
@@ -382,7 +485,7 @@ int main(int argc, const char* argv[])
 
 		result = a_main(argc, argv);
 	}
-	catch (const std::exception& ex)
+	catch (const std::exception &ex)
 	{
 		print_what(ex);
 		exit(1);

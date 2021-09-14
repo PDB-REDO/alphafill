@@ -128,7 +128,6 @@ include_directories(
 )
 
 add_executable(alphafill
-	${PROJECT_SOURCE_DIR}/src/align-3d.cpp
 	${PROJECT_SOURCE_DIR}/src/blast.cpp
 	${PROJECT_SOURCE_DIR}/src/matrix.cpp
 	${PROJECT_SOURCE_DIR}/src/alphafill.cpp)
