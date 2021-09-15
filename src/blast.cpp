@@ -2063,15 +2063,11 @@ void BlastQuery<WORDSIZE>::AddHit(HitPtr inHit, std::vector<HitPtr> &inHitList) 
 //	return result.release();
 //}
 
-std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank,
-	const std::string &inQuery, const std::string &inProgram,
+std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, const std::string &inQuery,
 	const std::string &inMatrix, uint32_t inWordSize, double inExpect,
 	bool inFilter, bool inGapped, int32_t inGapOpen, int32_t inGapExtend,
 	uint32_t inReportLimit, uint32_t inThreads)
 {
-	if (inProgram != "blastp")
-		throw blast_exception("Unsupported program " + inProgram);
-
 	if (inGapped)
 	{
 		if (inGapOpen == -1)
