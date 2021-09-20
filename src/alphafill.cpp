@@ -310,7 +310,7 @@ int a_main(int argc, const char* argv[])
 
 				try
 				{
-					mmcif::File fp(pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz"));
+					mmcif::File fp((pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz")).string());
 
 					auto af_ca = getCAlphaForChain(db, "A");
 					auto pdb_ca = getCAlphaForChain(fp.data(), chain_id);

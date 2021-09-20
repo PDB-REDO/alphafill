@@ -10,6 +10,7 @@
 #include <thread>
 #include <regex>
 #include <cmath>
+#include <map>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>

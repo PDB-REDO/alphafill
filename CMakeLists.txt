@@ -105,7 +105,7 @@ find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options system iostreams d
 
 find_package(ZLIB)
 find_package(BZip2)
-find_package(cifpp 1.0 REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
+find_package(cifpp 1.0 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
 
 if(CIFPP_FOUND)
 	add_compile_definitions("DATA_DIR=\"${CIFPP_SHARE_DIR}\"")
