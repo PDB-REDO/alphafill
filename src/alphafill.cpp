@@ -195,20 +195,30 @@ void Align(mmcif::Structure &a, mmcif::Structure &b,
 	std::vector<Point> &cAlphaA, std::vector<Point> &cAlphaB)
 {
 	auto ta = Centroid(cAlphaA);
+
+	if (cif::VERBOSE)
+		std::cerr << "translate A: " << -ta << std::endl;
+
 	for (auto &pt : cAlphaA)
 		pt -= ta;
 
 	auto tb = Centroid(cAlphaB);
+
+	if (cif::VERBOSE)
+		std::cerr << "translate B: " << -tb << std::endl;
+
 	for (auto &pt : cAlphaB)
 		pt -= tb;
 
 	auto rotation = AlignPoints(cAlphaA, cAlphaB);
-	for (auto &pt : cAlphaB)
-		pt.rotate(rotation);
+	// for (auto &pt : cAlphaB)
+	// 	pt.rotate(rotation);
 
-	const auto & [ angle, axis ] = mmcif::QuaternionToAngleAxis(rotation);
 	if (cif::VERBOSE)
+	{
+		const auto & [ angle, axis ] = mmcif::QuaternionToAngleAxis(rotation);
 		std::cerr << "rotation: " << angle << " degrees rotation around axis " << axis << std::endl;
+	}
 
 	a.translate(-ta);
 	b.translate(-tb);
@@ -395,7 +405,7 @@ int a_main(int argc, const char *argv[])
 		throw std::runtime_error("PDB directory does not exist");
 
 	std::set<std::string> transplantable;
-	ba::split(transplantable, vm["transplantable"].as<std::string>(), ba::is_any_of(";"));
+	ba::split(transplantable, vm["transplantable"].as<std::string>(), ba::is_any_of(";, "));
 
 	// --------------------------------------------------------------------
 
@@ -442,86 +452,90 @@ int a_main(int argc, const char *argv[])
 					  << decode(hit.mTarget) << std::endl;
 
 			std::smatch m;
-			if (regex_match(hit.mDefLine, m, kIDRx))
+			if (not regex_match(hit.mDefLine, m, kIDRx))
+				continue;
+
+			std::string pdb_id = m[1].str();
+			std::string chain_id = m[2].str();
+
+			std::cout << "pdb id: " << pdb_id << '\t' << "chain id: " << chain_id << std::endl;
+
+			try
 			{
-				std::string pdb_id = m[1].str();
-				std::string chain_id = m[2].str();
+				mmcif::File pdb_f((pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz")).string());
+				mmcif::Structure pdb_structure(pdb_f);
 
-				std::cout << "pdb id: " << pdb_id << '\t' << "chain id: " << chain_id << std::endl;
+				auto af_res = getResiduesForChain(af_structure, "A");
+				auto pdb_res = getResiduesForChain(pdb_structure, chain_id);
 
-				try
+				if (pdb_res.size() == 0)
 				{
-					mmcif::File pdb_f((pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz")).string());
-					mmcif::Structure pdb_structure(pdb_f);
+					std::cerr << "Missing chain " << chain_id << std::endl;
+					continue;
+				}
 
-					auto af_res = getResiduesForChain(af_structure, "A");
-					auto pdb_res = getResiduesForChain(pdb_structure, chain_id);
+				auto &&[af_ix_trimmed, pdb_ix_trimmed] = getTrimmedIndicesForHsp(hit.mHsps.front());
 
-					if (pdb_res.size() == 0)
+				std::vector<Point> af_ca_trimmed, pdb_ca_trimmed;
+				for (size_t i = 0; i < af_ix_trimmed.size(); ++i)
+				{
+					try
 					{
-						std::cerr << "Missing chain " << chain_id << std::endl;
+						auto af_ca = af_res[af_ix_trimmed[i]]->atomByID("CA").location();
+						auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->atomByID("CA").location();
+
+						af_ca_trimmed.push_back(af_ca);
+						pdb_ca_trimmed.push_back(pdb_ca);
+					}
+					catch(const std::exception& e)
+					{
+					}
+				}
+
+				Align(af_structure, pdb_structure, af_ca_trimmed, pdb_ca_trimmed);
+
+				for (auto &np : pdb_structure.nonPolymers())
+				{
+					auto comp_id = np.compoundID();
+
+					if (not transplantable.count(comp_id))
+						continue;
+
+					// fetch the non poly atoms as cif::Rows
+					auto &res = pdb_structure.getResidue(np.asymID(), comp_id);
+
+					// Find the atoms nearby in the AF chain for this residue
+					auto && [ pdb_near_r, af_near_r ] = selectAtomsNearResidue(
+						pdb_res, pdb_ix_trimmed,
+						af_res, af_ix_trimmed, res.atoms(), 6.f);
+
+					if (pdb_near_r.size() == 0)
+					{
+						if (cif::VERBOSE)
+							std::cerr << "There are no atoms found near residue " << res << std::endl;
 						continue;
 					}
 
-					auto &&[af_ix_trimmed, pdb_ix_trimmed] = getTrimmedIndicesForHsp(hit.mHsps.front());
+					// realign based on these nearest atoms.
+					if (pdb_near_r.size() > 3)
+						Align(af_structure, pdb_structure, af_near_r, pdb_near_r);
+					else if (cif::VERBOSE)
+						std::cerr << "There are not enough atoms found near residue " << res << " to fine tune rotation" << std::endl;
 
-					std::vector<Point> af_ca_trimmed, pdb_ca_trimmed;
-					for (size_t i = 0; i < af_ix_trimmed.size(); ++i)
-					{
-						try
-						{
-							auto af_ca = af_res[af_ix_trimmed[i]]->atomByID("CA").location();
-							auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->atomByID("CA").location();
+					auto entity_id = af_structure.createNonPolyEntity(comp_id);
+					auto asym_id = af_structure.createNonpoly(entity_id, res.atoms());
 
-							af_ca_trimmed.push_back(af_ca);
-							pdb_ca_trimmed.push_back(pdb_ca);
-						}
-						catch(const std::exception& e)
-						{
-						}
-					}
+					if (cif::VERBOSE)
+						std::cerr << "Created asym " << asym_id << std::endl;
 
-					Align(af_structure, pdb_structure, af_ca_trimmed, pdb_ca_trimmed);
-
-					auto &pdb_data = pdb_f.data();
-
-					for (auto &np : pdb_structure.nonPolymers())
-					{
-						auto comp_id = np.compoundID();
-
-						if (not transplantable.count(comp_id))
-							continue;
-
-						// fetch the non poly atoms as cif::Rows
-						auto &res = pdb_structure.getResidue(np.asymID(), comp_id);
-
-						// realign based on nearest by atoms.
-						auto && [ pdb_near_r, af_near_r ] = selectAtomsNearResidue(
-							pdb_res, pdb_ix_trimmed,
-							af_res, af_ix_trimmed, res.atoms(), 6.f);
-
-						if (pdb_near_r.size() > 3)
-							Align(af_structure, pdb_structure, af_near_r, pdb_near_r);
-						else if (cif::VERBOSE)
-							std::cerr << "There are not enough atoms found near residue " << res << " to fine tune rotation" << std::endl;
-
-						auto entity_id = af_structure.createNonPolyEntity(comp_id);
-						auto asym_id = af_structure.createNonpoly(entity_id, res.atoms());
-
-						if (cif::VERBOSE)
-							std::cerr << "Created asym " << asym_id << std::endl;
-
-						done = true;
-						break;
-					}
-
-					break;
-				}
-				catch (const std::exception &e)
-				{
-					std::cout << e.what() << '\n';
+					done = true;
 				}
 			}
+			catch (const std::exception &e)
+			{
+				std::cout << e.what() << '\n';
+			}
+
 			if (done)
 				break;
 		}
