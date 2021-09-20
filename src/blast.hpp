@@ -11,6 +11,7 @@
 #include <vector>
 #include <filesystem>
 #include <string>
+#include <thread>
 
 // --------------------------------------------------------------------
 
@@ -84,8 +85,35 @@ struct BlastHit
 
 // --------------------------------------------------------------------
 
+/// \brief Search in \a inDatabank for \a inQuery using the blastp algorithm
+///
+/// \param inDatabank		The databank to search, should be a FastA file
+/// \param inQuery			The protein sequence to use as query
+/// \param inMatrix			The scoring matrix to use
+/// \param inWordSize		The word size, values can be 2, 3 or 4
+/// \param inExpect			The maximum expect value for hits, usually 10
+/// \param inFilter			When true a low complexity filter is used
+/// \param inGapped			When true, gapped alignment is done
+/// \param inGapOpen		The cost of opening a gap
+/// \param inGapExtend		The cost of extending a gap
+/// \param inReportLimit	The maximum number of hits to return
+/// \param inThreads		Maximum number of threads to use
+/// \result					An array of blasthit structs
+
 std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank,
-	const std::string &inQuery, const std::string &inProgram,
-	const std::string &inMatrix, uint32_t inWordSize, double inExpect,
-	bool inFilter, bool inGapped, int32_t inGapOpen, int32_t inGapExtend,
+	const std::string &inQuery, const std::string &inMatrix,
+	uint32_t inWordSize, double inExpect, bool inFilter,
+	bool inGapped, int32_t inGapOpen, int32_t inGapExtend,
 	uint32_t inReportLimit, uint32_t inThreads);
+
+/// \brief Search \a inDatabank for \a inQuery using the blastp algorithm, with default parameters
+///
+/// \param inDatabank	The databank to search, should be a FastA file
+/// \param inQuery		The protein sequence to use as query
+/// \result				An array of blasthit structs
+
+inline std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, const std::string &inQuery)
+{
+	return BlastP(inDatabank, inQuery, "BLOSUM62", 3, 10, true, true, 11, 1, 250, std::thread::hardware_concurrency());
+}
+
