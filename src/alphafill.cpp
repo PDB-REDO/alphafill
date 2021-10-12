@@ -108,6 +108,77 @@ std::string get_version_string()
 
 // --------------------------------------------------------------------
 
+class Ligand
+{
+  public:
+	Ligand(cif::Datablock *db)
+		: mDb(db)
+		, mLigand(db ? db->get("ligand") : nullptr)
+		, mModifications(db ? db->get("modification") : nullptr) {}
+
+	Ligand(const Ligand &) noexcept = default;
+
+	explicit operator bool() const
+	{
+		return mDb != nullptr;
+	}
+
+	void modify(mmcif::Structure &structure, const std::string &asymID) const;
+
+	std::string analogueID() const
+	{
+		return mLigand->front()["analogue_id"].as<std::string>();
+	}
+
+	std::string description() const
+	{
+		return mLigand->front()["description"].as<std::string>();
+	}
+
+  private:
+	cif::Datablock *mDb;
+	cif::Category *mLigand, *mModifications;
+};
+
+void Ligand::modify(mmcif::Structure &structure, const std::string &asymID) const
+{
+	assert(mLigand);
+	auto analogue = mLigand->front()["analogue_id"].as<std::string>();
+	if (not analogue.empty())
+	{
+		auto &res = structure.getResidue(asymID);
+
+		std::vector<std::tuple<std::string, std::string>> remap;
+
+		if (mModifications != nullptr)
+		{
+			for (const auto &[a1, a2] : mModifications->rows<std::string,std::string>("atom1", "atom2"))
+				remap.emplace_back(a1, a2);
+		}
+
+		structure.changeResidue(res, analogue, remap);
+	}
+}
+
+class LigandsTable
+{
+  public:
+	LigandsTable(const fs::path &file)
+		: mCifFile(file)
+	{
+	}
+
+	Ligand operator[](std::string_view id) const
+	{
+		return { mCifFile.get(id) };
+	}
+
+  private:
+	cif::File mCifFile;
+};
+
+// --------------------------------------------------------------------
+
 using mmcif::Point;
 using mmcif::Quaternion;
 
@@ -296,7 +367,8 @@ int a_main(int argc, const char *argv[])
 	visible_options.add_options()
 		("pdb-fasta",		po::value<std::string>(),	"The FastA file containing the PDB sequences")
 		("pdb-dir",			po::value<std::string>(),	"Directory containing the mmCIF files for the PDB")
-		("transplantable",	po::value<std::string>(),	"Semicolon separated list of transplantable residues")
+		("ligands",			po::value<std::string>()->default_value("af-ligands.cif"),
+														"File in CIF format describing the ligands and their modifications")
 		("compounds",		po::value<std::string>(),	"Location of the components.cif file from CCD")
 		("components",		po::value<std::string>(),	"Location of the components.cif file from CCD, alias")
 		("extra-compounds",	po::value<std::string>(),	"File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file")
@@ -311,7 +383,6 @@ int a_main(int argc, const char *argv[])
 		("xyzin,i",			po::value<std::string>(),	"coordinates file")
 		("output,o",		po::value<std::string>(),	"Output to this file")
 		("debug,d",			po::value<int>(),			"Debug level (for even more verbose output)")
-
 		("test",										"Run test code")
 		;
 
@@ -367,12 +438,6 @@ int a_main(int argc, const char *argv[])
 		exit(1);
 	}
 
-	if (vm.count("transplantable") == 0)
-	{
-		std::cout << "List of transplantable residues not specified" << std::endl;
-		exit(1);
-	}
-
 	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
@@ -404,28 +469,22 @@ int a_main(int argc, const char *argv[])
 	if (not fs::is_directory(pdbDir))
 		throw std::runtime_error("PDB directory does not exist");
 
-	std::set<std::string> transplantable;
-	ba::split(transplantable, vm["transplantable"].as<std::string>(), ba::is_any_of(";, "));
+	// --------------------------------------------------------------------
+	fs::path ligandsFile = vm["ligands"].as<std::string>();
+	if (not fs::exists(ligandsFile))
+	{
+		std::cerr << "Ligands file not found" << std::endl;
+		exit(1);
+	}
+
+	LigandsTable ligands(ligandsFile);
 
 	// --------------------------------------------------------------------
 
 	mmcif::File f(vm["xyzin"].as<std::string>());
 	mmcif::Structure af_structure(f, 1, mmcif::StructureOpenOptions::SkipHydrogen);
 
-	// if (vm.count("test"))
-	// {
-	// 	Quaternion q{ 0.0235969, 0.24543, 0.800531, 0.546221 };
-
-	// 	af_structure.rotate(q);
-	// 	af_structure.translate({ 1, 2, 3 });
-
-	// 	if (vm.count("output"))
-	// 		f.file().save(vm["output"].as<std::string>());
-	// 	else
-	// 		f.file().save(std::cout);
-	// 	return 0;
-	// }
-
+	// --------------------------------------------------------------------
 	// fetch the (single) chain
 
 	const std::regex kIDRx(R"(^>(\w{4,8})_(\w)( .*)?)");
@@ -448,8 +507,8 @@ int a_main(int argc, const char *argv[])
 
 		for (auto &hit : result)
 		{
-			std::cout << hit.mDefLine << '\t'
-					  << decode(hit.mTarget) << std::endl;
+			// std::cout << hit.mDefLine << std::endl
+			// 		  << decode(hit.mTarget) << std::endl;
 
 			std::smatch m;
 			if (not regex_match(hit.mDefLine, m, kIDRx))
@@ -463,6 +522,30 @@ int a_main(int argc, const char *argv[])
 			try
 			{
 				mmcif::File pdb_f((pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz")).string());
+
+				// Check to see if it is any use to continue with this structure
+
+				auto pdb_chem_comp = pdb_f.data().get("chem_comp");
+				if (not pdb_chem_comp)
+					continue;
+				
+				bool none = true;
+				for (const auto &[comp_id] : pdb_chem_comp->rows<std::string>("id"))
+				{
+					if (ligands[comp_id])
+					{
+						none = false;
+						break;
+					}
+				}
+
+				if (none)
+				{
+					std::cout << "This structure does not contain any transplantable compound" << std::endl;
+					continue;
+				}
+
+
 				mmcif::Structure pdb_structure(pdb_f);
 
 				auto af_res = getResiduesForChain(af_structure, "A");
@@ -498,7 +581,9 @@ int a_main(int argc, const char *argv[])
 				{
 					auto comp_id = np.compoundID();
 
-					if (not transplantable.count(comp_id))
+					Ligand ligand = ligands[comp_id];
+
+					if (not ligand)
 						continue;
 
 					// fetch the non poly atoms as cif::Rows
@@ -525,8 +610,70 @@ int a_main(int argc, const char *argv[])
 					auto entity_id = af_structure.createNonPolyEntity(comp_id);
 					auto asym_id = af_structure.createNonpoly(entity_id, res.atoms());
 
+					// copy any struct_conn record that might be needed
+
+					auto &pdb_struct_conn = pdb_structure.category("struct_conn");
+					auto &af_struct_conn = af_structure.category("struct_conn");
+
+					for (auto atom : res.atoms())
+					{
+						for (auto conn : pdb_struct_conn.find(
+							("ptnr1_label_asym_id"_key == atom.labelAsymID() and "ptnr1_label_atom_id"_key == atom.labelAtomID()) or
+							("ptnr2_label_asym_id"_key == atom.labelAsymID() and "ptnr2_label_atom_id"_key == atom.labelAtomID())))
+						{
+							std::string a_type, a_comp;
+							if (conn["ptnr1_label_asym_id"].as<std::string>() == atom.labelAsymID() and
+								conn["ptnr1_label_atom_id"].as<std::string>() == atom.labelAtomID())
+							{
+								a_type = conn["ptnr2_label_atom_id"].as<std::string>();
+								a_comp = conn["ptnr2_label_comp_id"].as<std::string>();
+							}
+							else
+							{
+								a_type = conn["ptnr1_label_atom_id"].as<std::string>();
+								a_comp = conn["ptnr1_label_comp_id"].as<std::string>();
+							}
+
+							// locate the corresponding atom in the af structure
+							auto a_a = af_structure.getAtomByPositionAndType(atom.location(), a_type, a_comp);
+
+							if (not a_a)
+							{
+								std::cerr << "Could not create a connection to " << atom << std::endl;
+								continue;
+							}
+
+							auto conn_type = conn["conn_type_id"].as<std::string>();
+
+							af_struct_conn.emplace({
+								{ "id", af_struct_conn.getUniqueID(conn_type) },
+								{ "conn_type_id", conn_type },
+								{ "ptnr1_label_asym_id", asym_id },
+								{ "ptnr1_label_comp_id", res.compoundID() },
+								{ "ptnr1_label_seq_id", "." },
+								{ "ptnr1_label_atom_id", atom.labelAtomID() },
+								{ "ptnr1_symmetry", "1_555" },
+								{ "ptnr2_label_asym_id", a_a.labelAsymID() },
+								{ "ptnr2_label_comp_id", a_a.labelCompID() },
+								{ "ptnr2_label_seq_id", a_a.labelSeqID() },
+								{ "ptnr2_label_atom_id", a_a.labelAtomID() },
+								{ "ptnr1_auth_asym_id", asym_id },
+								{ "ptnr1_auth_comp_id", res.compoundID() },
+								{ "ptnr1_auth_seq_id", "." },
+								{ "ptnr2_auth_asym_id", a_a.labelAsymID() },
+								{ "ptnr2_auth_comp_id", a_a.labelCompID() },
+								{ "ptnr2_auth_seq_id", a_a.labelSeqID() },
+								{ "ptnr2_symmetry", "1_555" },
+								{ "pdbx_dist_value", Distance(a_a, atom) }
+							});
+						}
+					}
+
+					// now fix up the newly created residue
+					ligand.modify(af_structure, asym_id);
+
 					if (cif::VERBOSE)
-						std::cerr << "Created asym " << asym_id << std::endl;
+						std::cerr << "Created asym " << asym_id << " for " << np << std::endl;
 
 					done = true;
 				}
@@ -542,6 +689,8 @@ int a_main(int argc, const char *argv[])
 		if (done)
 			break;
 	}
+
+	af_structure.cleanupEmptyCategories();
 
 	if (vm.count("output"))
 		f.file().save(vm["output"].as<std::string>());

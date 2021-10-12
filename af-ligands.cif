@@ -1,0 +1,739 @@
+data_ACE
+#
+_ligand.id               ACE
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      acetylgroup/ethanal
+#
+data_ACP
+#
+_ligand.id               ACP
+_ligand.analogue_id      ATP
+_ligand.priority         y
+_ligand.description      .
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C3B O3B
+#
+data_ACT
+#
+_ligand.id               ACT
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      deprotonated-ACY
+#
+data_ACY
+#
+_ligand.id               ACY
+_ligand.analogue_id      ACT
+_ligand.priority         n
+_ligand.description      aceticacid
+#
+data_ADP
+#
+_ligand.id               ADP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_AGS
+#
+_ligand.id               AGS
+_ligand.analogue_id      ATP
+_ligand.priority         y
+_ligand.description      .
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 S1G O1G
+#
+data_AKG
+#
+_ligand.id               AKG
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      2-oxoglutaricAcid
+#
+data_AMP
+#
+_ligand.id               AMP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_ANP
+#
+_ligand.id               ANP
+_ligand.analogue_id      ATP
+_ligand.priority         y
+_ligand.description      .
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 N3B O3B
+#
+data_ASC
+#
+_ligand.id               ASC
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_VitC
+#
+data_ATP
+#
+_ligand.id               ATP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_B12
+#
+_ligand.id               B12
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_VitB12
+#
+data_BCR
+#
+_ligand.id               BCR
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      beta-carotene
+#
+data_BCT
+#
+_ligand.id               BCT
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      .
+#
+data_BTI
+#
+_ligand.id               BTI
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'Covalently bound biotin'
+#
+data_BTN
+#
+_ligand.id               BTN
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_Biopterin
+#
+data_BYT
+#
+_ligand.id               BYT
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      'Bioitilated lysine'
+#
+data_CA
+#
+_ligand.id               CA
+_ligand.analogue_id       ?
+_ligand.priority         y
+_ligand.description      .
+#
+data_CD
+#
+_ligand.id               CD
+_ligand.analogue_id       ?
+_ligand.priority         n
+_ligand.description      .
+#
+data_CHD
+#
+_ligand.id               CHD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      cholicacid
+#
+data_CHL
+#
+_ligand.id               CHL
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      ChlorophylB
+#
+data_CIT
+#
+_ligand.id               CIT
+_ligand.analogue_id      FLC
+_ligand.priority         n
+_ligand.description      'citric acid'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O1  OA1
+2  C1  CAC
+3  O2  OA2
+4  C2  CA 
+5  C3  CB 
+6  C4  CG 
+7  C5  CGC
+8  O3  OG1
+9  O4  OG2
+10 C6  CBC
+11 O5  OB1
+12 O6  OB2
+13 O7  OHB
+#
+data_CL
+#
+_ligand.id               CL
+_ligand.analogue_id       ?
+_ligand.priority         n
+_ligand.description      .
+#
+data_CLA
+#
+_ligand.id               CLA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_CLR
+#
+_ligand.id               CLR
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      cholesterol
+#
+data_CMO
+#
+_ligand.id               CMO
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_CNC
+#
+_ligand.id               CNC
+_ligand.analogue_id      B12
+_ligand.priority         y
+_ligand.description      'Cofactor VitB12 with cyanide'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1A .
+2 N1A .
+#
+data_CO
+#
+_ligand.id               CO
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_CO3
+#
+_ligand.id               CO3
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_COA
+#
+_ligand.id               COA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_CoA
+#
+data_COB
+#
+_ligand.id               COB
+_ligand.analogue_id      B12
+_ligand.priority         y
+_ligand.description      'methyl-bound VitB12'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1A .
+#
+data_COM
+#
+_ligand.id               COM
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_CoM
+#
+data_COY
+#
+_ligand.id               COY
+_ligand.analogue_id      B12
+_ligand.priority         y
+_ligand.description      B12_class
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C75 .
+2  C74 .
+3  C73 .
+4  C72 .
+5  C71 .
+6  N9A .
+7  N7A .
+8  N6A .
+9  N3A .
+10 N1A .
+11 C8A .
+12 C6A .
+13 C5A .
+14 C4A .
+15 C2A .
+#
+data_CU
+#
+_ligand.id               CU
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_CUA
+#
+_ligand.id               CUA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_DPM
+#
+_ligand.id               DPM
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_Dipyrromethane
+#
+data_DTP
+#
+_ligand.id               DTP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_F3S
+#
+_ligand.id               F3S
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_F43
+#
+_ligand.id               F43
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_FactorF430
+#
+data_FAD
+#
+_ligand.id               FAD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_FlavinAdenineDinucleotide 
+#
+data_FE
+#
+_ligand.id               FE
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_FE2
+#
+_ligand.id               FE2
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      . 
+#
+data_FES
+#
+_ligand.id               FES
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_FFO
+#
+_ligand.id               FFO
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_TetraHydrofolicAcid
+#
+data_FLC
+#
+_ligand.id               FLC
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      deprotonated-CIT
+#
+data_FMN
+#
+_ligand.id               FMN
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_FlavinMonoNucleotide
+#
+data_GDP
+#
+_ligand.id               GDP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_GNP
+#
+_ligand.id               GNP
+_ligand.analogue_id      GTP
+_ligand.priority         y
+_ligand.description      .
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 N3B O3B
+#
+data_GSH
+#
+_ligand.id               GSH
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_Glutathion 
+#
+data_GTP
+#
+_ligand.id               GTP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_H4B
+#
+_ligand.id               H4B
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_Sapropterin
+#
+data_HEA
+#
+_ligand.id               HEA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_Heme
+#
+data_HEC
+#
+_ligand.id               HEC
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      HEA_class
+#
+data_HEM
+#
+_ligand.id               HEM
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      HEA_class
+#
+data_HG
+#
+_ligand.id               HG
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      .
+#
+data_IHP
+#
+_ligand.id               IHP
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      IP6
+#
+data_K
+#
+_ligand.id               K
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      .
+#
+data_LPA
+#
+_ligand.id               LPA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_LipoicAcid
+#
+data_LUT
+#
+_ligand.id               LUT
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      .
+#
+data_MDO
+#
+_ligand.id               MDO
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_MIO
+#
+data_MG
+#
+_ligand.id               MG
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      .
+#
+data_MGD
+#
+_ligand.id               MGD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_Molybdopterin
+#
+data_MLI
+#
+_ligand.id               MLI
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      malonate-ion
+#
+data_MN
+#
+_ligand.id               MN
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_MQ7
+#
+_ligand.id               MQ7
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_Menaquinone
+#
+data_NAD
+#
+_ligand.id               NAD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_NicotinamideAdenineDinucleotide
+#
+data_NAI
+#
+_ligand.id               NAI
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      NADH
+#
+data_NAP
+#
+_ligand.id               NAP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      NADP
+#
+data_NDP
+#
+_ligand.id               NDP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      NADPH
+#
+data_NI
+#
+_ligand.id               NI
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_NO3
+#
+_ligand.id               NO3
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_OEX
+#
+_ligand.id               OEX
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      .
+#
+data_OGA
+#
+_ligand.id               OGA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_OLA
+#
+_ligand.id               OLA
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      OleicAcid
+#
+data_OXY
+#
+_ligand.id               OXY
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_PHO
+#
+_ligand.id               PHO
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      . 
+#
+data_PL9
+#
+_ligand.id               PL9
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      plastoquinone9
+#
+data_PLP
+#
+_ligand.id               PLP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_VitB6
+#
+data_PNS
+#
+_ligand.id               PNS
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_Phosphopantetheine
+#
+data_POP
+#
+_ligand.id               POP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_PQN
+#
+_ligand.id               PQN
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      vitK
+#
+data_PQQ
+#
+_ligand.id               PQQ
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_PyrroloquinolineQuinone
+#
+data_RET
+#
+_ligand.id               RET
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      retinal
+#
+data_SAH
+#
+_ligand.id               SAH
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      SAM_class
+#
+data_SAM
+#
+_ligand.id               SAM
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_S-Adenosylmethionine
+#
+data_SF4
+#
+_ligand.id               SF4
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_TLA
+#
+_ligand.id               TLA
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      tartaricacid
+#
+data_TP7
+#
+_ligand.id               TP7
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_CoB
+#
+data_TPP
+#
+_ligand.id               TPP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_ThiamineDiphosphate(representative_of_TDP_class)
+#
+data_TPQ
+#
+_ligand.id               TPQ
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_Topaquinone
+#
+data_TRQ
+#
+_ligand.id               TRQ
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_OrthoquinoneResidues
+#
+data_UDP
+#
+_ligand.id               UDP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+#
+data_UQ1
+#
+_ligand.id               UQ1
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Cofactor_Ubiquinone
+#
+data_XAT
+#
+_ligand.id               XAT
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      .
+#
+data_ZN
+#
+_ligand.id               ZN
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
