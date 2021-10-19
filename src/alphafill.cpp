@@ -237,14 +237,28 @@ std::tuple<std::vector<size_t>, std::vector<size_t>> getTrimmedIndicesForHsp(con
 
 	assert(qa.length() == ta.length());
 
-	for (size_t qix = hsp.mQueryStart, tix = hsp.mTargetStart; qix < hsp.mQueryEnd; ++qix, ++tix)
-	{
-		if (is_gap(qa[qix]) or is_gap(ta[tix]))
-			continue;
+	size_t qix = hsp.mQueryStart, tix = hsp.mTargetStart;
 
-		ixq.push_back(qix);
-		ixt.push_back(tix);
+	for (size_t i = 0; i < qa.length(); ++i)
+	{
+		if (is_gap(qa[i]))
+		{
+			++tix;
+			continue;
+		}
+
+		if (is_gap(ta[i]))
+		{
+			++qix;
+			continue;
+		}
+
+		ixq.push_back(qix++);
+		ixt.push_back(tix++);
 	}
+
+	assert(qix == hsp.mQueryEnd);
+	assert(tix == hsp.mTargetEnd);
 
 	return {ixq, ixt};
 }
