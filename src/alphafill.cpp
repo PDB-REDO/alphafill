@@ -738,12 +738,17 @@ int a_main(int argc, const char *argv[])
 
 						auto entity_id = af_structure.createNonPolyEntity(comp_id);
 						auto asym_id = af_structure.createNonpoly(entity_id, res.atoms());
+						
+						auto analogue = ligand.analogueID();
+						if (analogue.empty())
+							analogue = comp_id;
 
 						r_hsp["transplants"].push_back({
 							{ "compound_id", comp_id },
 							{ "entity_id", entity_id },
 							{ "asym_id", asym_id },
-							{ "rmsd", rmsd }
+							{ "rmsd", rmsd },
+							{ "analogue_id", analogue }
 						});
 
 						// copy any struct_conn record that might be needed
