@@ -62,10 +62,31 @@ struct BlastHsp
 
 	bool operator>(const BlastHsp &inHsp) const { return mScore > inHsp.mScore; }
 	void CalculateExpect(int64_t inSearchSpace, double inLambda, double inLogKappa);
+
 	bool Overlaps(const BlastHsp &inOther) const
 	{
 		return mQueryEnd >= inOther.mQueryStart and mQueryStart <= inOther.mQueryEnd and
 		       mTargetEnd >= inOther.mTargetStart and mTargetStart <= inOther.mTargetEnd;
+	}
+
+	size_t length() const
+	{
+		return mAlignedQuery.length();
+	}
+
+	float identity()
+	{
+		assert(mAlignedQuery.length() == mAlignedTarget.length());
+
+		size_t n = 0, L = mAlignedQuery.length();
+
+		for (size_t i = 0; i < L; ++i)
+		{
+			if (mAlignedQuery[i] == mAlignedTarget[i])
+				++n;
+		}
+
+		return static_cast<float>(n) / L;
 	}
 };
 

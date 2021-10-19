@@ -25,12 +25,17 @@
  */
 
 #include <fstream>
+#include <iomanip>
 
 #include <cif++/Structure.hpp>
+#include <cif++/CifUtils.hpp>
 
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/date_time.hpp>
+
+#include <zeep/json/element.hpp>
 
 #include "blast.hpp"
 
@@ -195,13 +200,13 @@ using mmcif::Quaternion;
 // 	return result;
 // }
 
-std::vector<mmcif::Residue*> getResiduesForChain(mmcif::Structure &structure, const std::string &asym_id)
+std::vector<mmcif::Residue*> getResiduesForChain(mmcif::Structure &structure, const std::string &chain_id)
 {
 	std::vector<mmcif::Residue*> result;
 
 	for (auto &poly: structure.polymers())
 	{
-		if (poly.asymID() != asym_id)
+		if (poly.chainID() != chain_id)
 			continue;
 		
 		for (auto &res: poly)
@@ -227,32 +232,19 @@ std::tuple<std::vector<size_t>, std::vector<size_t>> getTrimmedIndicesForHsp(con
 
 	assert(hsp.mAlignedQuery.length() == hsp.mAlignedTarget.length());
 
-	size_t qix = hsp.mQueryStart;
-	size_t tix = hsp.mTargetStart;
-
 	auto &qa = hsp.mAlignedQuery;
 	auto &ta = hsp.mAlignedTarget;
 
-	for (size_t i = 0; i < hsp.mAlignedQuery.length(); ++i)
+	assert(qa.length() == ta.length());
+
+	for (size_t qix = hsp.mQueryStart, tix = hsp.mTargetStart; qix < hsp.mQueryEnd; ++qix, ++tix)
 	{
-		if (is_gap(qa[qix]))
-		{
-			++tix;
+		if (is_gap(qa[qix]) or is_gap(ta[tix]))
 			continue;
-		}
 
-		if (is_gap(ta[tix]))
-		{
-			++qix;
-			continue;
-		}
-
-		ixq.push_back(qix++);
-		ixt.push_back(tix++);
+		ixq.push_back(qix);
+		ixt.push_back(tix);
 	}
-
-	assert(qix == hsp.mQueryEnd);
-	assert(tix == hsp.mTargetEnd);
 
 	return {ixq, ixt};
 }
@@ -262,7 +254,7 @@ double CalculateRMSD(const std::vector<mmcif::Point> &pa, const std::vector<mmci
 	return RMSd(pa, pb);
 }
 
-void Align(mmcif::Structure &a, mmcif::Structure &b,
+double Align(mmcif::Structure &a, mmcif::Structure &b,
 	std::vector<Point> &cAlphaA, std::vector<Point> &cAlphaB)
 {
 	auto ta = Centroid(cAlphaA);
@@ -295,8 +287,15 @@ void Align(mmcif::Structure &a, mmcif::Structure &b,
 	b.translate(-tb);
 	b.rotate(rotation);
 
+	for (auto &pt : cAlphaB)
+		pt.rotate(rotation);
+
+	double result = CalculateRMSD(cAlphaA, cAlphaB);
+
 	if (cif::VERBOSE)
-		std::cerr << "RMSd: " << CalculateRMSD(cAlphaA, cAlphaB) << std::endl;
+		std::cerr << "RMSd: " << result << std::endl;
+	
+	return result;
 }
 
 std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
@@ -316,6 +315,8 @@ std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 		{
 			try
 			{
+				assert(pdb_ix[i] < pdb.size());
+
 				auto atom = pdb[pdb_ix[i]]->atomByID(atom_id);
 				for (auto &b: residue)
 				{
@@ -341,6 +342,9 @@ std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 		{
 			try
 			{
+				assert(af_ix[i] < af.size());
+				assert(pdb_ix[i] < pdb.size());
+
 				auto pt_a = pdb[pdb_ix[i]]->atomByID(atom_id).location();
 				auto pt_b = af[af_ix[i]]->atomByID(atom_id).location();
 
@@ -358,6 +362,37 @@ std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 
 // --------------------------------------------------------------------
 
+bool isUniqueLigand(const mmcif::Structure &structure, float minDistance, const mmcif::Residue &lig)
+{
+	bool result = true;
+
+	for (auto &np : structure.nonPolymers())
+	{
+		if (np.compoundID() != lig.compoundID())
+			continue;
+
+		std::vector<mmcif::Point> pa, pb;
+		
+		for (auto &a : np.atoms())
+			pa.push_back(a.location());
+		auto ca = mmcif::Centroid(pa);
+
+		for (auto &a : lig.atoms())
+			pb.push_back(a.location());
+		auto cb = mmcif::Centroid(pb);
+
+		if (Distance(ca, cb) < minDistance)
+		{
+			result = false;
+			break;
+		}
+	}
+
+	return result;
+}
+
+// --------------------------------------------------------------------
+
 int a_main(int argc, const char *argv[])
 {
 	using namespace std::literals;
@@ -369,6 +404,22 @@ int a_main(int argc, const char *argv[])
 		("pdb-dir",			po::value<std::string>(),	"Directory containing the mmCIF files for the PDB")
 		("ligands",			po::value<std::string>()->default_value("af-ligands.cif"),
 														"File in CIF format describing the ligands and their modifications")
+
+		("max-ligand-to-backbone-distance",
+							po::value<float>()->default_value(6),
+														"The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure")
+
+		("min-hsp-identity",
+							po::value<float>()->default_value(0.7),
+														"The minimal identity for a high scoring pair (note, value between 0 and 1)")
+		("min-alignment-length",
+							po::value<int>()->default_value(85),
+														"The minimal length of an alignment")
+
+		("min-separation-distance",
+							po::value<float>()->default_value(3.5),
+														"The centroids of two identical ligands should be at least this far apart to count as separate occurrences")
+
 		("compounds",		po::value<std::string>(),	"Location of the components.cif file from CCD")
 		("components",		po::value<std::string>(),	"Location of the components.cif file from CCD, alias")
 		("extra-compounds",	po::value<std::string>(),	"File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file")
@@ -443,7 +494,6 @@ int a_main(int argc, const char *argv[])
 		cif::VERBOSE = vm["debug"].as<int>();
 
 	// --------------------------------------------------------------------
-
 	// Load extra CCD definitions, if any
 
 	if (vm.count("compounds"))
@@ -479,9 +529,15 @@ int a_main(int argc, const char *argv[])
 
 	LigandsTable ligands(ligandsFile);
 
+	float minHspIdentity = vm["min-hsp-identity"].as<float>();
+	size_t minAlignmentLength = vm["min-alignment-length"].as<int>();
+	float minSeparationDistance = vm["min-separation-distance"].as<float>();
+	float maxLigandBackboneDistance = vm["max-ligand-to-backbone-distance"].as<float>();
+
 	// --------------------------------------------------------------------
 
-	mmcif::File f(vm["xyzin"].as<std::string>());
+	fs::path xyzin = vm["xyzin"].as<std::string>();
+	mmcif::File f(xyzin);
 	mmcif::Structure af_structure(f, 1, mmcif::StructureOpenOptions::SkipHydrogen);
 
 	// --------------------------------------------------------------------
@@ -491,33 +547,62 @@ int a_main(int argc, const char *argv[])
 
 	auto &db = f.data();
 
-	bool done = false;
+	std::string afID;
+	cif::tie(afID) = db["entry"].front().get("id");
+
+	using json = zeep::json::element;
+
+	auto now = boost::posix_time::second_clock::universal_time();
+
+	json result = {
+		{ "id", afID },
+		{ "file", xyzin.string() },
+		{ "date", to_iso_extended_string(now.date()) },
+		{ "alphafill-version", get_version_string() }
+	};
+
+	json &hits = result["hits"] = json::array();
 
 	for (auto r : db["entity_poly"])
 	{
 		auto &&[id, seq] = r.get<std::string, std::string>({"entity_id", "pdbx_seq_one_letter_code"});
 
-		std::cout << "Blasting:" << std::endl
-				  << seq << std::endl
-				  << std::endl;
+		if (cif::VERBOSE)
+			std::cerr << "Blasting:" << std::endl
+					<< seq << std::endl
+					<< std::endl;
 
 		auto result = BlastP(fasta, seq);
 
-		std::cout << "Found " << result.size() << " hits" << std::endl;
+		if (cif::VERBOSE)
+			std::cerr << "Found " << result.size() << " hits" << std::endl;
+
+		std::unique_ptr<cif::Progress> progress;
+		if (not cif::VERBOSE)
+			progress.reset(new cif::Progress(result.size() + 1, "matching"));
 
 		for (auto &hit : result)
 		{
-			// std::cout << hit.mDefLine << std::endl
-			// 		  << decode(hit.mTarget) << std::endl;
+			if (progress)
+				progress->consumed(1);
 
 			std::smatch m;
 			if (not regex_match(hit.mDefLine, m, kIDRx))
+			{
+				if (cif::VERBOSE)
+					std::cerr << "Could not interpret defline from blast hit:" << std::endl
+							  << hit.mDefLine << std::endl;
 				continue;
+			}
 
 			std::string pdb_id = m[1].str();
 			std::string chain_id = m[2].str();
 
-			std::cout << "pdb id: " << pdb_id << '\t' << "chain id: " << chain_id << std::endl;
+			if (progress)
+				progress->message(pdb_id);
+
+			if (cif::VERBOSE)
+				std::cerr << "pdb id: " << pdb_id << '\t' << "chain id: " << chain_id << std::endl;
 
 			try
 			{
@@ -541,10 +626,10 @@ int a_main(int argc, const char *argv[])
 
 				if (none)
 				{
-					std::cout << "This structure does not contain any transplantable compound" << std::endl;
+					if (cif::VERBOSE)
+						std::cerr << "This structure does not contain any transplantable compound" << std::endl;
 					continue;
 				}
-
 
 				mmcif::Structure pdb_structure(pdb_f);
 
@@ -553,147 +638,203 @@ int a_main(int argc, const char *argv[])
 
 				if (pdb_res.size() == 0)
 				{
-					std::cerr << "Missing chain " << chain_id << std::endl;
+					std::cerr << "Missing chain " << chain_id << " in " << pdb_id << std::endl;
 					continue;
 				}
 
-				auto &&[af_ix_trimmed, pdb_ix_trimmed] = getTrimmedIndicesForHsp(hit.mHsps.front());
-
-				std::vector<Point> af_ca_trimmed, pdb_ca_trimmed;
-				for (size_t i = 0; i < af_ix_trimmed.size(); ++i)
+				for (auto &hsp : hit.mHsps)
 				{
-					try
-					{
-						auto af_ca = af_res[af_ix_trimmed[i]]->atomByID("CA").location();
-						auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->atomByID("CA").location();
+					if (cif::VERBOSE)
+						std::cerr << "hsp, identity " << std::fixed << std::setprecision(2) << hsp.identity() << " length " << hsp.length() << std::endl;
 
-						af_ca_trimmed.push_back(af_ca);
-						pdb_ca_trimmed.push_back(pdb_ca);
-					}
-					catch(const std::exception& e)
-					{
-					}
-				}
-
-				Align(af_structure, pdb_structure, af_ca_trimmed, pdb_ca_trimmed);
-
-				for (auto &np : pdb_structure.nonPolymers())
-				{
-					auto comp_id = np.compoundID();
-
-					Ligand ligand = ligands[comp_id];
-
-					if (not ligand)
-						continue;
-
-					// fetch the non poly atoms as cif::Rows
-					auto &res = pdb_structure.getResidue(np.asymID(), comp_id);
-
-					// Find the atoms nearby in the AF chain for this residue
-					auto && [ pdb_near_r, af_near_r ] = selectAtomsNearResidue(
-						pdb_res, pdb_ix_trimmed,
-						af_res, af_ix_trimmed, res.atoms(), 6.f);
-
-					if (pdb_near_r.size() == 0)
+					if (hsp.length() < minAlignmentLength)
 					{
 						if (cif::VERBOSE)
-							std::cerr << "There are no atoms found near residue " << res << std::endl;
+							std::cerr << "hsp not long enough" << std::endl;
 						continue;
 					}
 
-					// realign based on these nearest atoms.
-					if (pdb_near_r.size() > 3)
-						Align(af_structure, pdb_structure, af_near_r, pdb_near_r);
-					else if (cif::VERBOSE)
-						std::cerr << "There are not enough atoms found near residue " << res << " to fine tune rotation" << std::endl;
-
-					auto entity_id = af_structure.createNonPolyEntity(comp_id);
-					auto asym_id = af_structure.createNonpoly(entity_id, res.atoms());
-
-					// copy any struct_conn record that might be needed
-
-					auto &pdb_struct_conn = pdb_structure.category("struct_conn");
-					auto &af_struct_conn = af_structure.category("struct_conn");
-
-					for (auto atom : res.atoms())
+					if (hsp.identity() < minHspIdentity)
 					{
-						for (auto conn : pdb_struct_conn.find(
-							("ptnr1_label_asym_id"_key == atom.labelAsymID() and "ptnr1_label_atom_id"_key == atom.labelAtomID()) or
-							("ptnr2_label_asym_id"_key == atom.labelAsymID() and "ptnr2_label_atom_id"_key == atom.labelAtomID())))
+						if (cif::VERBOSE)
+							std::cerr << "hsp not identical enough" << std::endl;
+						continue;
+					}
+
+					auto &&[af_ix_trimmed, pdb_ix_trimmed] = getTrimmedIndicesForHsp(hsp);
+
+					assert(af_ix_trimmed.size() == pdb_ix_trimmed.size());
+
+					std::vector<Point> af_ca_trimmed, pdb_ca_trimmed;
+					for (size_t i = 0; i < af_ix_trimmed.size(); ++i)
+					{
+						try
 						{
-							std::string a_type, a_comp;
-							if (conn["ptnr1_label_asym_id"].as<std::string>() == atom.labelAsymID() and
-								conn["ptnr1_label_atom_id"].as<std::string>() == atom.labelAtomID())
-							{
-								a_type = conn["ptnr2_label_atom_id"].as<std::string>();
-								a_comp = conn["ptnr2_label_comp_id"].as<std::string>();
-							}
-							else
-							{
-								a_type = conn["ptnr1_label_atom_id"].as<std::string>();
-								a_comp = conn["ptnr1_label_comp_id"].as<std::string>();
-							}
+							assert(af_ix_trimmed[i] < af_res.size());
+							assert(pdb_ix_trimmed[i] < pdb_res.size());
 
-							// locate the corresponding atom in the af structure
-							auto a_a = af_structure.getAtomByPositionAndType(atom.location(), a_type, a_comp);
+							auto af_ca = af_res[af_ix_trimmed[i]]->atomByID("CA").location();
+							auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->atomByID("CA").location();
 
-							if (not a_a)
-							{
-								std::cerr << "Could not create a connection to " << atom << std::endl;
-								continue;
-							}
-
-							auto conn_type = conn["conn_type_id"].as<std::string>();
-
-							af_struct_conn.emplace({
-								{ "id", af_struct_conn.getUniqueID(conn_type) },
-								{ "conn_type_id", conn_type },
-								{ "ptnr1_label_asym_id", asym_id },
-								{ "ptnr1_label_comp_id", res.compoundID() },
-								{ "ptnr1_label_seq_id", "." },
-								{ "ptnr1_label_atom_id", atom.labelAtomID() },
-								{ "ptnr1_symmetry", "1_555" },
-								{ "ptnr2_label_asym_id", a_a.labelAsymID() },
-								{ "ptnr2_label_comp_id", a_a.labelCompID() },
-								{ "ptnr2_label_seq_id", a_a.labelSeqID() },
-								{ "ptnr2_label_atom_id", a_a.labelAtomID() },
-								{ "ptnr1_auth_asym_id", asym_id },
-								{ "ptnr1_auth_comp_id", res.compoundID() },
-								{ "ptnr1_auth_seq_id", "." },
-								{ "ptnr2_auth_asym_id", a_a.labelAsymID() },
-								{ "ptnr2_auth_comp_id", a_a.labelCompID() },
-								{ "ptnr2_auth_seq_id", a_a.labelSeqID() },
-								{ "ptnr2_symmetry", "1_555" },
-								{ "pdbx_dist_value", Distance(a_a, atom) }
-							});
+							af_ca_trimmed.push_back(af_ca);
+							pdb_ca_trimmed.push_back(pdb_ca);
+						}
+						catch(const std::exception& e)
+						{
 						}
 					}
 
-					// now fix up the newly created residue
-					ligand.modify(af_structure, asym_id);
+					double rmsd = Align(af_structure, pdb_structure, af_ca_trimmed, pdb_ca_trimmed);
 
-					if (cif::VERBOSE)
-						std::cerr << "Created asym " << asym_id << " for " << np << std::endl;
+					json r_hsp{
+						{ "pdb-id", pdb_id },
+						{ "pdb-asym-id", pdb_res.front()->asymID() },
+						{ "identity", hsp.identity() },
+						{ "alignment-length", hsp.length() },
+						{ "rmsd", rmsd }
+					};
 
-					done = true;
+					for (auto &np : pdb_structure.nonPolymers())
+					{
+						auto comp_id = np.compoundID();
+
+						Ligand ligand = ligands[comp_id];
+
+						if (not ligand)
+							continue;
+
+						// fetch the non poly atoms as cif::Rows
+						auto &res = pdb_structure.getResidue(np.asymID(), comp_id);
+
+						// Find the atoms nearby in the AF chain for this residue
+						auto && [ pdb_near_r, af_near_r ] = selectAtomsNearResidue(
+							pdb_res, pdb_ix_trimmed,
+							af_res, af_ix_trimmed, res.atoms(), maxLigandBackboneDistance);
+
+						if (pdb_near_r.size() == 0)
+						{
+							if (cif::VERBOSE)
+								std::cerr << "There are no atoms found near residue " << res << std::endl;
+							continue;
+						}
+
+						// realign based on these nearest atoms.
+						if (pdb_near_r.size() > 3)
+							rmsd = Align(af_structure, pdb_structure, af_near_r, pdb_near_r);
+						else if (cif::VERBOSE)
+						{
+							rmsd = 0;
+							if (cif::VERBOSE)
+								std::cerr << "There are not enough atoms found near residue " << res << " to fine tune rotation" << std::endl;
+						}
+
+						// check to see if the ligand is unique enough
+						if (not isUniqueLigand(af_structure, minSeparationDistance, res))
+						{
+							if (cif::VERBOSE)
+								std::cerr << "Residue is not unique enough" << std::endl;
+							continue;
+						}
+
+						auto entity_id = af_structure.createNonPolyEntity(comp_id);
+						auto asym_id = af_structure.createNonpoly(entity_id, res.atoms());
+
+						r_hsp["transplants"].push_back({
+							{ "compound_id", comp_id },
+							{ "entity_id", entity_id },
+							{ "asym_id", asym_id },
+							{ "rmsd", rmsd }
+						});
+
+						// copy any struct_conn record that might be needed
+
+						auto &pdb_struct_conn = pdb_structure.category("struct_conn");
+						auto &af_struct_conn = af_structure.category("struct_conn");
+
+						for (auto atom : res.atoms())
+						{
+							for (auto conn : pdb_struct_conn.find(
+								("ptnr1_label_asym_id"_key == atom.labelAsymID() and "ptnr1_label_atom_id"_key == atom.labelAtomID()) or
+								("ptnr2_label_asym_id"_key == atom.labelAsymID() and "ptnr2_label_atom_id"_key == atom.labelAtomID())))
+							{
+								std::string a_type, a_comp;
+								if (conn["ptnr1_label_asym_id"].as<std::string>() == atom.labelAsymID() and
+									conn["ptnr1_label_atom_id"].as<std::string>() == atom.labelAtomID())
+								{
+									a_type = conn["ptnr2_label_atom_id"].as<std::string>();
+									a_comp = conn["ptnr2_label_comp_id"].as<std::string>();
+								}
+								else
+								{
+									a_type = conn["ptnr1_label_atom_id"].as<std::string>();
+									a_comp = conn["ptnr1_label_comp_id"].as<std::string>();
+								}
+
+								// locate the corresponding atom in the af structure
+								auto a_a = af_structure.getAtomByPositionAndType(atom.location(), a_type, a_comp);
+
+								if (not a_a)
+								{
+									if (cif::VERBOSE)
+										std::cerr << "Could not create a connection to " << atom << std::endl;
+									continue;
+								}
+
+								auto conn_type = conn["conn_type_id"].as<std::string>();
+
+								af_struct_conn.emplace({
+									{ "id", af_struct_conn.getUniqueID(conn_type) },
+									{ "conn_type_id", conn_type },
+									{ "ptnr1_label_asym_id", asym_id },
+									{ "ptnr1_label_comp_id", res.compoundID() },
+									{ "ptnr1_label_seq_id", "." },
+									{ "ptnr1_label_atom_id", atom.labelAtomID() },
+									{ "ptnr1_symmetry", "1_555" },
+									{ "ptnr2_label_asym_id", a_a.labelAsymID() },
+									{ "ptnr2_label_comp_id", a_a.labelCompID() },
+									{ "ptnr2_label_seq_id", a_a.labelSeqID() },
+									{ "ptnr2_label_atom_id", a_a.labelAtomID() },
+									{ "ptnr1_auth_asym_id", asym_id },
+									{ "ptnr1_auth_comp_id", res.compoundID() },
+									{ "ptnr1_auth_seq_id", "." },
+									{ "ptnr2_auth_asym_id", a_a.labelAsymID() },
+									{ "ptnr2_auth_comp_id", a_a.labelCompID() },
+									{ "ptnr2_auth_seq_id", a_a.labelSeqID() },
+									{ "ptnr2_symmetry", "1_555" },
+									{ "pdbx_dist_value", Distance(a_a, atom) }
+								});
+							}
+						}
+
+						// now fix up the newly created residue
+						ligand.modify(af_structure, asym_id);
+
+						if (cif::VERBOSE)
+							std::cerr << "Created asym " << asym_id << " for " << np << std::endl;
+					}
+
+					if (not r_hsp["transplants"].empty())
+						hits.push_back(std::move(r_hsp));
 				}
 			}
 			catch (const std::exception &e)
 			{
-				std::cout << e.what() << '\n';
+				std::cerr << e.what() << '\n';
 			}
-
-			if (done)
-				break;
 		}
-		if (done)
-			break;
 	}
 
 	af_structure.cleanupEmptyCategories();
 
 	if (vm.count("output"))
-		f.file().save(vm["output"].as<std::string>());
+	{
+		fs::path output = vm["output"].as<std::string>();
+		f.file().save(output);
+
+		output.replace_extension(".json");
+		std::ofstream outfile(output);
+		outfile << result;
+	}
 	else
 		f.file().save(std::cout);
 
@@ -705,14 +846,14 @@ int a_main(int argc, const char *argv[])
 // recursively print exception whats:
 void print_what(const std::exception &e)
 {
-	std::cout << e.what() << std::endl;
+	std::cerr << e.what() << std::endl;
 	try
 	{
 		std::rethrow_if_nested(e);
 	}
 	catch (const std::exception &nested)
 	{
-		std::cout << " >> ";
+		std::cerr << " >> ";
 		print_what(nested);
 	}
 }

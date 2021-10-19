@@ -95,7 +95,7 @@ endif()
 if(USE_RSRC)
 	set(USE_RSRC 1)
 
-	message("Using resources compiled with ${MRC}")
+	message("Using resources compiled with ${MRC_EXECUTABLE}")
 	add_compile_definitions(USE_RSRC)
 endif()
 
@@ -108,32 +108,26 @@ find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options system iostreams d
 
 find_package(ZLIB)
 find_package(BZip2)
-find_package(cifpp 1.0 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
+find_package(cifpp 3.0.0 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
+find_package(zeep 5.1.4 REQUIRED)
 
 if(CIFPP_FOUND)
 	add_compile_definitions("DATA_DIR=\"${CIFPP_SHARE_DIR}\"")
 endif()
 
-include_directories(${Boost_INCLUDE_DIR} cifpp::cifpp ${CMAKE_SOURCE_DIR}/include)
-link_libraries(${Boost_LIBRARIES} cifpp::cifpp ${CMAKE_THREAD_LIBS_INIT})
-
-if (ZLIB_FOUND)
-	link_libraries(ZLIB::ZLIB)
-endif()
-
-if (BZIP2_FOUND)
-	link_libraries(BZip2::BZip2)
-endif()
-
-include_directories(
-    ${PROJECT_SOURCE_DIR}/src
-	PUBLIC ${cifpp_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS}
-)
-
 add_executable(alphafill
 	${PROJECT_SOURCE_DIR}/src/blast.cpp
 	${PROJECT_SOURCE_DIR}/src/matrix.cpp
 	${PROJECT_SOURCE_DIR}/src/alphafill.cpp)
+
+target_include_directories(alphafill
+	PUBLIC
+	cifpp::cifpp
+	zeep::zeep
+	${CMAKE_SOURCE_DIR}/include
+	${cifpp_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+
+target_link_libraries(alphafill cifpp::cifpp ZLIB::ZLIB BZip2::BZip2 zeep::zeep ${CMAKE_THREAD_LIBS_INIT})
 
 if(USE_RSRC)
 	mrc_target_resources(alphafill ${CIFPP_SHARE_DIR}/mmcif_pdbx_v50.dic)
