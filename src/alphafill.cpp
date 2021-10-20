@@ -850,6 +850,9 @@ int a_main(int argc, const char *argv[])
 		fs::path output = vm["output"].as<std::string>();
 		f.file().save(output);
 
+		// if (output.extension() == ".gz")
+		// 	output = output.stem();
+
 		output.replace_extension(".json");
 		std::ofstream outfile(output);
 		outfile << result;

@@ -137,17 +137,17 @@ install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${BIN_INSTALL_DIR}
 )
 
-# manual
+# # manual
 
-if(UNIX)
-	install(FILES doc/alphafill.1
-		DESTINATION ${CMAKE_INSTALL_DATADIR}/man/man1)
-endif()
+# if(UNIX)
+# 	install(FILES doc/alphafill.1
+# 		DESTINATION ${CMAKE_INSTALL_DATADIR}/man/man1)
+# endif()
 
-if(EXISTS "${CCP4}/html")
-	install(FILES doc/alphafill.html
-		DESTINATION ${CCP4}/html)
-endif()
+# if(EXISTS "${CCP4}/html")
+# 	install(FILES doc/alphafill.html
+# 		DESTINATION ${CCP4}/html)
+# endif()
 
 # test
 
