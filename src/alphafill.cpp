@@ -572,7 +572,7 @@ int a_main(int argc, const char *argv[])
 		{ "id", afID },
 		{ "file", xyzin.string() },
 		{ "date", to_iso_extended_string(now.date()) },
-		{ "alphafill-version", get_version_string() }
+		{ "alphafill_version", get_version_string() }
 	};
 
 	json &hits = result["hits"] = json::array();
@@ -701,10 +701,10 @@ int a_main(int argc, const char *argv[])
 					double rmsd = Align(af_structure, pdb_structure, af_ca_trimmed, pdb_ca_trimmed);
 
 					json r_hsp{
-						{ "pdb-id", pdb_id },
-						{ "pdb-asym-id", pdb_res.front()->asymID() },
+						{ "pdb_id", pdb_id },
+						{ "pdb_asym_id", pdb_res.front()->asymID() },
 						{ "identity", hsp.identity() },
-						{ "alignment-length", hsp.length() },
+						{ "alignment_length", hsp.length() },
 						{ "rmsd", rmsd }
 					};
 
