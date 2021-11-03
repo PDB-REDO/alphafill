@@ -1,9 +1,1995 @@
+data_01A
+#
+_ligand.id               01A
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C1     .
+2  C      .
+3  O2     .
+4  "C1'"  .
+5  C2     .
+6  C3     .
+7  C4     .
+8  C5     .
+9  C6     .
+10 CL4A   .
+#
+data_01K
+#
+_ligand.id               01K
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative+lysine"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N59    N6A
+2  C58    C6A
+3  N57    N1A
+4  C56    C2A
+5  N55    N3A
+6  C54    C4A
+7  C53    C5A
+8  N52    N7A
+9  C51    C8A
+10 N50    N9A
+11 C49    C1B    
+12 O60    O4B
+13 C47    C2B
+14 O48    O2B
+15 C41    C3B
+16 O42    O3B
+17 P43    P3B
+18 O46    O9A
+19 O45    O8A
+20 O44    O7A
+21 C40    C4B
+22 C39    C5B
+23 O38    O5B
+24 P2     P1A
+25 O1     O1A
+26 O37    O2A
+27 O3     O3A
+28 P4     P2A
+29 O35    O5A
+30 O36    O4A
+31 O5     O6A
+32 C6     CCP
+33 C7     CBP
+34 C8     CDP
+35 C9     CEP 
+36 C10    CAP
+37 O11    OAP
+38 C12    C9P
+39 O34    O9P
+40 N13    N8P
+41 C14    C7P
+42 C15    C6P
+43 C16    C5P
+44 O33    O5P
+45 N17    N4P
+46 C18    C3P
+47 C19    C2P
+48 S20    S1P
+49 C21    .
+50 C22    .
+51 O32    .
+52 NZ     .
+53 CE     .
+54 CD     .
+55 CG     .
+56 CB     .
+57 CA     .
+58 C      .
+59 O      .
+60 N64    .
+61 N      .
+62 C61    .
+63 O62    .
+64 C63    .
+#
+data_0ET
+#
+_ligand.id               0ET
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      'COA derivative inhibitor'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C1X C1B
+2  C2X C2B
+3  O2X O2B
+4  C3X C3B
+5  C4X C4B
+6  O4X O4B
+7  O3X O3B
+8  P3X P3B
+9  C5X C5B
+10 O5X O5B
+11 O2A O1A
+12 O1A O2A
+13 O4A O5A
+14 O5A O4A
+15 C12 CCP
+16 C11 CBP
+17 C14 CDP
+18 C13 CEP
+19 C10 CAP
+20 O10 OAP
+21 C9  C9P
+22 O9  O9P
+23 N8  N8P
+24 C7  C7P
+25 C6  C6P
+26 C5  C5P
+27 O5  O5P
+28 N4  N4P
+29 C3  C3P
+30 C2  C2P
+31 S1  S1P
+32 CP  .
+33 C1M .
+34 O1M .
+35 C2M .
+36 C3M .
+37 C4M .
+38 C5M .
+39 C6M .
+40 C7M .
+41 C8M .
+42 C9M .
+43 CAM .
+#
+data_0HG
+#
+_ligand.id               0HG
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OXT O12
+2  C   C1
+3  O   O11
+4  CA  CA1
+5  N   N1
+6  CB  CB1
+7  CG  CG1
+8  CD  CD1
+9 N1  N2
+10 CA1 CA2
+11 CB1 CB2
+12 SG  SG2
+13 C1  C2 
+14 O1  O2
+15 N2  N3
+16 CA2 CA3
+17 C8  C3
+18 O2  O31
+19 OXT1 O32
+20 C2  .
+21 C6  .
+22 C7  .
+23 C11 .
+24 C5  .
+25 C4  .
+26 BR  .
+26 C3  .
+#
+data_0HH
+#
+_ligand.id               0HH
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OXT O12
+2  C   C1
+3  O   O11
+4  CA  CA1
+5  N   N1
+6  CB  CB1
+7  CG  CG1
+8  CD  CD1
+9  N1  N2
+10 CA1 CA2
+11 CB1 CB2
+12 SG  SG2
+13 C1  C2 
+14 O1  O2
+15 N2  N3
+16 CA2 CA3
+17 CC  C3
+18 O2  O31
+19 OXT1 O32
+20 C11 .
+21 C9  .
+22 C2  .
+23 C3  .
+24 C4  .
+25 C5  .
+26 C6  .
+27 C7  .
+28 C8  .
+#
+data_0UM
+#
+_ligand.id               0UM
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CBC "C1'"
+2  CBA "C2'"
+3  OAG "O2'"
+4  CAZ "C3'"
+5  OAF "O3'"
+6  OAS "O4'"
+7  CBB "C4'"
+8  CAN "C5'"
+9  CAY SD
+10 NAR CE
+11 CAM CG
+12 CAK .
+13 CAJ .
+14 CAA .
+#
+data_0WD
+#
+_ligand.id               0WD
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "P2'"  .
+2  OP1    .
+3  OP2    .
+4  OP3    .
+5  O3P    O3
+6  O5M    O5D
+7  C5M    C5D
+8  C4M    C4D
+9  C3M    C3D
+10 O3M    O3D
+11 C2M    C2D
+12 O2M    O2D
+13 O4M    O4D
+14 C1M    C1D
+#
+data_0XU
+#
+_ligand.id               0XU
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CD    SD
+3  NE    CE
+#
+data_0Y0
+#
+_ligand.id               0Y0
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+data_0Y1
+#
+_ligand.id               0Y1
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CAD    "C1'"
+2  CAC    "C2'"
+3  OAI    "O2'"
+4  CAB    "C3'"
+5  OAH    "O3'"
+6  CAA    "C4'"
+7  OAE    "O4'"
+8  CAF    "C5'"
+9  NAR    SD
+10 CAS    CG
+11 CAZ    CE
+12 CBA    .
+13 CBB    .
+14 CBC    .
+15 CBG    .
+16 CBH    .
+17 CBI    .
+18 CBJ    .
+19 CBD    .
+20 NBE    .
+21 CBF    .
+#
+data_0Y2
+#
+_ligand.id               0Y2
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CAD    "C1'"
+2  CAC    "C2'"
+3  OAI    "O2'"
+4  CAB    "C3'"
+5  OAH    "O3'"
+6  CAA    "C4'"
+7  OAE    "O4'"
+8  CAF    "C5'"
+9  NAR    SD
+10 CAS    CG
+11 CAZ    CE
+12 CBA    .
+13 CBB    .
+14 CBC    .
+15 CBG    .
+16 CBH    .
+17 CBI    .
+18 CBJ    .
+19 CBD    .
+20 S1E    .
+21 CBF    .
+#
+data_18W
+#
+_ligand.id               18W
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'Oxidised Dipyrromethane, inactive enzyme state'
+_ligand.name          "Oxidised Dipyrromethane"
+#
+data_1C4
+#
+_ligand.id               1C4
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-substrate analog" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O2A O1A
+2  O1A O2A
+3  O4A O5A
+4  O5A O4A
+5  C8  .
+6  C7  .
+7  O7  .
+8  N2  .
+9  CA  .
+10 C   .
+11 O   .
+12 OXT .
+13 CB  .
+14 CG  .
+15 CD  .
+16 OE1 .
+17 OE2 .
+#
+data_1CV
+#
+_ligand.id               1CV
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C1'" C1B
+2  "C2'" C2B
+3  "O2'" O2B
+4  "C3'" C3B
+5  "O3'" O3B
+6  "P3'" P3B
+7  "C4'" C4B
+8  "O4'" O4B
+9  "C5'" C5B
+10 "O5'" O5B
+11 O2A O1A
+12 O1A O2A
+13 C12 CCP
+14 C11 CBP
+15 C14 CDP
+16 C13 CEP
+17 C10 CAP
+18 O10 OAP
+19 C1  .
+20 S2  .
+21 C2  .
+22 C3  .
+23 C6  .
+24 O7  .
+25 C4  .
+26 C5  .
+27 O3  .
+28 O4  .
+#
+data_1CZ
+#
+_ligand.id               1CZ
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C1'" C1B
+2  "C2'" C2B
+3  "O2'" O2B
+4  "C3'" C3B
+5  "O3'" O3B
+6  "P3'" P3B
+7  "C4'" C4B
+8  "O4'" O4B
+9  "C5'" C5B
+10 "O5'" O5B
+11 O2A O1A
+12 O1A O2A
+13 C12 CCP
+14 C11 CBP
+15 C14 CDP
+16 C13 CEP
+17 C10 CAP
+18 O10 OAP
+19 O7A O9A
+20 O9A O7A
+21 O4A O5A
+22 O5A O4A 
+23 C6  .
+24 O7  .
+25 C4  .
+26 C5  .
+27 O3  .
+28 O4  .
+29 C1  .
+30 S1O .
+31 C2  .
+32 C3  .
+#
+data_1DG
+#
+_ligand.id               1DG
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N1     N1A
+2  C2     C2A
+3  N3     N3A
+4  C4     C4A
+5  C5     C5A
+6  C6     C6A
+7  N6     N6A
+8  N7     N7A
+9  C8     C8A
+10 N9     N9A
+11 CBY    C1B   
+12 CBW    C2B   
+13 OBH    O2B
+14 PCB    .
+15 OAK    .
+16 OAL    .
+17 OAE    .
+18 CBS    C3B   
+19 OAJ    O3B
+20 OBG    O4B
+21 CBV    C4B   
+22 CAY    C5B
+23 OBE    O5B
+24 PCD    PA   
+25 OAG    O1A
+26 OAN    O2A
+27 OBI    O3
+28 PCC    PN   
+29 OAM    O2N
+30 OAF    O1N
+31 "O5'"  O5D
+32 "C5'"  C5D
+33 "C4'"  C4D   
+34 "O4'"  O4D
+35 "C3'"  C3D   
+36 "O3'"  O3D
+37 "C2'"  C2D   
+38 "O2'"  O2D
+39 "C1'"  C1D   
+40 NBZ    N1N
+41 CAP    C6N
+42 CAO    C5N
+43 CAQ    C2N
+44 CBL    C3N
+45 CBJ    C7N
+46 OAC    O7N
+47 NAA    N7N
+48 CBT    C4N
+49 CBK    .
+50 OAD    .
+51 CBN    .
+52 CAT    .
+53 CAR    .
+54 NAZ    .
+55 CAS    .
+56 CAU    .
+#
+data_1HA
+#
+_ligand.id               1HA
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 PCG P3B
+17 OAM O9A
+18 OAN O7A
+19 OAG O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 PCH P1A
+25 OAH O1A
+26 OAO O2A
+27 OBN O3A
+28 PCI P2A
+29 OAI O5A
+30 OAP O4A
+31 OBK O6A
+32 CBD CCP
+33 CCF CBP
+34 CAB CDP
+35 CAA CEP
+36 CBZ CAP
+37 OAK OAP
+38 CBQ C9P
+39 OAE O9P
+40 NBI N8P
+41 CAZ C7P
+42 CBB C6P
+43 CBP C5P
+44 OAD O5P
+45 NBH N4P
+46 CAY C3P
+47 CBA C2P
+48 SBO S1P
+49 CBR .
+50 OAF .
+51 CBU .
+52 CAT .
+53 CAW .
+54 CBT .
+55 OAJ .
+56 CBW .
+57 CAV .
+58 CAR .
+59 CAQ .
+60 CAU .
+61 CBV . 
+#
+data_1JO
+#
+_ligand.id               1JO
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OXT O12
+2  C   C1
+3  O   O11
+4  CA  CA1
+5  N   N1
+6  CB  CB1
+7  CG  CG1
+8  CD  CD1
+9  NE2 N2
+10 CBD CA2
+11 CAT CB2
+12 SAW SG2
+13 CBA C2 
+14 OAE O2
+15 NAU N3
+16 CAQ CA3
+17 CAX C3
+18 OAF O31
+19 OAB O32
+20 CAO .
+21 CAM .
+22 CAN .
+23 CAR .
+24 CBB .
+25 CAK .
+26 CAI .
+27 CAH .
+28 CAJ .
+29 CAL .
+#
+data_1JP
+#
+_ligand.id               1JP
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OXT O12
+2  C   C1
+3  O   O11
+4  CA  CA1
+5  N   N1
+6  CB  CB1
+7  CG  CG1
+8  CD  CD1
+9  NE2 N2
+10 CBE CA2
+11 CAT CB2
+12 S1  SG2
+13 CBA C2 
+14 OAE O2
+15 NAU N3
+16 CAO CA3
+17 CAX C3
+18 OAB O31
+19 OAF O32
+20 CAS .
+21 CBD .
+22 OAH .
+23 CAR .
+24 CAP .
+25 CBB .
+26 CAL .
+27 CAJ .
+28 CAI .
+29 CAK .
+30 CAM .
+#
+data_1R4
+#
+_ligand.id               1R4
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O11 O12
+2  C09 C1
+3  O10 O11
+4  C08 CA1
+5  N01 N1
+6  C07 CB1
+7  C06 CG1
+8  C05 CD1
+9  N04 N2
+10 C03 CA2
+11 C14 CB2
+12 S15 SG2
+13 C02 C2 
+14 O01 O2
+15 N28 N3
+16 C29 CA3
+17 C30 C3
+18 O32 O31
+19 O31 O32
+20 O13 OE1
+21 C16 .
+22 C17 .
+23 O27 .
+24 C18 .
+25 C19 .
+26 C20 .
+27 C21 .
+28 N22 .
+29 O23 .
+30 O24 .
+31 C25 .
+32 C26 .
+#
+data_1TP
+#
+_ligand.id               1TP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_1U0
+#
+_ligand.id               1U0
+_ligand.analogue_id      TPP
+_ligand.priority         y
+_ligand.description      "TDP-class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C3 N3
+2 C8 .
+3 O9 .
+4 C9 .
+5 O10 .
+#
+data_1VU
+#
+_ligand.id               1VU
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C19 C6A
+2  N4  N6A
+3  N5  N1A
+4  C20 C2A
+5  N6  N3A
+6  C21 C4A
+7  C18 C5A
+8  N2  N9A
+9  C17 C8A
+10 N3  N7A 
+11 C16 C1B
+12 C22 C2B
+13 O12 O2B
+14 C23 C3B
+15 O13 O3B
+16 P2  P3B
+17 O15 O9A
+18 O14 O7A
+19 O16 O8A
+20 C15 C4B
+21 O11 O4B
+22 C14 C5B
+23 O10 O5B
+24 P1  P1A
+25 O9  O1A
+26 O8  O2A
+27 O7  O3A
+28 P   P2A
+29 O6  O5A
+30 O5  O4A
+31 O4  O6A
+32 C13 CCP
+33 C10 CBP
+34 C11 CDP
+35 C12 CEP
+36 C9  CAP
+37 O3  OAP
+38 C8  C9P
+39 O2  O9P
+40 N1  N8P
+41 C7  C7P
+42 C6  C6P
+43 C5  C5P
+44 O1  O5P
+45 N   N4P
+46 C4  C3P
+47 C3  C2P
+48 S   S1P
+49 C2  .
+50 C1  .
+51 C   .
+52 O   .
+#
+data_1XE
+#
+_ligand.id               1XE
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O4A O5A
+2  O5A O4A
+3  C2  .
+4  C1  .
+5  O1  .
+6  O21 .
+#
+data_1YJ
+#
+_ligand.id               1YJ
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "FFO-derivative" 
+#
+data_29P
+#
+_ligand.id               29P
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'partially oxidised Dipyrromethane, intermediate enzyme state'
+#
+data_2CP
+#
+_ligand.id               2CP
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O33 O9A
+18 O31 O7A
+19 O32 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O11 O1A
+26 O12 O2A
+27 O6  O3A
+28 P2  P2A
+29 O21 O5A
+30 O22 O4A
+31 O7  O6A
+32 CPB CCP
+33 CPA CBP
+34 CP8 CDP
+35 CP9 CEP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CS1 .
+50 CS2 .
+51 CS3 .
+52 CS4 .
+53 OS4 .
+54 OS5 .
+#
+data_2MD
+#
+_ligand.id               2MD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "MGD-class"
+#
+data_2NE
+#
+_ligand.id               2NE
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C30 C6A
+2  N31 N6A
+3  N32 N1A
+4  C33 C2A
+5  N34 N3A
+6  C35 C4A
+7  C29 C5A
+8  N26 N9A
+9  C27 C8A
+10 N28 N7A 
+11 C17 C1B
+12 C18 C2B
+13 O19 O2B
+14 C20 C3B
+15 O21 O3B
+16 P22 P3B
+17 O23 O9A
+18 O24 O7A
+19 O25 O8A
+20 C15 C4B
+21 O16 O4B
+22 C14 C5B
+23 O13 O5B
+24 P10 P1A
+25 O12 O1A
+26 O11 O2A
+27 O09 O3A
+28 P06 P2A
+29 O07 O5A
+30 O08 O4A
+31 O05 O6A
+32 C05 CCP
+33 C02 CBP
+34 C01 CDP
+35 C03 CEP
+36 C36 CAP
+37 O37 OAP
+38 C38 C9P
+39 O39 O9P
+40 N40 N8P
+41 C41 C7P
+42 C42 C6P
+43 C43 C5P
+44 O44 O5P
+45 N45 N4P
+46 C46 C3P
+47 C47 C2P
+48 S48 S1P
+49 C49 .
+50 O50 .
+51 C51 .
+52 C52 .
+53 O53 .
+54 C54 .
+55 C55 .
+56 C56 .
+57 C57 .
+#
+data_2TP
+#
+_ligand.id               2TP
+_ligand.analogue_id      TPP
+_ligand.priority         y
+_ligand.description      "TDP-class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "O4'" .
+2  C2A CM2
+3  C35 "C7'"
+4  C4A CM4
+5  C5A C6
+6  C5B C7
+7  O5G O7
+8  P1  PA
+9  O12 O2A
+10 O13 O1A
+11 O11 O3A
+12 P2  PB
+13 O21 O2B
+14 O22 O1B
+15 O23 O3B
+#
+data_36A
+#
+_ligand.id               36A
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+data_37H
+#
+_ligand.id               37H
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CBD    "C1'"   
+2  CBB    "C2'"   
+3  OAH    "O2'"
+4  CBA    "C3'"   
+5  OAG    "O3'"
+6  OAS    "O4'"
+7  CBC    "C4'"   
+8  CAN    "C5'"
+9  CAZ    SD   
+10 CAL    CG
+11 CAM    CE
+12 NAR    .
+13 CAT    .
+14 NAA    .
+15 NAB    .
+16 H15    .
+#
+data_3AA
+#
+_ligand.id               3AA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+data_3CD
+#
+_ligand.id               3CD
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C8N N7N
+2 CL1 .   
+#
+data_3CP
+#
+_ligand.id               3CP
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O33 O9A
+18 O31 O7A
+19 O32 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O11 O1A
+26 O12 O2A
+27 O6  O3A
+28 P2  P2A
+29 O21 O5A
+30 O22 O4A
+31 O7  O6A
+32 CPB CCP
+33 CPA CBP
+34 CP9 CDP
+35 CP8 CEP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CS1 .
+50 CS2 .
+51 CS3 .
+52 CS4 .
+53 OS5 .
+54 OS4 .
+#
+data_3GC
+#
+_ligand.id               3GC
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'Glutathione precursor'
+_ligand.name             'gamma-glutamylcysteine' 
+#
+data_3H9
+#
+_ligand.id               3H9
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CEP CDP 
+2  CDP CEP
+3  O1  .
+4  C1  .
+5  C2  .
+6  C3  .
+7  O3  .
+8  C4  .
+9  C5  .
+10 C6  .
+#
+data_3HC
+#
+_ligand.id               3HC
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O2A O1A
+2  O1A O2A
+3  CEP CDP
+4  CDP CEP
+5  C2  .
+6  C1  .
+7  O1  .
+8  C3  .
+9  O3  .
+10 C4  .
+#
+data_48T
+#
+_ligand.id               48T
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O11 O12
+2  O12 O11
+3  C13 .
+4  C14 .
+5  O5  .
+6  CD5 .
+7  CE5 .
+8  CZ5 . 
+9  CH5 .
+10 CB5 .
+11 CG5 .
+12 CH4 .
+13 CB4 . 
+14 CG4 .
+15 CD4 .
+16 CE4 .
+17 CZ4 .
+#
+data_4AB
+#
+_ligand.id               4AB
+_ligand.analogue_id      H4B
+_ligand.priority         y
+_ligand.description      H4B-class
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 NH4 O4
+#
+data_4CA
+#
+_ligand.id               4CA
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1D C1B
+2 C2D C2B
+3 O2D O2B
+4 C3D C3B
+5 O3D O3B
+6 P3D P3B
+7 C4D C4B
+8 O4D O4B
+9 C5D C5B
+10 O5D O5B
+11 C1B .
+12 C2B .
+13 C3B .
+14 C4B .
+15 C5B .
+16 O2B .
+17 C6B .
+18 C7B .
+#
+data_4CO
+#
+_ligand.id               4CO
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1D C1B
+2 C2D C2B
+3 O2D O2B
+4 C3D C3B
+5 O3D O3B
+6 P3D P3B
+7 C4D C4B
+8 O4D O4B
+9 C5D C5B
+10 O5D O5B
+11 CB  .
+12 C1B .
+13 O1B .
+14 C2B .
+15 C3B .
+16 C4B .
+17 C5B .
+18 O2B .
+19 C6B .
+20 C7B .
+#
+data_4IK
+#
+_ligand.id               4IK
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 CD     SD   
+2 NZ     .
+#
+data_4LS
+#
+_ligand.id               4LS
+_ligand.analogue_id      FMN
+_ligand.priority         y
+_ligand.description      "FMN-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C11 C10
+2  CAD C7M
+3  CAC C8M
+4  CAS "C1'"
+5  CBG "C2'"
+6  OAJ "O2'"
+7  CBH "C3'"
+8  OAK "O3'"
+9  CBF "C4'"
+10 OAI "O4'"
+11 CAR "O5'"
+12 OAV "O5'"
+13 PBK P
+14 OAH O2P
+15 OAL O1P
+16 OAM O3P
+17 CAQ .
+18 CAN .
+19 CAW .
+20 CAA .
+21 CAB .
+#
+data_4LU
+#
+_ligand.id               4LU
+_ligand.analogue_id      FMN
+_ligand.priority         y
+_ligand.description      "FMN-class, prenylated-FMN iminium form" 
+#
+data_4YP
+#
+_ligand.id               4YP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "UQ1-class"
+#
+data_5AU
+#
+_ligand.id               5AU
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'Glutathiones bridged by phenylarsine'
+_ligand.name             'di-glutathione-phenylarsine' 
+#
+data_5GY
+#
+_ligand.id               5GY
+_ligand.analogue_id      TPP
+_ligand.priority         y
+_ligand.description      "TDP-class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N01 "N4'"
+2  C02 "C4'"
+3  N30 "N3'"
+4  C28 "C2'"
+5  C29 CM2
+6  N27 "N1'"
+7  C26 "C6'"
+8  C03 "C5'"
+9  C04 "C7'"
+10 N05 N3
+11 C24 C4
+12 C25 CM4
+13 C12 C5
+14 S11 S1
+15 C06 C2
+16 C07 .
+17 O08 .
+18 C09 .
+19 F10 .
+20 C13 C6
+21 C14 C7
+22 O15 O7
+23 P16 PA
+24 O22 O2A
+25 O23 O1A
+26 O17 O3A
+27 P18 PB
+28 O20 O2B
+29 O19 O1B
+30 O21 O3B
+#
+data_62X
+#
+_ligand.id               62X
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N29    N1
+2  C30    C2
+3  N31    N3
+4  C32    C4
+5  C26    C5
+6  C27    C6
+7  N28    N6
+8  N25    N7
+9  C24    C8
+10 N23    N9
+11 C18    "C1'"   
+12 C19    "C2'"   
+13 O20    "02'"
+14 C21    "C3'"   
+15 O22    "O3'"
+16 O17    "O4'"
+17 C16    "C4'"   
+18 C15    "C5'"
+19 N7     SD   
+20 C8     CG
+21 C9     CB
+22 C10    CA   
+23 N11    N
+24 C12    C
+25 O13    O
+26 O14    OXT
+27 C6     .
+28 C5     .
+29 C4     .
+30 N2     .
+31 C1     .
+31 C3     .
+#
+data_6FA
+#
+_ligand.id               6FA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'FAD-class, 6-hydroxy FAD' 
+#
+data_6HE
+#
+_ligand.id               6HE
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEA-class, HEB analog but not mappable as atoms need to be added' 
+#
+data_6NR
+#
+_ligand.id               6NR
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+data_6V0
+#
+_ligand.id               6V0
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+data_76H
+#
+_ligand.id               76H
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CBC    "C1'"   
+2  CBA    "C2'"   
+3  OAG    "O2'"
+4  CAZ    "C3'"   
+5  OAF    "O3'"
+6  OAS    "O4'"
+7  CBB    "C4'"   
+8  CAN    "C5'"
+9  CAY    SD   
+10 CAM    CG
+11 CA     CA   
+12 NAR    CE
+13 CAK    .
+14 CAJ    .
+15 CAA    .
+#
+data_76J
+#
+_ligand.id               76J
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N29    N1
+2  C30    C2
+3  N31    N3
+4  C32    C4
+5  C26    C5
+6  C27    C6
+7  N28    N6
+8  N25    N7
+9  C24    C8
+10 N23    N9
+11 C18    "C1'"   
+12 C19    "C2'"   
+13 O20    "02'"
+14 C21    "C3'"   
+15 O22    "O3'" 
+16 O17    "O4'"
+17 C16    "C4'"   
+18 C15    "S5'"
+19 C7     SD   
+20 C8     CG
+21 C9     CB
+22 C10    CA   
+23 N11    N
+24 C12    C
+25 O13    O
+26 O14    OXT
+27 N6     CE
+28 C5     .
+29 C4     .
+30 C3     .
+31 C2     .
+32 C1     .
+#
+data_76K
+#
+_ligand.id               76K
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N3     N1
+2  C4     C2
+3  N5     N3
+4  C6     C4
+5  C10    C5
+6  C2     C6
+7  N1     N6
+8  N9     N7
+9  N7     N9
+10 C11    "C1'"   
+11 O30    "C2'"   
+12 O31    "O2'"
+13 C28    "C3'"   
+14 O29    "O3'"
+15 O12    "O4'"
+16 C13    "C4'"   
+17 C14    "C5'"
+18 C15    SD   
+19 C16    CG
+20 C17    CB
+21 C18    CA   
+22 N19    N
+23 C20    C
+24 O22    O
+25 O21    OXT
+26 N23    CE
+27 C24    .
+28 C25    .
+29 C26    .
+30 O27    .
+#
+data_76L
+#
+_ligand.id               76L
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N28    N1
+2  C29    C2
+3  N30    N3
+4  C31    C4
+5  C25    C5
+6  C26    C6
+7  N27    N6
+8  N24    N7
+9  C23    C8
+10 N22    N9
+11 C17    "C1'"   
+12 O16    "O4'"
+13 C18    "C2'"   
+14 O19    "O2'"
+15 C20    "C3'"   
+16 O21    "O3'"
+17 C15    "C4'"   
+18 C14    "C5'"
+19 C6     SD   
+20 C7     CG
+21 C8     CB
+22 C9     CA   
+23 N10    N
+24 C11    C
+25 O12    O
+26 O13    OXT
+27 N5     CE
+28 C4     .
+29 C2     .
+30 O3     .
+31 C1     .
+#
+data_76M
+#
+_ligand.id               76M
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N28    N1
+2  C29    C2
+3  N30    N3
+4  C31    C4
+5  C25    C5
+6  C26    C6
+7  N27    N6
+8  N24    N7
+9  C23    C8
+10 N22    N9
+11 C17    "C1'"   
+12 O16    "O4'"
+13 C18    "C2'"   
+14 O19    "O2'"
+15 C20    "C3'"   
+16 O21    "O3'"
+17 C15    "C4'"   
+18 C14    "C5'"
+19 C6     SD   
+20 C7     CG
+21 C8     CB
+22 C9     CA   
+23 N10    N
+24 C11    C
+25 O12    O
+26 O13    OXT
+27 N5     CE
+28 C4     .
+29 C2     .
+30 C3     .
+31 C1     .
+#
+data_7AP
+#
+_ligand.id               7AP
+_ligand.analogue_id      H4B
+_ligand.priority         y
+_ligand.description      H4B-class
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 N4 O4
+#
+data_7HE
+#
+_ligand.id               7HE
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEA-class, HEB analog nut not mappable as atoms need to be added'  
+#
+data_8ID
+#
+_ligand.id               8ID
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  I8A      .
+2  OPP      O3
+3  PN       PN   
+4  "O5'"    O5D
+5  "C5'"    C5D
+6  "C4'"    C4D   
+7  "O4'"    O4D
+8  "C3'"    C3D   
+9  "O3'"    O3D
+10 "C2'"    C2D   
+11 "O2'"    O2D
+12 "C1'"    C1D   
+#
+data_8EF
+#
+_ligand.id               8EF
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "TPP-intermediate,TDP-class"
+#
+data_8EL
+#
+_ligand.id               8EL
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "TPP-intermediate,TDP-class"
+#
+data_8EO
+#
+_ligand.id               8EO
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "TPP-intermediate,TDP-class"
+#
+data_8FL
+#
+_ligand.id               8FL
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "hydroxylated TPP,TDP-class"
+#
+data_8JD
+#
+_ligand.id               8JD
+_ligand.analogue_id      COD
+_ligand.priority         y
+_ligand.description      "dephospho-COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6A C6
+2  N6A N7
+3  N1A N1
+4  C2A C2
+5  N3A N3
+6  C4A C4
+7  C5A C5
+8  N9A N10
+9  C8A C9
+10 N7A N8
+11 C1X C11
+12 C2X C12
+13 O2X O13
+14 C3X C14
+15 O3X O15
+20 C4X C16
+21 O4X O17
+22 C5X C18
+23 O5X O19
+24 P1A P20
+25 O1A O22
+26 O2A O21
+27 O3A O23
+28 P2A P24
+29 O5A O26
+30 O4A O24
+31 O6A O27
+32 C12 C28
+33 C13 C30
+34 C11 C29
+35 C14 C31
+36 C10 C32
+37 O10 O33
+38 C9  C34
+39 O9  O35
+40 N8  N36
+41 C7  C37
+42 C6  C38
+43 C5  C39
+44 O5  O40
+45 N4  N41
+46 C2  C43
+47 C3  C42
+48 S1  S44
+49 CP  .
+50 C1M .
+#
+data_8PA
+#
+_ligand.id               8PA
+_ligand.analogue_id      TPP
+_ligand.priority         y
+_ligand.description      "inhibitor,TDP-class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N1S "N1'"
+2  C2S "C2'"
+3  C2M CM2
+4  N3S "N3'"
+5  C4S "C4'"
+6  N4S "N4'"
+7  C5S "C5'"
+8  C6S "C6'"
+9  C7A "C7'"
+10 C4M CM4
+11 P1A PA
+12 P1B PB
+13 C1Q C2
+14 C1M .
+15 O1D .
+16 C1E .
+17 C1F .
+18 C1N .
+19 C1J .
+20 N1K .
+21 C1H .
+22 C1G .
+23 C1I .
+#
+data_8Z2
+#
+_ligand.id               8Z2
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O33 O9A
+18 O31 O7A
+19 O32 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O11 O2A
+26 O12 O1A
+27 O6  O3A
+28 P2  P2A
+29 O22 O5A
+30 O21 O4A
+31 O7  O6A
+32 CPA CCP
+33 CPB CBP
+34 CP9 CEP
+35 CP8 CAP
+36 CP7 CDP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CA1 .
+50 OA1 .
+51 CA2 .
+52 CA3 .
+53 CA4 .
+54 CA5 .
+55 CA6 .
+56 CA7 .
+57 CA8 .
+58 CA9 .
+59 C10 .
+60 C11 .
+61 C12 .
+#
+data_A3D
+#
+_ligand.id               A3D
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2  
+1 C8N   N7N
+#
+data_ABY
+#
+_ligand.id               ABY
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'decarboxy-glutathione analog' 
+_ligand.name             'decarboxy-glutathione analog'
+#
 data_ACE
 #
 _ligand.id               ACE
 _ligand.analogue_id      .
 _ligand.priority         n
-_ligand.description      acetylgroup/ethanal
+_ligand.description      "acetylgroup/ethanal"
+_ligand.name   "Ethanal"
+#
+data_ACO
+#
+_ligand.id               ACO
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CEP CDP
+2  CDP CEP
+3  C   .
+4  CH3 .
+5  O   .
 #
 data_ACP
 #
@@ -23,14 +2009,16 @@ data_ACT
 _ligand.id               ACT
 _ligand.analogue_id      .
 _ligand.priority         n
-_ligand.description      deprotonated-ACY
+_ligand.description      "deprotonated-ACY"
+_ligand.name   "Deprotonated acetic acid"
 #
 data_ACY
 #
 _ligand.id               ACY
 _ligand.analogue_id      ACT
 _ligand.priority         n
-_ligand.description      aceticacid
+_ligand.description      "aceticacid"
+_ligand.name   "Acetic acid"
 #
 data_ADP
 #
@@ -38,6 +2026,7 @@ _ligand.id               ADP
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "ADP"
 #
 data_AGS
 #
@@ -52,12 +2041,27 @@ _modification.atom1
 _modification.atom2
 1 S1G O1G
 #
+data_AHE
+#
+_ligand.id               AHE
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CD2 .
+2  OE2 .
+#
 data_AKG
 #
 _ligand.id               AKG
 _ligand.analogue_id      .
 _ligand.priority         n
 _ligand.description      2-oxoglutaricAcid
+_ligand.name   "Oxogluric acid"
 #
 data_AMP
 #
@@ -65,6 +2069,23 @@ _ligand.id               AMP
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "AMP"
+#
+data_AMX
+#
+_ligand.id               AMX
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-analog" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C1  S1P
+2  C2  .
+3  O2  .
+4  N2  .
 #
 data_ANP
 #
@@ -79,12 +2100,78 @@ _modification.atom1
 _modification.atom2
 1 N3B O3B
 #
+data_AP0
+#
+_ligand.id               AP0
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C8N   N7N
+#
 data_ASC
 #
 _ligand.id               ASC
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      Cofactor_VitC
+_ligand.name   "Vitamin C"
+#
+data_AT5
+#
+_ligand.id               AT5
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "UQ1-class"
+#
+data_ATA
+#
+_ligand.id               ATA
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "O2'" O12
+2  "CC'" C1
+3  "O1'" O11
+4  "CA'" CA1
+5  "N'"  N1
+6  "CB'" CB1
+7  "CG'" CG1
+8  "C'"  CD1
+9  N   N2
+10 CA  CA2
+11 CB  CB2
+12 SG  SG2
+13 C   C2 
+14 O   O2
+15 ND  N3
+16 CAD CA3
+17 CD  C3
+18 OD  O31
+19 "OT'" O32
+20 "O'"  OE1
+21 C2  .
+22 N1  .
+23 C6  .
+24 N11 .
+25 C12 .
+26 C13 .
+27 N5  .
+28 C4  .
+29 N3  .
+30 N7  .
+31 C8  .
+32 C9  .
+33 C10 .
 #
 data_ATP
 #
@@ -92,6 +2179,7 @@ _ligand.id               ATP
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   ATP
 #
 data_B12
 #
@@ -99,13 +2187,113 @@ _ligand.id               B12
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      Cofactor_VitB12
+_ligand.name   "Vitamin B12"
+#
+data_BCA
+#
+_ligand.id               BCA
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1D C1B
+2 C2D C2B
+3 O2D O2B
+4 C3D C3B
+5 O3D O3B
+6 P3D P3B
+7 O7A O9A
+8 O9A O7A
+9 C4D C4B
+10 O4D O4B
+11 C5D C5B
+12 O5D O5B
+13 C1B .
+14 O1B .
+15 C2B .
+16 C3B .
+17 C4B .
+18 C5B .
+19 O2B .
+20 C6B .
+21 C7B .
+#
+data_BCO
+#
+_ligand.id               BCO
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C12 C6A
+2  N5  N6A
+3  N4  N1A
+4  C15 C2A
+5  N3  N3A
+6  C6  C4A
+7  C8  C5A
+8  N1  N9A
+9  C7  C8A
+10 N2  N7A 
+11 C4  C1B
+12 C2  C2B
+13 O3  O2B
+14 C1  C3B
+15 O2  O3B
+16 P1  P3B
+17 O5  O9A
+18 O9  O7A
+19 O6  O8A
+20 C3  C4B
+21 O1  O4B
+22 C5  C5B
+23 O4  O5B
+24 P2  P1A
+25 O10 O1A
+26 O12 O2A
+27 O7  O3A
+28 P3  P2A
+29 O14 O5A
+30 O13 O4A
+31 O8  O6A
+32 C11 CCP
+33 C9  CBP
+34 C13 CDP
+35 C14 CEP
+36 C10 CAP
+37 O11 OAP
+38 C16 C9P
+39 O15 O9P
+40 N6  N8P
+41 C17 C7P
+42 C18 C6P
+43 C19 C5P
+44 O16 O5P
+45 N7  N4P
+46 C20 C3P
+47 C21 C2P
+48 S1  S1P
+49 C22 .
+50 C23 .
+51 O17 .
+52 C24 .
+53 O25 .
 #
 data_BCR
 #
 _ligand.id               BCR
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      beta-carotene
+_ligand.description      "beta-carotene"
+_ligand.name   "Beta carotene"
 #
 data_BCT
 #
@@ -114,12 +2302,136 @@ _ligand.analogue_id      .
 _ligand.priority         n
 _ligand.description      .
 #
+data_BHS
+#
+_ligand.id               BHS
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      H4B-class
+#
+data_BIO
+#
+_ligand.id               BIO
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      H4B-class
+#
+data_BOB
+#
+_ligand.id               BOB
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C40 .
+2 C54 .
+3 C55 .
+4 O56 .
+5 C42 .
+6 O60 .
+7 C43 .
+8 C44 .
+9 C45 .
+10 C46 .
+11 C47 .
+#
+data_BSJ
+#
+_ligand.id               BSJ
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C3  C6A
+2  N3  N6A
+3  N4  N1A
+4  C4  C2A
+5  N5  N3A
+6  C5  C4A
+7  C2  C5A
+8  N1  N9A
+9  C1  C8A
+10 N2  N7A 
+11 C11 C1B
+12 C12 C2B
+13 O12 O2B
+14 C13 C3B
+15 O13 O3B
+16 P1  P3B
+17 O16 O9A
+18 O15 O7A
+19 O14 O8A
+20 C14 C4B
+21 O17 O4B
+22 C15 C5B
+23 O21 O5B
+24 P2  P1A
+25 O23 O1A
+26 O22 O2A
+27 O24 O3A
+28 P3  P2A
+29 O32 O5A
+30 O32 O4A
+31 O33 O6A
+32 C41 CCP
+33 C42 CBP
+34 C43 CDP
+35 C44 CEP
+36 C45 CAP
+37 O45 OAP
+38 C46 C9P
+39 O46 O9P
+40 N46 N8P
+41 C47 C7P
+42 C48 C6P
+43 C49 C5P
+44 O49 O5P
+45 N49 N4P
+46 C50 C3P
+47 C51 C2P
+48 S1  S1P
+49 C52 .
+50 C53 .
+51 C54 .
+52 O57 .
+53 N51 .
+54 C58 .
+55 C59 .
+56 C57 .
+57 O52 .
+58 C56 .
+59 O51 .
+60 C55 .
+61 N50 .
+62 C60 .
+63 O53 .
+64 O54 .
+65 C61 .
+66 C62 .
+67 N52 .
+68 C63 .
+69 C64 .
+70 N53 .
+71 C65 .
+72 O55 .
+73 C66 .
+74 O56 . 
+#
 data_BTI
 #
 _ligand.id               BTI
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      'Covalently bound biotin'
+_ligand.name    "Covalently bound biotin"
 #
 data_BTN
 #
@@ -127,6 +2439,74 @@ _ligand.id               BTN
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      Cofactor_Biopterin
+_ligand.name   "Biotin cofactor"
+#
+data_BYC
+#
+_ligand.id               BYC
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C5M C5A
+2 C1D C1B
+3 C2D C2B
+4 O2D O2B
+5 C3D C3B
+6 O3D O3B
+7 P3D P3B
+8 C4D C4B
+9 O4D O4B
+10 C5D C5B
+11 O5D O5B
+12 O4A O5A
+13 O5A O4A
+14 CEP CDP
+15 CDP CEP
+16 C1B .
+17 O57 .
+18 C2B .
+19 C3B .
+20 C4B .
+21 C5B .
+22 C6B .
+23 C7B .
+#
+data_BYG
+#
+_ligand.id               BYG
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 CF4 .
+2 S1  .
+3 CE6 .
+4 CE5 .
+5 CE4 .
+6 CE3 .
+7 CE2 .
+8 CE1 .
+9 OA5 .
+10 CF5 .
+11 CF6 .
+12 CF7 .
+13 NA4 .
+14 OA3 .
+15 OA4 .
+16 CI  .
+17 NA1 .
+18 OA2 .
+19 NA3 .
+20 CL  .
 #
 data_BYT
 #
@@ -135,26 +2515,436 @@ _ligand.analogue_id      .
 _ligand.priority         n
 _ligand.description      'Bioitilated lysine'
 #
+data_C2F
+#
+_ligand.id               C2F
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "Levomefolic acid, FFO-derivative" 
+_ligand.name   "Levomefolic acid"
+#
 data_CA
 #
 _ligand.id               CA
-_ligand.analogue_id       ?
+_ligand.analogue_id      ?
 _ligand.priority         y
-_ligand.description      .
+_ligand.description      Calcium
+_ligand.name   "Calcium ion"
+#
+data_CA3
+#
+_ligand.id               CA3
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O33 O9A
+18 O31 O7A
+19 O32 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O1A
+26 O11 O2A
+27 O6  O3A
+28 P2  P2A
+29 O22 O5A
+30 O21 O4A
+31 O7  O6A
+32 CP9 CCP
+33 CP8 CBP
+34 CPA CDP
+35 CPB CEP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CA1 .
+50 CA3 .
+51 CA4 .
+52 CA5 .
+53 CA2 .
+54 OA2 .
+55 NT1 .
+56 CT1 .
+57 CT2 .
+58 CT3 .
+59 CT4 .
+60 CT5 .
+61 NT6 .
+62 CT6 .
+63 C11 .
+64 CT9 .
+65 CT8 .
+66 CT7 .
+#
+data_CA5
+#
+_ligand.id               CA5
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O33 O9A
+18 O31 O7A
+19 O32 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O1A
+26 O11 O2A
+27 O6  O3A
+28 P2  P2A
+29 O22 O5A
+30 O21 O4A
+31 O7  O6A
+32 CP9 CCP
+33 CP8 CBP
+34 CPA CDP
+35 CPB CEP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CA1 .
+50 CA2 .
+51 OA2 .
+52 BR  .
+53 CT9 .
+54 CT8 .
+55 NT1 .
+56 CT1 .
+57 CT2 .
+58 CT3 .
+59 CT4 .
+60 CT5 .
+61 NT6 .
+62 CT6 .
+63 C11 .
+64 CT7 .
+#
+data_CA6
+#
+_ligand.id               CA6
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 PAR P3B
+17 OAU O9A
+18 OAS O7A
+19 OAT O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 PAX P1A
+25 OBN O1A
+26 OBP O2A
+27 OAY O3A
+28 PAZ P2A
+29 OBO O5A
+30 OBM O4A
+31 OBA O6A
+32 CBB CCP
+33 CBC CBP
+34 CBQ CDP
+35 CBR CEP
+36 CBD CAP
+37 OBY OAP
+38 CBE C9P
+39 OBS O9P
+40 NBF N8P
+41 CBG C7P
+42 CBH C6P
+43 CB1 C5P
+44 OBT O5P
+45 NBJ N4P
+46 CBK C3P
+47 CBL C2P
+48 CBU S1P
+49 CBV .
+50 SBW .
+51 OCA .
+52 OBZ .
+53 CBX .
+#
+data_CA8
+#
+_ligand.id               CA8
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 PAR P3B
+17 OAU O9A
+18 OAS O7A
+19 OAT O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 PAX P1A
+25 OBP O1A
+26 OBN O2A
+27 OAY O3A
+28 PAZ P2A
+29 OBM O5A
+30 OBO O4A
+31 OBA O6A
+32 CBB CCP
+33 CBC CBP
+34 CBQ CDP
+35 CBR CEP
+36 CBD CAP
+37 OBY OAP
+38 CBE C9P
+39 OBS O9P
+40 NBF N8P
+41 CBG C7P
+42 CBH C6P
+43 CB1 C5P
+44 OBT O5P
+45 NBJ N4P
+46 CBK C3P
+47 CBL C2P
+48 CBU S1P
+49 CBV .
+50 SBW .
+51 OCA .
+52 OBZ .
+53 CBX .
+54 CCB .
+55 CCC .
+56 CCD .
+57 CCE .
+58 CCF .
+#
+data_CAA
+#
+_ligand.id               CAA
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O2A O1A
+2  O1A O2A
+3  CDP CEP
+4  CEP CDP
+5  C1  .
+6  C2  .
+7  O1  .
+8  C3  .
+9  O3  .
+10 C4  .
+#
+data_CAJ
+#
+_ligand.id               CAJ
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 PAR P3B
+17 OAU O9A
+18 OAS O7A
+19 OAT O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 PAX P1A
+25 OBN O1A
+26 OBP O2A
+27 OAY O3A
+28 PAZ P2A
+29 OBM O5A
+30 OBO O4A
+31 OBA O6A
+32 CBB CCP
+33 CBC CBP
+34 CBQ CDP
+35 CBR CEP
+36 CBD CAP
+37 OCB OAP
+38 CBE C9P
+39 OBS O9P
+40 NBF N8P
+41 CBG C7P
+42 CBH C6P
+43 CB1 C5P
+44 OBT O5P
+45 NBJ N4P
+46 CBK C3P
+47 CBL C2P
+48 CBU S1P
+49 CBV .
+50 CBW .
+51 OBX .
+52 OBZ .
+53 CBY .
+54 CCA .
+#
+data_CAO
+#
+_ligand.id               CAO
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O2A O1A
+2  O1A O2A
+3  O1P .
+#
+data_CCH
+#
+_ligand.id               CCH
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEA-class,HEB analog but not mappable as atoms need to be added' 
 #
 data_CD
 #
 _ligand.id               CD
-_ligand.analogue_id       ?
+_ligand.analogue_id      ?
 _ligand.priority         n
 _ligand.description      .
+_ligand.name   "Cadmium"
 #
 data_CHD
 #
 _ligand.id               CHD
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      cholicacid
+_ligand.description      'cholicacid'
+_ligand.name   "Cholic acid"
 #
 data_CHL
 #
@@ -162,6 +2952,32 @@ _ligand.id               CHL
 _ligand.analogue_id      .
 _ligand.priority         n
 _ligand.description      ChlorophylB
+_ligand.name   "Chlorophyl B"
+#
+data_CIC
+#
+_ligand.id               CIC
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O2A O1A
+2  O1A O2A
+3  C1P .
+4  C1  .
+5  C2  .
+6  O2  .
+7  C3  .
+8  O31 .
+9  O32 .
+10 C4  .
+11 C5  .
+12 O51 .
+13 O52 .
 #
 data_CIT
 #
@@ -169,6 +2985,7 @@ _ligand.id               CIT
 _ligand.analogue_id      FLC
 _ligand.priority         n
 _ligand.description      'citric acid'
+_ligand.name   "Citric acid"
 #
 loop_
 _modification.id
@@ -191,9 +3008,10 @@ _modification.atom2
 data_CL
 #
 _ligand.id               CL
-_ligand.analogue_id       ?
+_ligand.analogue_id      .
 _ligand.priority         n
-_ligand.description      .
+_ligand.description      'Chloride'
+_ligand.name   "Chloride"
 #
 data_CLA
 #
@@ -201,6 +3019,7 @@ _ligand.id               CLA
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Chlorophyl A"
 #
 data_CLR
 #
@@ -208,6 +3027,72 @@ _ligand.id               CLR
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      cholesterol
+_ligand.name   "Cholesterol"
+#
+data_CMC
+#
+_ligand.id               CMC
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C1  .
+2  C2  .
+3  O21 .
+4  O22 .
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 PAR P3B
+17 OAU O9A
+18 OAS O7A
+19 OAT O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 PAX P1A
+25 OBN O1A
+26 OBP O2A
+27 OAY O3A
+28 PAZ P2A
+29 OBO O5A
+30 OBM O4A
+31 OBA O6A
+32 CBB CCP
+33 CBC CBP
+34 CBQ CDP
+35 CBR CEP
+36 CBD CAP
+37 OBY OAP
+38 CBE C9P
+39 OBS O9P
+40 NBF N8P
+41 CBG C7P
+42 CBH C6P
+43 CB1 C5P
+44 OBT O5P
+45 NBJ N4P
+46 CBK C3P
+47 CBL C2P
+48 CBU S1P
+49 CBV .
+50 SBW .
+51 OCA .
+52 OBZ .
+53 CBX .
 #
 data_CMO
 #
@@ -215,6 +3100,23 @@ _ligand.id               CMO
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Carbon monoxide"
+#
+data_CMX
+#
+_ligand.id               CMX
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C1  S1P
+2  C2  .
+3  O21 .
+4  O22 .
 #
 data_CNC
 #
@@ -230,12 +3132,20 @@ _modification.atom2
 1 C1A .
 2 N1A .
 #
+data_CND
+#
+_ligand.id               CND
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
 data_CO
 #
 _ligand.id               CO
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Cobalt"
 #
 data_CO3
 #
@@ -243,6 +3153,52 @@ _ligand.id               CO3
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Carbonate ion"
+#
+data_CO6
+#
+_ligand.id               CO6
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O7A O8A
+2  O8A O7A
+3  O2A O1A
+4  O1A O2A
+5  C1  .
+6  O1  .
+7  C3  .
+8  C2  .
+9  C4  .
+#
+data_CO8
+#
+_ligand.id               CO8
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O2A O1A
+2  O1A O2A
+3  CEP CDP
+4  CDP CEP
+5  "C1'" .
+6  "C2'" .
+7  "C3'" .
+8  "C4'" .
+9  "C5'" .
+10 "C6'" . 
+11 "C7'" .
+12 "C8'" .
 #
 data_COA
 #
@@ -250,6 +3206,7 @@ _ligand.id               COA
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      Cofactor_CoA
+_ligand.name   "Coenzyme A"
 #
 data_COB
 #
@@ -264,12 +3221,224 @@ _modification.atom1
 _modification.atom2
 1 C1A .
 #
+data_COD
+#
+_ligand.id               COD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "dephospho-CoA" 
+_ligand.name   "Dephospho Coenzyme A"
+#
+data_COF
+#
+_ligand.id               COF
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C1I .
+2  C2I .
+3  O1I .
+4  C3I .
+5  F1I .
+6  F2I .
+7  F3I .
+#
+data_COH
+#
+_ligand.id               COH
+_ligand.analogue_id      HEB
+_ligand.priority         y
+_ligand.description      HEA-class
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 FE CO
+#
 data_COM
 #
 _ligand.id               COM
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      Cofactor_CoM
+_ligand.name   "Coenzyme M"
+#
+data_COO
+#
+_ligand.id               COO
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1X C1B
+2 C2X C2B
+3 O2X O2B
+4 C3X C3B
+5 O3X O3B
+6 P3X P3B
+7 O8A O9A
+8 O9A O8A
+9 C4X C4B
+10 O4X O4B
+11 C5X C5B
+12 O5X O5B
+13 O2A O1A
+14 O1A O2A
+15 O4A O5A
+16 O5A O4A
+17 OBA O6A
+18 C12 CCP
+19 C11 CBP
+20 C15 CDP
+21 C14 CEP
+22 C13 CAP
+23 O1  OAP
+24 C1  C9P
+25 O2  O9P
+26 N1  N8P
+27 C2  C7P
+28 C3  C6P
+29 C4  C5P
+30 O3  O5P
+31 N2  N4P
+32 C5  C3P
+33 C6  C2P
+34 S1  S1P
+35 C7  .
+36 O4  .
+37 C8  .
+38 C9  .
+39 C10 .
+#
+data_COT
+#
+_ligand.id               COT
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  PC  P3B
+2  O18 O8A
+3  O19 O9A
+4  O17 O7A
+5  PA  P1A
+6  O15 O1A
+7  O16 O2A
+8  O14 O3A
+9  PB  P2A
+10 O13 O5A 
+11 O12 O4A
+12 O11 O6A
+13 CGP CCP
+14 CDP CBP
+15 CEP CDP
+16 CFP CEP
+17 CBP CAP
+18 OCP OAP
+19 OAP O9P
+20 C4P C5P
+21 N3P N4P
+22 C2P C3P
+23 C1P C2P
+24 S   S1P
+25 C6T .
+26 C4T .
+27 O5T .
+28 N3T .
+29 C2T .
+30 C1T .
+31 CGT .
+32 C14 .
+33 N1  .
+34 C12 .
+35 C11 .
+36 C13 .
+37 C16 .
+38 C17 .
+39 C15 . 
+#
+data_COW
+#
+_ligand.id               COW
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O31 O9A
+18 O32 O7A
+19 O33 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O1A
+26 O11 O2A
+27 O6  O3A
+28 P2  P2A
+29 O22 O5A
+30 O21 O4A
+31 O7  O6A
+32 C8B CCP
+33 C8A CBP
+34 C89 CDP
+35 C88 CEP
+36 C87 CAP
+37 O83 OAP
+38 C86 C9P
+39 O82 O9P
+40 N82 N8P
+41 C85 C7P
+42 C84 C6P
+43 C83 C5P
+44 O81 O5P
+45 N81 N4P
+46 C82 C3P
+47 C81 C2P
+48 S   S1P
+49 C78 .
+50 O79 .
+51 C77 .
+52 C76 .
+53 C75 .
+54 C74 .
+55 C73 .
+56 C72 .
+57 N71 .
 #
 data_COY
 #
@@ -298,12 +3467,20 @@ _modification.atom2
 14 C4A .
 15 C2A .
 #
+data_COZ
+#
+_ligand.id               COZ
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "CoA with wrong chirality on CAP" 
+#
 data_CU
 #
 _ligand.id               CU
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Copper (II) ion"
 #
 data_CUA
 #
@@ -311,6 +3488,219 @@ _ligand.id               CUA
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Dinuclear copper ion"
+#
+data_D7K
+#
+_ligand.id               D7K
+_ligand.analogue_id      TPP
+_ligand.priority         y
+_ligand.description      "inhibitor,TDP-class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "N1," "N1'"
+2  "C2," "C2'"
+3  "N3," "N3'"
+4  "N4," "N4'"
+5  "C4," "C4'"
+6  "C5," "C5'"
+7  "C6," "C6'"
+8  "C7," "C7'"
+9  C03 C4
+10 C04 C5
+11 C02 C2
+12 C05 C6
+13 C01 C7
+14 O01 O7
+15 C7  .
+16 O7  .
+17 C2  .
+18 C3  .
+19 C4  .
+20 C5  .
+21 C6  .
+22 C1  .
+23 P8  .
+24 O11 .
+25 O12 .
+26 O9  .
+27 C10 .
+#
+data_DCA
+#
+_ligand.id               DCA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'Desulfo-CoA'
+_ligand.description  "Desulfo-coenzyme A"
+#
+#
+data_DCC
+#
+_ligand.id               DCC
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+_ligand.description  "Dodecyl-coenzyme A"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O31 O9A
+18 O32 O7A
+19 O33 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O1A
+26 O11 O2A
+27 O6  O3A
+28 P2  P2A
+29 O22 O5A
+30 O21 O4A
+31 O7  O6A
+32 CPA CCP
+33 CPB CBP
+34 CP9 CDP
+35 CP7 CEP
+36 CP8 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CA1 .
+50 OA1 .
+51 CA2 .
+52 CA3 .
+53 CA4 .
+54 CA5 .
+55 CA6 .
+56 CA7 .
+57 CA8 .
+58 CA9 .
+59 C10 .
+60 C11 .
+61 C12 .
+#
+data_DDH
+#
+_ligand.id               DDH
+_ligand.analogue_id      HEC
+_ligand.priority         y
+_ligand.description      HEA-class
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 OCB .
+2 OCC .
+#
+data_DG1
+#
+_ligand.id               DG1
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N1     N1A
+2  C2     C2A
+3  N3     N3A
+4  C4     C4A
+5  C5     C5A
+6  C6     C6A
+7  N6     N6A
+8  N7     N7A
+9  C8     C8A
+10 N9     N9A
+11 CBY    C1B   
+12 CBW    C2B   
+13 OBH    O2B
+14 PCB    .
+15 OAK    .
+16 OAL    .
+17 OAE    .
+18 CBS    C3B   
+19 OAJ    O3B
+20 OBG    O4B
+21 CBV    C4B   
+22 CAY    C5B
+23 OBE    O5B
+24 PCD    PA   
+25 OAG    O1A
+26 OAN    O2A
+27 OBI    O3
+28 PCC    PN   
+29 OAM    O2N
+30 OAF    O1N
+31 "O5'"  O5D
+32 "C5'"  C5D
+33 "C4'"  C4D   
+34 "O4'"  O4D
+35 "C3'"  C3D   
+36 "O3'"  O3D
+37 "C2'"  C2D   
+38 "O2'"  O2D
+39 "C1'"  C1D   
+40 NBZ    N1N
+41 CAP    C6N
+42 CAO    C5N
+43 CAQ    C2N
+44 CBL    C3N
+45 CBJ    C7N
+46 OAC    O7N
+47 NAA    N7N
+48 CBT    C4N
+49 CBK    .
+50 OAD    .
+51 CBN    .
+52 CAT    .
+53 CAR    .
+54 NAZ    .
+55 CAS    .
+56 CAU    .
+#
+data_DHE
+#
+_ligand.id               DHE
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEME-D,HEA-class'
+_ligand.name   "Heme D"
 #
 data_DPM
 #
@@ -318,6 +3708,15 @@ _ligand.id               DPM
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      Cofactor_Dipyrromethane
+_ligand.name   "Cofactor Dipyrromethane"
+#
+data_DTB
+#
+_ligand.id               DTB
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'Biotin precursor'
+_ligand.name   "D-desthiobiotin"
 #
 data_DTP
 #
@@ -325,6 +3724,197 @@ _ligand.id               DTP
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "DTP"
+#
+data_EAD
+#
+_ligand.id               EAD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+data_EEM
+#
+_ligand.id               EEM
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 SE SD   
+#
+data_EN0
+#
+_ligand.id               EN0
+_ligand.analogue_id      TPP
+_ligand.priority         y
+_ligand.description      "inhibitor,TDP-class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C01 M2
+2  C02 "C2'"
+3  N03 "N1'"
+4  N34 "N3'"
+5  C32 "C4'"
+6  N33 "N4'"
+7  C04 "C6'"
+8  C05 "C5'"
+9  C06 "C7'"
+10 N07 N3
+11 C30 C4
+12 C31 CM4
+13 C18 C5
+14 S17 S1
+15 C08 C2
+16 C19 C6
+17 C20 C7
+18 O21 O7
+19 O29 O1A
+20 O23 O2A
+21 P22 PA
+22 O24 O3A
+23 P25 PB
+24 O17 O2B
+25 O26 O1B
+26 O28 O3B
+27 C09 .
+28 O10 .
+29 C11 .
+30 F12 .
+31 P13 .
+32 O14 .
+33 O15 .
+34 O16 .
+#
+data_ENA
+#
+_ligand.id               ENA
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C10 .
+2  C9  .
+3  N6  N6A
+4  C6  C6A
+5  N1  N1A
+6  C2  C2A
+7  N3  N3A
+8  C8  C8A
+9  N9  N9A
+10 C4  C4A
+11 N7  N7A
+12 C5  C5A
+13 "C1'" C1B
+14 "O2'" O4B
+15 "C2'" C2B
+16 "O4'" O2B
+17 "C3'" C3B
+18 "O3'" O3B
+19 "C4'" C4B
+20 "C5'" C5B
+21 "O5'" O5B
+21 P1  PA
+22 O1  O1A
+23 O3  O2A
+24 O2  O3
+25 P2  PN
+26 O6  O1N
+27 O5  O2N
+28 O4  O5D
+29 "C6'" C5D
+30 "C7'" C4D
+31 "O6'" O4D
+32 "C8'" C3D
+33 "C0'" C2D
+34 "O8'" O2D
+35 "C9'" C1D
+36 N11 N1N
+37 C16 C6N
+38 C15 C5N
+39 C14 C4N
+40 C12 C2N
+41 C13 C3N
+42 C17 C7N
+43 O17 O7N
+44 N17 N7N
+#
+data_EPY
+#
+_ligand.id               EPY
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O6B O12
+2  C6B C1
+3  O7B O11
+4  C5B CA1
+5  N5B N1
+6  C4B CB1
+7  C3B CG1
+8  C2B CD1
+9  N1B N2
+10 C2A CA2
+11 C1A CB2
+12 S   SG2
+13 C3A C2 
+14 O3A O2
+15 N4A N3
+16 C5A CA3
+17 C6A C3
+18 O7A O31
+19 O6A O32
+20 O2B OE1
+21 C1C .
+22 C3C .
+23 O2C .
+24 C2C .
+25 O3C .
+26 C4C .
+27 C9C .
+28 C8C .
+29 C7C .
+30 N8C .
+31 O8C .
+32 O9C .
+33 C6C .
+34 C5C .
+#
+data_ESG
+#
+_ligand.id               ESG
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+21 "C5'" .
+22 "C4'" .
+23 "C3'" .
+24 "O1'" .
+25 "N1'" .
+26 "C2'" .
+27 "C1'" .
+28 "O2'" .
+29 "C6'" .
 #
 data_F3S
 #
@@ -332,6 +3922,7 @@ _ligand.id               F3S
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Fe3-S4 cluster"
 #
 data_F43
 #
@@ -339,6 +3930,41 @@ _ligand.id               F43
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      Cofactor_FactorF430
+_ligand.name   "Cofactor F430"
+#
+data_FA8
+#
+_ligand.id               FA8
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'FAD-class' 
+#
+data_FAA
+#
+_ligand.id               FAA
+_ligand.analogue_id      FAD
+_ligand.priority         y
+_ligand.description      'FAD-class' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C7P .
+2 C1P .
+3 C2P .
+4 C3P .
+5 C4P .
+6 O4P .
+7 C5P .
+8 C6P .
+#
+data_FAB
+#
+_ligand.id               FAB
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'FAD-class, N5 isobutyl ketone FAD' 
 #
 data_FAD
 #
@@ -346,6 +3972,116 @@ _ligand.id               FAD
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      Cofactor_FlavinAdenineDinucleotide 
+_ligand.name   "Flavin adenine dinucleotide"
+#
+data_FAE
+#
+_ligand.id               FAE
+_ligand.analogue_id      FAD
+_ligand.priority         y
+_ligand.description      'FAD-class, protonated'
+#
+data_FAM
+#
+_ligand.id               FAM
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C1  S1P
+2  F1  .
+3  C2  .
+4  O2  .
+5  N2  .
+#
+data_FAO
+#
+_ligand.id               FAO
+_ligand.analogue_id      FAD
+_ligand.priority         y
+_ligand.description      'FAD-class' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C9N C9A
+2 C5N C5X
+3 C4N C4X
+4 H10 .
+5 H4N .
+#
+data_FAS
+#
+_ligand.id               FAS
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'FAD-class, Arabino FAD'
+_ligand.name   "Arabino FAD" 
+#
+data_FCG
+#
+_ligand.id               FCG
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'FAD-class'
+#
+data_FDA
+#
+_ligand.id               FDA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'FAD-class, FADH2'
+_ligand.name   "FADH2" 
+#
+data_FED
+#
+_ligand.id               FED
+_ligand.analogue_id      FAD
+_ligand.priority         y
+_ligand.description      'FAD-class' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 O4X .
+#
+data_FSH
+#
+_ligand.id               FSH
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'FAD-class' 
+#
+
+data_FCX
+#
+_ligand.id               FCX
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C1  S1P
+2  F1  .
+3  C1  .
+4  O2  .
+5  O1  .
+#
+data_FDE
+#
+_ligand.id               FDE
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      HEA-class
 #
 data_FE
 #
@@ -353,6 +4089,7 @@ _ligand.id               FE
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Fe(III) ion"
 #
 data_FE2
 #
@@ -360,6 +4097,7 @@ _ligand.id               FE2
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      . 
+_ligand.name   "Fe(II) ion"
 #
 data_FES
 #
@@ -367,6 +4105,7 @@ _ligand.id               FES
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Fe2/S2 cluster"
 #
 data_FFO
 #
@@ -374,6 +4113,7 @@ _ligand.id               FFO
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      Cofactor_TetraHydrofolicAcid
+_ligand.name   "Levoleucovorin"
 #
 data_FLC
 #
@@ -381,13 +4121,253 @@ _ligand.id               FLC
 _ligand.analogue_id      .
 _ligand.priority         n
 _ligand.description      deprotonated-CIT
+_ligand.name   "Citrate anion" 
+#
+data_FMI
+#
+_ligand.id               FMI
+_ligand.analogue_id      HEC
+_ligand.priority         y
+_ligand.description      HEA-class
 #
 data_FMN
 #
 _ligand.id               FMN
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_FlavinMonoNucleotide
+_ligand.description      "Cofactor_FlavinMonoNucleotide"
+_ligand.name          "Flavin mononucleotide"
+#
+data_FNR
+#
+_ligand.id               FNR
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "2e Reduced FMN"
+_ligand.name   "Reduced Flavin mononucleotide"
+#
+data_FNS
+#
+_ligand.id               FNS
+_ligand.analogue_id      FMN
+_ligand.priority         y
+_ligand.description      "FMN class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 S .
+2 O1S .
+3 O2S .
+4 O3S .
+#
+data_FON
+#
+_ligand.id               FON
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "FFO with inverted stereochemistry"
+#
+data_FRE
+#
+_ligand.id               FRE
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O2A O1A
+2  O1A O2A
+3  C9  .
+4  O10 .
+5  C8  .
+6  C7  .
+7  C5  .
+8  C4  .
+9  C6  .
+10 O13 . 
+11 C13 .
+12 C1  .
+13 O12 .
+14 C2  .
+15 O11 .
+16 C3  .
+#
+data_FYN
+#
+_ligand.id               FYN
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O31 O9A
+18 O33 O7A
+19 O32 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O2A
+26 O11 O1A
+27 O6  O3A
+28 P2  P2A
+29 O22 O4A
+30 O21 O5A
+31 O7  O6A
+32 CPB CCP
+33 CPA CBP
+34 CP9 CDP
+35 CP8 CEP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CM1 .
+50 OM2 .
+#
+data_GBI
+#
+_ligand.id               GBI
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C1'" .
+2  "C2'" .
+3  "C3'" .
+4  "C'"  .
+5  "I3'" .
+6  "C4'" .
+7  "C5'" .
+8  "C6'" .
+#
+data_GBP
+#
+_ligand.id               GBP
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OT1 O12
+2  C   C1
+3  OT2 O11
+4  CA  CA1
+5  N   N1
+6  CB  CB1
+7  CG  CG1
+8  CD  CD1
+9  CD2 .
+10 OZ1 . 
+11 NE2 .
+12 OF2 .
+13 CG2 . 
+14 CL2 .
+15 CM2 .
+16 CZ  .
+17 BR  .
+18 CM1 .
+19 CL1 .
+#
+data_GBX
+#
+_ligand.id               GBX
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C10 .
+2 C9  .
+3 O9  .
+4 C8  .
+5 O8  .
+6 C7  .
+7 O7  .
+8  "C2'" .
+9  "C3'" .
+10 "C1'" .
+11 C11 .
+12 C12 .
+13 C13 .
+14 "C4'" .
+15 "C5'" .
+16 C16 .
+17 C17 .
+18 C18 .
+19 C9A .
+20 "C9'" .
+21 "C8'" .
+22 "C7'" .
+23 "C6'" .
+#
+data_GDN
+#
+_ligand.id               GDN
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 "C1'" .
+2 "C2'" .
+3 "N2'" .
+4 O2B .
+5 O2A .
+6 "C3'" .
+7 "C4'" .
+8 "N4'" .
+9 O4B .
+10 O4A .
+11 "C5'" .
+12 "C6'" .
 #
 data_GDP
 #
@@ -395,6 +4375,142 @@ _ligand.id               GDP
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "GDP"
+#
+data_GDS
+#
+_ligand.id               GDS
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'Glutathione disulfide (GSSG)' 
+_ligand.name             'Glutathione disulfide'
+#
+data_GF5
+#
+_ligand.id               GF5
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O08 O12
+2  C12 C1
+3  O07 O11
+4  C01 CA1
+5  N01 N1
+6  C02 CB1
+7  C03 CG1
+8  C04 CD1
+9  N02 N2
+10 C05 CA2
+11 C06 CB2
+12 S01 SG2
+13 C09 C2 
+14 O04 O2
+15 N03 N3
+16 C10 CA3
+17 C11 C3
+18 O05 O31
+19 O06 O32
+20 O01 OE1
+21 C07 .
+22 C08 .
+23 S02 .
+24 O02 .
+25 O03 .
+26 F1  .
+#
+data_GGC
+#
+_ligand.id               GGC
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C10 .
+2 "C5'" .
+3 C4A .
+4 "C4'" .
+5 "C3'" .
+6 "C2'" .
+7 "C1'" .
+8 C8A .
+9  "C8'" .
+10 "C7'" .
+11 "C6'" .
+#
+data_GIP
+#
+_ligand.id               GIP
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OT1 O12
+2  C   C1
+3  OT2 O11
+4  CA  CA1
+5  N   N1
+6  CB  CB1
+7  CG  CG1
+8  CD  CD1
+9  CD2 .
+10 OZ1 .
+11 NE2 .
+12 OF2 .
+13 CG2 . 
+14 CL1 .
+15 CM1 .
+16 CZ  . 
+17 I   .
+18 CM2 .
+19 CL2 .
+20 OE  OE1
+#
+data_GNB
+#
+_ligand.id               GNB
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OT1 O12
+2  C   C1
+3  OT2 O11
+4  CA  CA1
+5  N   N1
+6  CB  CB1
+7  CG  CG1
+8  CD  CD1
+9  CD2 .
+10 OZ1 .
+11 OH1 .
+12 CH  .
+13 CG2 .
+14 CL1 .
+15 CM1 .
+16 CZ  .
+17 N7  .
+18 O8  .
+19 O9  .
+20 OE  OE1
+21 CM2 .
+22 CL2 .
 #
 data_GNP
 #
@@ -409,12 +4525,290 @@ _modification.atom1
 _modification.atom2
 1 N3B O3B
 #
+data_GPR
+#
+_ligand.id               GPR
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CA4 .
+2  CA5 .
+3  O5  .
+4  CB5 .
+5  CG5 .
+6  CD5 .
+7  CE5 .
+8  CZ5 .
+9  CH5 .
+10 CH4 .
+11 CZ4 .
+12 CE4 .
+13 CD4 . 
+14 CG4 .
+15 CB4 .
+#
+data_GPS
+#
+_ligand.id               GPS
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CA4 .
+2  CA5 .
+3  O5  .
+4  CB5 .
+5  CG5 .
+6  CD5 .
+7  CE5 .
+8  CZ5 .
+9  CH5 .
+10 CH4 .
+11 CZ4 .
+12 CE4 .
+13 CD4 . 
+14 CG4 .
+15 CB4 .
+#
+data_GRA
+#
+_ligand.id               GRA
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1X C1B
+2 C2X C2B
+3 O2X O2B
+4 C3X C3B
+5 O3X O3B
+6 P3X P3B
+7 O8A O7A
+8 O7A O8A
+9 C4X C4B
+10 O4X O4B
+11 C5X C5B
+12 O5X O5B
+13 O4A O5A
+14 O5A O4A
+15 C13 CCP
+16 C12 CBP
+17 C15 CDP
+18 C16 CEP
+19 C14 CAP
+20 O1  OAP
+21 C1  C9P
+22 O2  O9P
+23 N1  N8P
+24 C2  C7P
+25 C3  C6P
+26 C4  C5P
+27 O3  O5P
+28 N2  N4P
+29 C5  C3P
+30 C6  C2P
+31 S1  S1P
+32 C7  .
+33 O4  .
+34 C8  .
+35 C9  .
+36 C10 .
+37 C11 .
+38 O5  .
+39 O6  .
+#
+data_GS8
+#
+_ligand.id               GS8
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O13 .
+#
+data_GSB
+#
+_ligand.id               GSB
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C'"  .
+2  "C1'" .
+3  "C2'" .
+4  "C3'" .
+5  "C4'" .
+6  "C5'" .
+7  "C6'" .
+#
+data_GSF
+#
+_ligand.id               GSF
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O1S .
+2  O2S .
+#
 data_GSH
 #
 _ligand.id               GSH
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_Glutathion 
+_ligand.description      'Cofactor_Glutathione' 
+_ligand.name   "Glutathione"
+#
+data_GSM
+#
+_ligand.id               GSM
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C4 .
+#
+data_GSN
+#
+_ligand.id               GSN
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OXT O12
+2  C   C1
+3  O   O11
+4  CA  CA1
+5  N   N1
+6  CB  CB1
+7  CAG CG1
+8  CAH CD1
+9  NAJ N2
+10 CAK CA2
+11 CAL CB2
+12 SAM SG2
+13 CAO C2 
+14 OAP O2
+15 NAQ N3
+16 CAR CA3
+17 CAS C3
+18 OAT O31
+19 OAU O32
+20 OAI OE1
+21 NAN .
+22 OAV .
+#
+data_GSO
+#
+_ligand.id               GSO
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OT1 O12
+2  C   C1
+3  OT2 O11
+4  CA  CA1
+5  N   N1
+6  CB  CB1
+7  CG  CG1
+8  CD  CD1
+9  CD2 .
+10 C22 .
+11 OF2 .
+12 CM1 .
+13 CL1 .
+14 CG2 .
+15 CL2 .
+16 CM2 .
+17 CZ  .
+18 OE  OE1
+#
+data_GTB
+#
+_ligand.id               GTB
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C'"  .
+2  "C1'" . 
+3  "C2'" .
+4  "C3'" .
+5  "C4'" .
+6  N41   .
+7  O41   .
+8  O42   .
+9  "C5'" .
+10 "C6'" .
+#
+data_GTD
+#
+_ligand.id               GTD
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C1'" .
+2  "C2'" .
+3  "N2'" .
+4  O21   .
+5  O22   .
+6  "C3'" .
+7  "C4'" .
+8  "N4'" .
+9  O41   .
+10 O42   .
+11 "C5'" .
+12 "C6'" .
+13 "N6'" .
+14 O61   .
+15 O62   .
 #
 data_GTP
 #
@@ -422,6 +4816,110 @@ _ligand.id               GTP
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "GTP"
+#
+data_GTS
+#
+_ligand.id               GTS
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O1S .
+2  O2S .
+3  O3S .
+#
+data_GTX
+#
+_ligand.id               GTX
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C1S .
+2  C2S .
+3  C3S .
+4  C4S .
+5  C5S .
+6  C6S .
+#
+data_GTY
+#
+_ligand.id               GTY
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C1S .
+2  C2S .
+3  C3S .
+4  C4S .
+5  C5S .
+6  C6S .
+7  C7S .
+8  C8S .
+#
+data_GVX
+#
+_ligand.id               GVX
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O01 O12
+2  C02 C1
+3  O03 O11
+4  C04 CA1
+5  N05 N1
+6  C06 CB1
+7  C07 CG1
+8  C08 CD1
+9  N10 N2
+10 C11 CA2
+11 C19 CB2
+12 S20 SG2
+13 C12 C2 
+14 O13 O2
+15 N14 N3
+16 C15 CA3
+17 C16 C3
+18 O18 O31
+19 O17 O32
+20 O09 OE1
+21 C21 .
+22 S22 .
+23 N23 .
+24 C24 .
+25 C25 .
+26 C26 .
+27 C27 .
+28 C28 .
+29 C29 .
+30 C30 .
+31 C31 .
+#
+data_H2B
+#
+_ligand.id               H2B
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'H4B-class'
 #
 data_H4B
 #
@@ -429,27 +4927,114 @@ _ligand.id               H4B
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      Cofactor_Sapropterin
+_ligand.name   "Sapropterin"
+#
+data_HAG
+#
+_ligand.id               HAG
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C41 .
+2  C42 . 
+3  C43 .
+4  O42 .
+5  O43 .
+6  C44 .
+7  C45 .
+8  C46 .
+9  C47 .
+10 C48 .
+11 C49 .
+#
+data_HAS
+#
+_ligand.id               HAS
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      HEA-class
+_ligand.name   "Heme AS"
+#
+data_HAX
+#
+_ligand.id               HAX
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C1  S1P
+2  C2  .
+3  O2  .
+4  N2  .
+5  OH  .
+#
+data_HBI
+#
+_ligand.id               HBI
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'H4B-class'
+#
+data_HDD
+#
+_ligand.id               HDD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEA-class, HEC analog nut not mappable as atoms need to be added' 
+#
+data_HDE
+#
+_ligand.id               HDE
+_ligand.analogue_id      HEC
+_ligand.priority         y
+_ligand.description      'HEA-class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 ONA .
 #
 data_HEA
 #
 _ligand.id               HEA
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_Heme
+_ligand.description      'Cofactor_Heme'
+_ligand.name   "Heme A"
+#
+data_HEB
+#
+_ligand.id               HEB
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEA-class'
+_ligand.name   "Heme B"
 #
 data_HEC
 #
 _ligand.id               HEC
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      HEA_class
+_ligand.description      'HEA-class'
+_ligand.name   "Heme B/C"
 #
 data_HEM
 #
 _ligand.id               HEM
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      HEA_class
+_ligand.description      'HEA-class'
+_ligand.name   "Heme"
 #
 data_HG
 #
@@ -457,27 +5042,303 @@ _ligand.id               HG
 _ligand.analogue_id      .
 _ligand.priority         n
 _ligand.description      .
+_ligand.name    "Mercury(II) ion"
+#
+data_HIF
+#
+_ligand.id               HIF
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEA-class'
+#
+data_HMG
+#
+_ligand.id               HMG
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O4A O5A
+2  O5A O4A
+3  C1  .
+4  C2  .
+5  O2  .
+6  C3  .
+7  C5  .
+8  C4  .
+9  O3  .
+10 O4  . 
+11 C6  .
+12 O7  .
+#
+data_HSC
+#
+_ligand.id               HSC
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CEP CDP
+2  CDP CEP
+3  C1  .
+4  C2  .
+5  O1  .
+6  C3  .
+7  O3  .
+8  C4  .
+9  C5  .
+10 C6  .
+11 C7  .
+12 C8  .
+13 C9  .
+14 C10 .
+#
+data_HTL
+#
+_ligand.id               HTL
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "TPP-intermediate,TDP-class"
+#
+data_HXC
+#
+_ligand.id               HXC
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O31 O9A
+18 O32 O7A
+19 O33 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O2A
+26 O11 O1A
+27 O6  O3A
+28 P2  P2A
+29 O22 O4A
+30 O21 O5A
+31 O7  O6A
+32 CPB CCP
+33 CPA CBP
+34 CP9 CEP
+35 CP8 CDP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CM1 .
+50 OM2 .
+51 CM2 .
+52 CM3 .
+53 CM4 .
+54 CM5 .
+55 CM6 .
+#
+data_IBG
+#
+_ligand.id               IBG
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CS  .
+2  C1S .
+3  C2S .
+4  I2S .
+5  C3S .
+6  C4S .
+7  C5S .
+8  C6S .
 #
 data_IHP
 #
 _ligand.id               IHP
 _ligand.analogue_id      .
 _ligand.priority         n
-_ligand.description      IP6
+_ligand.description      'IP6'
+_ligand.name   "Phytic acid, IP6"
+#
+data_IRF
+#
+_ligand.id               IRF
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "FMN-class, need to add atoms to map"
+#
+data_ISW
+#
+_ligand.id               ISW
+_ligand.analogue_id      HEC
+_ligand.priority         y
+_ligand.description      'HEA-class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
 #
 data_K
 #
 _ligand.id               K
 _ligand.analogue_id      .
-_ligand.priority         n
+_ligand.priority         y
 _ligand.description      .
+_ligand.name   "Potassium ion"
+#
+data_K15
+#
+_ligand.id               K15
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 ND     SD   
+2 C11    .
+3 C12    .
+4 C13    .
+5 C14    .
+6 C15    .
+#
+data_L9X
+#
+_ligand.id               L9X
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C5'" .
+2  "C4'" .
+3  "C3'" .
+4  "O1'" .
+5  "N1'" .
+6  "C2'" .
+7  "C1'" .
+8  "C6'" .
+9  "O2'" .
+#
+data_LEE
+#
+_ligand.id               LEE
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OXT O12
+2  C   C1
+3  O   O11
+4  CA  CA1
+5  N   N1
+6  CB  CB1
+7  CG  CG1
+8  CD  CD1
+9  N1  N2
+10 CA1 CA2
+11 CB1 CB2
+12 SG  SG2
+13 C7  C2 
+14 O1  O2
+15 N2  N3
+16 CA2 CA3
+17 C8  C3
+18 O2  O31
+19 OXT1 O32
+20 C1  .
+21 C2  .
+22 C3  .
+23 C4  .
+24 C5  .
+25 C6  .
+#
+data_LNC
+#
+_ligand.id               LNC
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 CGS .
+2 CBS .
+3 CAS .
+4 OAS .
+5 CS  .
+6 O1S .
+7 O2S .
 #
 data_LPA
 #
 _ligand.id               LPA
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_LipoicAcid
+_ligand.description      'Cofactor_LipoicAcid'
+_ligand.name   "Lipoic acid"
+#
+data_LPB
+#
+_ligand.id               LPB
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'LPA_class'
 #
 data_LUT
 #
@@ -485,34 +5346,424 @@ _ligand.id               LUT
 _ligand.analogue_id      .
 _ligand.priority         n
 _ligand.description      .
+_ligand.name   "Lutein"
+#
+data_LZ6
+#
+_ligand.id               LZ6
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O36 O12
+2  C35 C1
+3  O37 O11
+4  C34 CA1
+5  N38 N1
+6  C33 CB1
+7  C32 CG1
+8  C30 CD1
+9  N29 N2
+10 C21 CA2
+11 C20 CB2
+12 S13 SG2
+13 C22 C2 
+14 O28 O2
+15 N23 N3
+16 C24 CA3
+17 C25 C3
+18 O26 O31
+19 O27 O32
+20 O31 OE1
+21 C12 .
+22 C11 .
+23 N7  .
+24 C8  .
+25 C9  .
+26 CL10 .
+27 C1  .
+28 C2  .
+29 C3  .
+30 C4  .
+31 C5  .
+32 C6  .
+33 C14 .
+34 C15 .
+35 C16 .
+36 C17 .
+37 O18 .
+38 O19 .
+#
+data_M43
+#
+_ligand.id               M43
+_ligand.analogue_id      F43
+_ligand.priority         y
+_ligand.description      'Cofactor_FactorF430, methylthio'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 NI  NI
+2 O01 OCD
+3 C02 CAD
+4 O03 OBD
+5 C04 C9D
+6 C05 C3D
+7 C06 C4D
+8 C07 CHA
+9 C08 C1A
+10 N09 NA
+11 C10 C4A
+12 C11 CHB
+13 C12 C1B
+14 N13 NB
+15 C14 C4B
+16 C15 CHC
+17 C16 C1C
+18 N17 NC
+19 C18 C4C
+20 C19 CHD
+21 C20 C1D
+22 N21 ND
+23 C22 C2D
+24 C23 C5D
+25 C24 C6D
+26 S25 .
+27 C26 .
+28 C27 C7D
+29 O28 O8D
+30 C29 C3C
+31 C30 C8C
+32 C31 C9C
+33 C32 CAC
+34 O33 OBC
+35 O34 OCC
+36 C35 C2C
+37 C36 C5C
+38 C37 C6C
+39 O38 O7C
+40 O39 O8C
+41 C40 C3B
+42 C41 CAB
+43 C42 CBB
+44 C43 CCB
+45 O44 OEB
+46 O45 ODB
+47 C46 C2B
+48 C47 C9B
+49 C48 C8B
+50 C49 C6B
+51 O50 O7B
+52 N51 N5B
+53 C52 C3A
+54 C53 CAA
+55 C54 CBA
+56 C55 CCA
+57 O56 OEA
+58 O57 ODA
+59 C58 C2A
+60 C59 C9A
+61 C60 C5A
+62 C61 C6A
+63 N62 N8A
+64 O63 O7A
+#
+data_M6T
+#
+_ligand.id               M6T
+_ligand.analogue_id      TPP
+_ligand.priority         y
+_ligand.description      "analogue TDP-class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 CM6 .
+#
+data_MCA
+#
+_ligand.id               MCA
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O31 O9A
+18 O32 O7A
+19 O33 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O2A
+26 O11 O1A
+27 O6  O3A
+28 P2  P2A
+29 O22 O4A
+30 O21 O5A
+31 O7  O6A
+32 CPB CCP
+33 CPA CBP
+34 CP9 CEP
+35 CP8 CDP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CS1 .
+50 OS1 .
+51 CS2 .
+52 CS3 .
+53 CS4 .
+54 OS4 .
+55 OS5 . 
+#
+#
+data_MCD
+#
+_ligand.id               MCD
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O31 O9A
+18 O32 O7A
+19 O33 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O2A
+26 O11 O1A
+27 O6  O3A
+28 P2  P2A
+29 O22 O4A
+30 O21 O5A
+31 O7  O6A
+32 CPB CCP
+33 CPA CBP
+34 CP9 CEP
+35 CP8 CDP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 CPS S1P
+49 CS1 .
+50 OS1 .
+51 CS2 .
+52 CS3 .
+53 CS4 .
+54 OS4 .
+55 OS5 .
+#
+data_MCN
+#
+_ligand.id               MCN
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      MGD_class
+_ligand.name   "Pterin Cytosine Dinucleotide"
+#
+data_MDE
+#
+_ligand.id               MDE
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 O4A O5A
+2 O5A O4A
+3 "C1'" .
+4 "C2'" .
+5 "O1'" .
+6 "C3'" .
+7 "C4'" .
+8 "C5'" .
+9 "C6'" .
+10 "C7'" .
+11 "C8'" .
+12 "C9'" .
+13 C10 .
+14 SG  .
+15 CB  .
+16 CB1 .
+17 OB1 .
 #
 data_MDO
 #
 _ligand.id               MDO
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_MIO
+_ligand.description      'Cofactor_MIO'
+_ligand.name   "MIO cofactor"
 #
 data_MG
 #
 _ligand.id               MG
 _ligand.analogue_id      .
-_ligand.priority         n
+_ligand.priority         y
 _ligand.description      .
+_ligand.name   "Magnesium ion"
 #
 data_MGD
 #
 _ligand.id               MGD
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_Molybdopterin
+_ligand.description      'Cofactor_Molybdopterin'
+_ligand.name   "Molybdopterin cofactor"
+#
+data_MH0
+#
+_ligand.id               MH0
+_ligand.analogue_id      .
+_ligand.priority         Y
+_ligand.description      'HEA-class, Mesoheme'
+_ligand.name   "Mesoheme"
+#
+data_MLC
+#
+_ligand.id               MLC
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O31 O9A
+18 O32 O7A
+19 O33 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O2A
+26 O11 O1A
+27 O6  O3A
+28 P2  P2A
+29 O22 O4A
+30 O21 O5A
+31 O7  O6A
+32 CPB CCP
+33 CPA CBP
+34 CP9 CDP
+35 CP8 CEP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CM1 .
+50 OM2 .
+51 CM2 .
+52 CM3 .
+53 OM3 .
+54 OM4 .
 #
 data_MLI
 #
 _ligand.id               MLI
 _ligand.analogue_id      .
 _ligand.priority         n
-_ligand.description      malonate-ion
+_ligand.description      'malonate-ion'
+_ligand.name   "Malonate ion"
 #
 data_MN
 #
@@ -520,41 +5771,623 @@ _ligand.id               MN
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Manganese (II) ion"
+#
+data_MNH
+#
+_ligand.id               MNH
+_ligand.analogue_id      HEC
+_ligand.priority         y
+_ligand.description      'HEA-class, manganese2+ PROTOPORPHYRIN IX'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 MN FE
+#
+data_MNR
+#
+_ligand.id               MNR
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEA-class, manganese3+ PROTOPORPHYRIN IX'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 MN FE
+#
+data_MPL
+#
+_ligand.id               MPL
+_ligand.analogue_id      PLP
+_ligand.priority         y
+_ligand.description     'PLP-class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 O  O4A
+2 C1 .
 #
 data_MQ7
 #
 _ligand.id               MQ7
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_Menaquinone
+_ligand.description      'Cofactor_Menaquinone'
+_ligand.name   "Menaquinone cofactor"
+#
+data_MSS
+#
+_ligand.id               MSS
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'MGD-class'
+#
+data_MTE
+#
+_ligand.id               MTE
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'MGD-class'
+#
+data_MTQ
+#
+_ligand.id               MTQ
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'MGD-class'
+#
+data_MTV
+#
+_ligand.id               MTV
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'MGD-class'
+#
+data_MYA
+#
+_ligand.id               MYA
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1X C1B
+2 C2X C2B
+3 O2X O2B
+4 C3X C3B
+5 O3X O3B
+6 P3X P3B
+7 C4X C4B
+8 O4X O4B
+9 C5X C5B
+10 O5X O5B
+11 O1A O2A
+12 O2A O1A
+13 O5A O4A
+14 O4A O5A
+15 C12 CCP
+16 C11 CBP
+17 C14 CDP
+18 C13 CEP
+19 C10 CAP
+20 O10 OAP
+21 C9  C9P
+22 O9  O9P
+23 N8  N8P
+24 C7  C7P
+25 C6  C6P
+26 C5  C5P
+27 O5  O5P
+28 N4  N4P
+29 C3  C3P
+30 C2  C2P
+31 S1  S1P
+32 C2M .
+33 O2M .
+34 C3M .
+35 C4M .
+36 C5M .
+37 C6M .
+38 C7M .
+39 C8M .
+40 C9M .
+41 CAM .
+42 CBM .
+43 CCM .
+44 CDM .
+45 CEM .
+46 CFM .
+#
+data_N01
+#
+_ligand.id               N01
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  P2B .
+2  O1X .
+3  O2X .
+4  O3X .
+5  CAA N7N
+#
+data_N1T
+#
+_ligand.id               N1T
+_ligand.analogue_id      TPP
+_ligand.priority         y
+_ligand.description      "TDP-class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 "C1'" "N1'"
+#
+data_N3T
+#
+_ligand.id               N3T
+_ligand.analogue_id      TPP
+_ligand.priority         y
+_ligand.description      "TDP-class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 "C3'" "N3'"
+#
+data_NA
+#
+_ligand.id               NA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      .
+_ligand.name   "Sodium ion"
+#
+data_NA0
+#
+_ligand.id               NA0
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "NAD-class" 
 #
 data_NAD
 #
 _ligand.id               NAD
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_NicotinamideAdenineDinucleotide
+_ligand.description      'Cofactor_NicotinamideAdenineDinucleotide'
+_ligand.name   "Nicotinamide adenine dinucleotide"
+#
+data_NAE
+#
+_ligand.id               NAE
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C1'" C1B
+2  "C2'" C2B
+3  "O2'" O2B
+4  "C3'" C3B
+5  "O3'" O3B
+6  "O4'" O4B
+7  "C4'" C4B
+8  "O5'" O5B
+9  O5B O5D
+10 C5B C5D
+11 C4B C4D
+12 O4B O4D
+13 C3B C3D
+14 O3B O3D
+15 C2B C2D
+16 O2B O2D
+17 C1B C1D
+18 C4P .
+19 C3P .
+20 OP  .
+21 C2P .
 #
 data_NAI
 #
 _ligand.id               NAI
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      NADH
+_ligand.description      'NADH, NAD-class'
+_ligand.name   "NADH"
+#
+data_NAJ
+#
+_ligand.id               NAJ
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "NAD-class"
 #
 data_NAP
 #
 _ligand.id               NAP
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      NADP
+_ligand.description      'NADP , NAD-class'
+_ligand.name   "NADP"
+#
+data_NAQ
+#
+_ligand.id               NAQ
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C1'" C1B
+2  "C2'" C2B
+3  "O2'" O2B
+4  "C3'" C3B
+5  "O3'" O3B
+6  "O4'" O4B
+7  "C4'" C4B
+8  "O5'" O5B
+9  O5B O5D
+10 C5B C5D
+11 C4B C4D
+12 O4B O4D
+13 C3B C3D
+14 O3B O3D
+15 C2B C2D
+16 O2B O2D
+17 C1B C1D
+18 C4P .
+19 C5P .
+20 C3P .
+21 OP  .
+22 C2P .
+23 C1P .
+#
+data_NAX
+#
+_ligand.id               NAX
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 O6N .
+#
+data_NBD
+#
+_ligand.id               NBD
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CB1 .
+2  CB2 .
+3  CB3 .
+4  CB4 .
+5  CB5 .
+6  CB6 .
+7  CB7 .
+8  O11 O1A
+9  O12 O2A
+10 O13 O1N
+11 O13 O2N
+#
+data_NBP
+#
+_ligand.id               NBP
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 BR8 .
+2 P2B .
+3 O1X .
+4 O2X .
+5 O3X .
+#
+data_NDC
+#
+_ligand.id               NDC
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C1'" C1B
+2  "C2'" C2B
+3  "O2'" O2B
+4  "C3'" C3B
+5  "O3'" O3B
+6  "O4'" O4B
+7  "C4'" C4B
+8  "O5'" O5B
+9  O5B O5D
+10 C5B C5D
+11 C4B C4D
+12 O4B O4D
+13 C3B C3D
+14 O3B O3D
+15 C2B C2D
+16 O2B O2D
+17 C1B C1D
+18 CC6 .
+19 CC1 .
+20 OC1 .
+21 CC2 .
+22 CC3 .
+23 CC4 .
+24 CC5 .
+#
+data_NDE
+#
+_ligand.id               NDE
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C3  .
+2  O31 .
+3  C2  .
+4  O2  .
+5  C1  .
+6  O1  .
+7  P   .
+8  O1P .
+9  O2P .
+10 O3P .
+#
+data_NDO
+#
+_ligand.id               NDO
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 O6A N6A
+2 P2B .
+3 O1X .
+4 O2X .
+5 O3X .
 #
 data_NDP
 #
 _ligand.id               NDP
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      NADPH
+_ligand.description      .
+_ligand.name   "NADPH"
+#
+data_NHD
+#
+_ligand.id               NHD
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 O6A N6A
+#
+data_NHM
+#
+_ligand.id               NHM
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1X C1B
+2 C2X C2B
+3 O2X O2B
+4 C3X C3B
+5 O3X O3B
+6 P3X P3B
+7 C4X C4B
+8 O4X O4B
+9 C5X C5B
+10 O5X O5B
+11 O1A O2A
+12 O2A O1A
+13 O5A O4A
+14 O4A O5A
+15 C12 CCP
+16 C11 CBP
+17 C14 CDP
+18 C13 CEP
+19 C10 CAP
+20 O10 OAP
+21 C9  C9P
+22 O9  O9P
+23 N8  N8P
+24 C7  C7P
+25 C6  C6P
+26 C5  C5P
+27 O5  O5P
+28 N4  N4P
+29 C3  C3P
+30 C2  C2P
+31 S1  S1P
+32 C2M .
+33 O1M .
+34 C3M .
+35 C4M .
+36 C5M .
+37 C6M .
+38 C7M .
+39 C8M .
+40 C9M .
+41 CAM .
+42 CBM .
+43 CCM .
+44 CDM .
+45 CEM .
+46 CP  .
+47 C1M .
+#
+data_NHQ
+#
+_ligand.id               NHQ
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1X C1B
+2 C2X C2B
+3 O2X O2B
+4 C3X C3B
+5 O3X O3B
+6 P3X P3B
+7 C4X C4B
+8 O4X O4B
+9 C5X C5B
+10 O5X O5B
+11 O9A O8A
+12 O8A O9A
+13 CP  .
+14 C1M .
+15 C12 CCP
+16 C11 CBP
+17 C14 CEP
+18 C13 CDP
+19 C10 CAP
+20 O10 OAP
+21 C9  C9P
+22 O9  O9P
+23 N8  N8P
+24 C7  C7P
+25 C6  C6P
+26 C5  C5P
+27 O5  O5P
+28 N4  N4P
+29 C3  C3P
+30 C2  C2P
+31 S1  S1P
+32 O1M .
+33 N50 .
+34 C3M .
+35 C4M .
+36 C5M .
+37 N51 .
+38 CBM .
+39 CCM .
+40 CDM .
+41 CEM .
+42 N52 .
+43 C9M .
+44 C8M .
+45 C7M .
+46 N53 .
+#
+data_NHW
+#
+_ligand.id               NHW
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1X C1B
+2 C2X C2B
+3 O2X O2B
+4 C3X C3B
+5 O3X O3B
+6 P3X P3B
+7 C4X C4B
+8 O4X O4B
+9 C5X C5B
+10 O5X O5B
+11 O1A O2A
+12 O2A O1A
+13 O5A O4A
+14 O4A O5A
+15 C12 CCP
+16 C11 CBP
+17 C14 CDP
+18 C13 CEP
+19 C10 CAP
+20 O10 OAP
+21 C9  C9P
+22 O9  O9P
+23 N8  N8P
+24 C7  C7P
+25 C6  C6P
+26 C5  C5P
+27 O5  O5P
+28 N4  N4P
+29 C3  C3P
+30 C2  C2P
+31 S1  S1P
+32 C2M .
+33 O1M .
+34 C3M .
+35 C4M .
+36 C5M .
+37 C6M .
+38 C7M .
+39 C8M .
+40 C9M .
+41 CAM .
+42 CBM .
+43 CCM .
+44 CDM .
+45 CEM .
+46 C1M .
+47 CP  .
 #
 data_NI
 #
@@ -562,6 +6395,23 @@ _ligand.id               NI
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Nickle(II) ion"
+#
+data_NMX
+#
+_ligand.id               NMX
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1I S1P
+2 N1I .
+3 O1I .
+4 O2I .
 #
 data_NO3
 #
@@ -569,6 +6419,107 @@ _ligand.id               NO3
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "nitrate ion"
+#
+data_NOP
+#
+_ligand.id               NOP
+_ligand.analogue_id      PLP
+_ligand.priority         y
+_ligand.description      'PLP-class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 O1 .
+#
+data_NPL
+#
+_ligand.id               NPL
+_ligand.analogue_id      PLP
+_ligand.priority         y
+_ligand.description      'PLP-class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 N4 O4A
+2 C1 .
+#
+data_NPW
+#
+_ligand.id               NPW
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N1D N1A
+2  C2D C2A
+3  N3D N3A
+4  C4D C4A
+5  C5D C5A
+6  C6D C6A
+7  N6D N6A
+8  C1A C1B
+9  O4D O4B
+10 C2A C2B
+11 O2A O2B
+12 P   .
+13 O1  .
+14 O2  .
+15 O3  .
+16 C3A C3B
+17 C4E C4B
+18 C5E C5B
+19 O5E O5B
+20 OA2 O1A
+21 OA1 O2A
+22 OA3 O3
+23 PB  PN
+24 OB2 O2N
+25 OB1 O1N
+26 O5B O5D
+27 C5B C5D
+28 C4B C4D
+29 O4B O4D
+30 C3B C3D
+31 O3B O3D
+32 C2B C2D
+33 O2B O2D
+34 C1B C1D
+35 N1C N1N
+36 C2C C2N
+37 C3C C3N
+38 C7C C7N
+39 O7C O7N
+40 N7C N7N
+41 C4C C4N
+42 C5C C5N
+43 C6C C6N
+44 O6C .
+#
+data_ODP
+#
+_ligand.id               ODP
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  P2B .
+2  O1X .
+3  O2X .
+4  O3X .
+5  O99 .
 #
 data_OEX
 #
@@ -576,6 +6527,7 @@ _ligand.id               OEX
 _ligand.analogue_id      .
 _ligand.priority         n
 _ligand.description      .
+_ligand.name   "Ca-Mn4-O5 cluster"
 #
 data_OGA
 #
@@ -583,13 +6535,80 @@ _ligand.id               OGA
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "N-oxalylglycine"
 #
 data_OLA
 #
 _ligand.id               OLA
 _ligand.analogue_id      .
 _ligand.priority         n
-_ligand.description      OleicAcid
+_ligand.description      .
+_ligand.name   "Oleic acid"
+#
+data_OXK
+#
+_ligand.id               OXK
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O31 O9A
+18 O32 O7A
+19 O33 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O1A
+26 O11 O2A
+27 O6  O3A
+28 P2  P2A
+29 O22 O4A
+30 O21 O5A
+31 O7  O6A
+32 CPB CCP
+33 CPA CBP
+34 CP9 CDP
+35 CP8 CEP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CM1 .
+50 OM2 .
+51 CM2 .
+52 OM3 .
+53 OM4 .
 #
 data_OXY
 #
@@ -597,34 +6616,182 @@ _ligand.id               OXY
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Oxygen"
+#
+data_P1H
+#
+_ligand.id               P1H
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  N4  N1A
+2  C9  C2A
+3  N5  N3A
+4  C10 C4A
+5  C7  C5A
+6  C8  C6A
+7  N3  N6A
+8  N2  N7A
+9  C6  C8A
+10 N1  N9A
+11 C5  C1B
+12 O4  O4B
+13 C4  C2B
+14 O6  O2B
+15 C3  C3B
+16 O5  O3B
+17 C2  C4B
+18 C1  C5B
+19 O3  O5B
+20 P1  PA
+21 O2  O1A
+22 O1  O2A
+23 O7  O3
+24 P2  PN
+25 O8  O2N
+26 O9  O1N
+27 O10 O5D
+28 C11 C5D
+29 C12 C4D
+30 O11 O4D
+31 C12 C3D
+32 O12 O3D
+33 C14 C2D
+34 O13 O2D
+35 C15 C1D
+36 N6  N1N
+37 C16 C2N
+38 C17 C3N 
+39 C18 C7N
+40 O14 O7N
+41 N7  N7N
+42 C19 C4N
+43 C20 C5N
+44 C21 C6N
+45 C22 .
+46 O15 .
+47 C25 .
+48 C24 .
+49 C23 .
+50 N8  .
+51 C27 .
+52 C26 .
+53 C29 .
+54 C28 .
+55 C30 .
+#
+data_P5F
+#
+_ligand.id               P5F
+_ligand.analogue_id      FAD
+_ligand.priority         y
+_ligand.description      'FAD-class' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C22 .
+2 C21 .
+3 C23 .
+4 N2  .
+5 C1  .
+6 C3  .
+7 O3  .
+8 O1  .
+#
+data_PAD
+#
+_ligand.id               PAD
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C1N N1N
+2 N2N C2N
+#
+data_PCD
+#
+_ligand.id               PCD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'MGD-class'
+#
+data_PDP
+#
+_ligand.id               PDP
+_ligand.analogue_id      PLP
+_ligand.priority         y
+_ligand.description      'PLP-class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 O5A O4P
+2 PA  P
+3 O2A O3P
+4 OA1 O2P
+5 O3A O1P
+6 PB  .
+7 O1B .
+8 O2B .
+9 O3B .
 #
 data_PHO
 #
 _ligand.id               PHO
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      . 
+_ligand.description      .
+_ligand.name   "Pheophytin A" 
 #
 data_PL9
 #
 _ligand.id               PL9
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      plastoquinone9
+_ligand.description      .
+_ligand.name   "Plastoquinone 9"
 #
 data_PLP
 #
 _ligand.id               PLP
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_VitB6
+_ligand.description      'Cofactor_VitB6'
+_ligand.name   "Vitamin B6"
+#
+data_PLR
+#
+_ligand.id               PLR
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'PLP-class'
+#
+data_PMP
+#
+_ligand.id               PMP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'PLP-class'
 #
 data_PNS
 #
 _ligand.id               PNS
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_Phosphopantetheine
+_ligand.description      'Cofactor_Phosphopantetheine'
+_ligand.name   "Phosphopantetheine"
 #
 data_POP
 #
@@ -632,41 +6799,501 @@ _ligand.id               POP
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Pyrophosphate 2-"
+#
+data_PP9
+#
+_ligand.id               PP9
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEA-class, PROTOPORPHYRIN IX'
+_ligand.name   "Protoporphyrin IX"
 #
 data_PQN
 #
 _ligand.id               PQN
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      vitK
+_ligand.description      .
+_ligand.name   "Vitamin K"
 #
 data_PQQ
 #
 _ligand.id               PQQ
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_PyrroloquinolineQuinone
+_ligand.description      'Cofactor_PyrroloquinolineQuinone'
+_ligand.name   "Pyrroloquinoline quinone"
+#
+data_PXP
+#
+_ligand.id               PXP
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'PLP-class'
+#
+data_PZP
+#
+_ligand.id               PZP
+_ligand.analogue_id      PLP
+_ligand.priority         y
+_ligand.description      'PLP-class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 N4A  O4A
+2 HN4A .
+#
+data_R1T
+#
+_ligand.id               R1T
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_RBF
+#
+_ligand.id               RBF
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "FMN-class, RIBOFLAVIN"
+_ligand.name          "Riboflavin"
 #
 data_RET
 #
 _ligand.id               RET
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      retinal
+_ligand.description      .
+_ligand.name   "Retinal"
+#
+data_RFL
+#
+_ligand.id               RFL
+_ligand.analogue_id      FAD
+_ligand.priority         y
+_ligand.description      'FAD-class' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CM1 .
+2  CM2 .
+3  N8M C8M
+4  C8F C8
+5  C7F C7
+6  C6F C6
+7  C5A C5X
+8  C9F C9
+9  C4A C4X
+10 C4F C4
+11 O4F O4
+12 N3F N3
+13 C2F C2
+14 O2F O2
+15 N1F N1
+#
+data_S0N
+#
+_ligand.id               S0N
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C22 C6A
+2  N23 N6A
+3  N24 N1A
+4  C25 C2A
+5  N26 N3A
+6  C27 C4A
+7  C21 C5A
+8  N18 N9A
+9  C19 C8A
+10 N20 N7A 
+11 C17 C1B
+12 C28 C2B
+13 O29 O2B
+14 C30 C3B
+15 O31 O3B
+16 P32 P3B
+17 O34 O9A
+18 O35 O7A
+19 O33 O8A
+20 C15 C4B
+21 O16 O4B
+22 C14 C5B
+23 O13 O5B
+24 P10 P1A
+25 O12 O1A
+26 O11 O2A
+27 O09 O3A
+28 P06 P2A
+29 O07 O4A
+30 O08 O5A
+31 O05 O6A
+32 C04 CCP
+33 C02 CBP
+34 C01 CDP
+35 C03 CEP
+36 C36 CAP
+37 O37 OAP
+38 C38 C9P
+39 O39 O9P
+40 N40 N8P
+41 C41 C7P
+42 C42 C6P
+43 C43 C5P
+44 O44 O5P
+45 N45 N4P
+46 C46 C3P
+47 C47 C2P
+48 N48 S1P
+49 C49 .
+50 O50 .
+51 C51 .
+52 C52 .
+53 C53 .
+54 O54 .
+55 C55 .
+56 C56 .
+57 C57 .
+58 C58 .
+59 C59 .
+60 C60 .
+61 C61 .
+62 O62 .
+63 O63 .
+#
+data_S1T
+#
+_ligand.id               S1T
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_SA8
+#
+_ligand.id               SA8
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 ND     SD   
+#
+data_SAD
+#
+_ligand.id               SAD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+data_SAE
+#
+_ligand.id               SAE
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "NAD-class" 
 #
 data_SAH
 #
 _ligand.id               SAH
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      SAM_class
+_ligand.description      'SAM_class'
 #
 data_SAM
 #
 _ligand.id               SAM
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_S-Adenosylmethionine
+_ligand.description      'Cofactor_S-Adenosylmethionine'
+_ligand.name   "S-Adenosyl methionine"
+#
+#
+data_SCA
+#
+_ligand.id               SCA
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O31 O9A
+18 O32 O7A
+19 O33 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O2A
+26 O11 O1A
+27 O6  O3A
+28 P2  P2A
+29 O22 O4A
+30 O21 O5A
+31 O7  O6A
+32 CPB CCP
+33 CPA CBP
+34 CP9 CDP
+35 CP8 CEP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CS1 .
+50 OS1 .
+51 CS2 .
+52 CS3 .
+53 CS4 .
+54 OS4 .
+55 OS5 .
+#
+data_SCD
+#
+_ligand.id               SCD
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O31 O9A
+18 O32 O7A
+19 O33 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O2A
+26 O11 O1A
+27 O6  O3A
+28 P2  P2A
+29 O22 O4A
+30 O21 O5A
+31 O7  O6A
+32 CPB CCP
+33 CPA CBP
+34 CP9 CDP
+35 CP8 CEP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 CPS S1P
+49 CS1 .
+50 OS1 .
+51 CS2 .
+52 CS3 .
+53 CS4 .
+54 OS4 .
+55 OS5 .
+#
+data_SCO
+#
+_ligand.id               SCO
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 O2 O2B
+14 "C3'" C3B
+15 O3 O3B
+16 P3  P3B
+17 O9  O9A
+18 O7  O7A
+19 O8  O8A
+20 "C4'" C4B
+21 O4 O4B
+22 "C5'" C5B
+23 O5 O5B
+24 P1  P1A
+25 "O2'" O2A
+26 "O1'" O1A
+27 "O3'" O3A
+28 P2  P2A
+29 "O5'" O4A
+30 "O4'" O5A
+31 "O6'" O6A
+32 C11 CCP
+33 C12 CBP
+34 C13 CDP
+35 C14 CEP
+36 C15 CAP
+37 O10 OAP
+38 C9  C9P
+39 O11 O9P
+40 N8  N8P
+41 C27 C7P
+42 C26 C6P
+43 C25 C5P
+44 O12 O5P
+45 N34 N4P
+46 C33 C3P
+47 C32 C2P
+48 N31 S1P
+49 C41 .
+50 O41 .
+51 C42 .
+52 C43 .
+53 C44 .
+54 O44 .
+55 O45 .
+#
+data_SDX
+#
+_ligand.id               SDX
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CA6  C6A
+2  NA6  N6A
+3  NA1  N1A
+4  CA2  C2A
+5  NA3  N3A
+6  CA4  C4A
+7  CA5  C5A
+8  NA9  N9A
+9  CA8  C8A
+10 NA7  N7A 
+11 CB1 C1B
+12 CB2 C2B
+13 OB2 O2B
+14 CB3 C3B
+15 OB3 O3B
+16 PB3 P3B
+17 OA9 O9A
+18 OA7 O7A
+19 OA8 O8A
+20 CB4 C4B
+21 OB4 O4B
+22 CB5 C5B
+23 OB5 O5B
+24 PA1 P1A
+25 OA2 O2A
+26 OA1 O1A
+27 OA3 O3A
+28 PA2 P2A
+29 OA4 O4A
+30 OA5 O5A
+31 OA6 O6A
+32 CQ2 CCP
+33 CQ1 CBP
+34 CQ4 CDP
+35 CQ3 CEP
+36 CQ0 CAP
+37 OQ0 OAP
+38 CP9 C9P
+39 OP9 O9P
+40 NP8 N8P
+41 CP7 C7P
+42 CP6 C6P
+43 CP5 C5P
+44 OP5 O5P
+45 NP4 N4P
+46 CP3 C3P
+47 CP2 C2P
+48 C1  S1P
+49 C2  .
+50 O2 .
+51 C2 .
+52 C3 .
+53 C20 .
+54 O20 .
+55 C30 .
+56 O31 .
+57 O32 .
+58 C40 .
+59 C50 .
+60 O51 .
+61 O52 .
 #
 data_SF4
 #
@@ -674,41 +7301,657 @@ _ligand.id               SF4
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Iron/Sulfur cluster"
+#
+data_SFD
+#
+_ligand.id               SFD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'N5 SULFONO FAD, FAD-class' 
+_ligand.name   "Sulfono FAD"
+#
+data_SFG
+#
+_ligand.id               SFG
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+data_SH0
+#
+_ligand.id               SH0
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEA-class'
+#
+data_SHT
+#
+_ligand.id               SHT
+_ligand.analogue_id      TP7
+_ligand.priority         y
+_ligand.description      "TP7_class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CK  C1
+2  OK  O1
+3  CK1 C2
+4  CK2 C3
+5  CK3 C4
+6  CK4 C5
+7  CK5 C6
+8  CK6 C7
+9  SK  S7
+10 S1  .
+11 CC  .
+12 CD  .
+13 SG2 .
+14 OS1 .
+15 OS2 .
+16 OS3 . 
+# 
+data_SMM
+#
+_ligand.id               SMM
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 CXT .
+#
+data_SND
+#
+_ligand.id               SND
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 S7N O7N
+#
+
+data_SOP
+#
+_ligand.id               SOP
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 P3  P3B
+17 O31 O9A
+18 O32 O7A
+19 O33 O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 P1  P1A
+25 O12 O2A
+26 O11 O1A
+27 O6  O3A
+28 P2  P2A
+29 O22 O4A
+30 O21 O5A
+31 O7  O6A
+32 CP9 CCP
+33 CP8 CBP
+34 CPB CDP
+35 CPA CEP
+36 CP7 CAP
+37 OP3 OAP
+38 CP6 C9P
+39 OP2 O9P
+40 NP2 N8P
+41 CP5 C7P
+42 CP4 C6P
+43 CP3 C5P
+44 OP1 O5P
+45 NP1 N4P
+46 CP2 C3P
+47 CP1 C2P
+48 S   S1P
+49 CM1 .
+50 OA1 .
+51 CA2 .
+52 CA3 .
+#
+data_SRM
+#
+_ligand.id               SRM
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEA-class, Siroheme'
+_ligand.name   "Siroheme"
+#
+data_SX0
+#
+_ligand.id               SX0
+_ligand.analogue_id      SAM
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+data_T1G
+#
+_ligand.id               T1G
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 PCA  P3B
+17 OAI O9A
+18 OAO O7A
+19 OAP O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 PCB P1A
+25 OAJ O2A
+26 OAQ O1A
+27 OBJ O3A
+28 PCC P2A
+29 OAP O4A
+30 OAK O5A
+31 OBG O6A
+32 CAZ CCP
+33 CBZ CBP
+34 CAC CDP
+35 CAD CEP
+36 CBT CAP
+37 OAM OAP
+38 CBM C9P
+39 OAG O9P
+40 NBE N8P
+41 CAV C7P
+42 CAX C6P
+43 CBL C5P
+44 OAF O5P
+45 NBD N4P
+46 CAU C3P
+47 CAW C2P
+48 SBK S1P
+49 CBN .
+50 OAH .
+51 CBS .
+52 CAB .
+53 CBR .
+54 CAA .
+55 OAL .
+#
+data_T5X
+#
+_ligand.id               T5X
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_T6F
+#
+_ligand.id               T6F
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_TAD
+#
+_ligand.id               TAD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "NAD-class" 
+#
+data_TAP
+#
+_ligand.id               TAP
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      "NAD_class"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 P2B .
+2 O1X .
+3 O2X .
+4 O3X .
+5 S7N O7N
+#
+data_TC6
+#
+_ligand.id               TC6
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  CEP CDP
+2  CDP CEP
+3  C1  .
+4  C2  .
+5  C3  .
+6  C4  .
+7  C5  .
+8  C6  .
+9  O1  .
+#
+data_TD6
+#
+_ligand.id               TD6
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_TD7
+#
+_ligand.id               TD7
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_TD8
+#
+_ligand.id               TD8
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_TD9
+#
+_ligand.id               TD9
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_TDK
+#
+_ligand.id               TDK
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_TDL
+#
+_ligand.id               TDL
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_TDM
+#
+_ligand.id               TDM
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+
+#
+data_TDT
+#
+_ligand.id               TDT
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      'NAD_class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O3P O3
+2  O5M O5D
+3  C5M C5D
+4  C4M C4D
+5  O4M O4D
+6  C3M C3D
+7  O3M O3D
+8  O2M O2D
+9  C2M C2D 
+10 C1M C1D
+11 N3  .
+12 N4  .
+13 C16 .
+14 C17 .
+15 C19 .
+16 N1  .
+17 C15 .
+18 C18 .
+19 S   .
+20 N2  .
+21 C   .
+22 C1  .
+23 O   .
+24 N   .
+25 C2  .
+26 C3  .
+27 C4  .
+28 C5  .
+29 C6  .
+30 C7  .
+31 C8  .
+32 C9  .
+33 C10 .
+34 C11 .
+35 C12 .
+36 C13 .
+#
+data_TDW
+#
+_ligand.id               TDW
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_TGG
+#
+_ligand.id               TGG
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OT1 O12
+2  CO1 C1
+3  OC1 O11
+4  NN2 N2
+5  NN1 N1
+6  CO2 C2 
+7  OC2 O2
+8  NN3 N3
+9  CO3 C3
+10 OC3 O31
+11 OT3 O32
+12 CD2 .
+13 CE2 .
+14 OF2 .
+15 OE2 .
+16 CF2 .
+17 CH2 .
+18 OI2 .
+19 OJ2 .
+#
+data_THD
+#
+_ligand.id               THD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_THF
+#
+_ligand.id               THF
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "FFO-class, active form Vit.B9"
+#
+data_THG
+#
+_ligand.id               THG
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "FFO-class"
+#
+data_THH
+#
+_ligand.id               THH
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "FFO-class"
+#
+data_THV
+#
+_ligand.id               THV
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_THW
+#
+_ligand.id               THW
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_THY
+#
+_ligand.id               THY
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
 #
 data_TLA
 #
 _ligand.id               TLA
 _ligand.analogue_id      .
 _ligand.priority         n
-_ligand.description      tartaricacid
-#
+_ligand.description      .
+_ligand.name   "Tartaric acid"
+
 data_TP7
 #
 _ligand.id               TP7
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_CoB
+_ligand.description      'Cofactor_CoB'
+_ligand.name      "Coenzyme B"
+#
+data_TP8
+#
+_ligand.id               TP8
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
 #
 data_TPP
 #
 _ligand.id               TPP
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_ThiamineDiphosphate(representative_of_TDP_class)
+_ligand.description      'Cofactor_ThiamineDiphosphate(representative TDPclass)'
+_ligand.name   "Thiamine Diphosphate cofactor"
 #
-data_TPQ
+data_TPU
 #
-_ligand.id               TPQ
+_ligand.id               TPU
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_Topaquinone
+_ligand.description      'TDP-class, intermediate state'
 #
-data_TRQ
+data_TPW
 #
-_ligand.id               TRQ
+_ligand.id               TPW
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_OrthoquinoneResidues
+_ligand.description      'TDP-class, intermediate state'
+#
+data_TPZ
+#
+_ligand.id               TPZ
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TP7_class'
+#
+data_TS5
+#
+_ligand.id               TS5
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'Glutathionylspermidine'
+_ligand.name             'Glutathionylspermidine' 
+#
+data_TT8
+#
+_ligand.id               TT8
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "SAM-class" 
+#
+data_TXD
+#
+_ligand.id               TXD
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      'NAD_class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C1'" C1B
+2  "C2'" C2B
+3  "O2'" O2B
+4  "C3'" C3B
+5  "O3'" O3B
+6  "O4'" O4B
+7  "C4'" C4B
+8  "O5'" O5B
+9  O2P O2A
+10 O1P O1A
+11 "O5'A" O5D
+12 "C5'A" C5D
+13 "O4'A" O4D
+14 "C3'A" C3D
+15 "O3'A" O3D
+16 "C2'A" C2D
+17 "O2'A" O2D
+18 "C4'A" C4D
+19 "C1'A" C1D
+#
+data_TXE
+#
+_ligand.id               TXE
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      'NAD_class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C1'" C1B
+2  "C2'" C2B
+3  "O2'" O2B
+4  "C3'" C3B
+5  "O3'" O3B
+6  "O4'" O4B
+7  "C4'" C4B
+8  "O5'" O5B
+9  O2P O2A
+10 O1P O1A
+11 O5B O5D
+12 C5B C5D
+13 C4B C4D
+14 O4B O4D
+15 C3B C3D
+16 O3B O3D
+17 C2B C2D
+18 O2B O2D
+19 C1B C1D
+#
+data_TXP
+#
+_ligand.id               TXP
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description     'NAD_class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  "C1'" C1B
+2  "C2'" C2B
+3  "O2'" O2B
+4  "C3'" C3B
+5  "O3'" O3B
+6  "O4'" O4B
+7  "C4'" C4B
+8  "O5'" O5B
+9  P2  .
+10 OP1 .
+11 OP2 .
+12 OP3 .
+13 "O5'A" O5D
+14 "C5'A" C5D
+15 "O4'A" O4D
+16 "C3'A" C3D
+17 "O3'A" O3D
+18 "C2'A" C2D
+19 "O2'A" O2D
+20 "C4'A" C4D
+21 "C1'A" C1D
+#
+data_TXZ
+#
+_ligand.id               TXZ
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TP7_class'
+#
+data_TZD
+#
+_ligand.id               TZD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
+#
+data_UAH
+#
+_ligand.id               UAH
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'PLP-class'
 #
 data_UDP
 #
@@ -716,20 +7959,369 @@ _ligand.id               UDP
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Uridine-5'-diphosphate"
 #
 data_UQ1
 #
 _ligand.id               UQ1
 _ligand.analogue_id      .
 _ligand.priority         y
-_ligand.description      Cofactor_Ubiquinone
+_ligand.description      'Cofactor_Ubiquinone'
+_ligand.name   "Ubiquinone 1"
+#
+data_UQ2
+#
+_ligand.id               UQ2
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'UQ1-class'
+_ligand.name   "Ubiquinone 2"
+#
+data_UQ5
+#
+_ligand.id               UQ5
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'UQ1-class'
+#
+data_UQ6
+#
+_ligand.id               UQ6
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'UQ1-class'
+#
+data_VWW
+#
+_ligand.id               VWW
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  OXT O12
+2  C   C1
+3  O   O11
+4  CA  CA1
+5  N   N1
+6  CB  CB1
+7  CG  CG1
+8  CD  CD1
+9  N1  N2
+10 CA1 CA2
+11 CB1 CB2
+12 SG  SG2
+13 C1  C2 
+14 O1  O2
+15 N2  N3
+16 CA2 CA3
+17 C2  C3
+18 O2  O31
+19 OXT1 O32
+20 CB2 .
+21 CG1 .
+22 CD11 .
+23 CE1 .
+24 CD2 .
+25 CG2 .
+26 CD1 .
+27 CE  .
+28 CZ1 .
+29 CT1 .
+30 CH  .
+31 CT2 .
+32 CZ2 .
+#
+data_WCA
+#
+_ligand.id               WCA
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C6  C6A
+2  N6  N6A
+3  N1  N1A
+4  C2  C2A
+5  N3  N3A
+6  C4  C4A
+7  C5  C5A
+8  N9  N9A
+9  C8  C8A
+10 N7  N7A 
+11 "C1'" C1B
+12 "C2'" C2B
+13 "O2'" O2B
+14 "C3'" C3B
+15 "O3'" O3B
+16 PCE P3B
+17 OAN O9A
+18 OAG O7A
+19 OAM O8A
+20 "C4'" C4B
+21 "O4'" O4B
+22 "C5'" C5B
+23 "O5'" O5B
+24 PCF P1A
+25 OAO O2A
+26 OAH O1A
+27 OBN O3A
+28 PCG P2A
+29 OAI O4A
+30 OAP O5A
+31 OBK O6A
+32 CBD CCP
+33 CCD CBP
+34 CAB CDP
+35 CAA CEP
+36 CBX CAP
+37 OAK OAP
+38 CBR C9P
+39 OAF O9P
+40 NBI N8P
+41 CAZ C7P
+42 CBB C6P
+43 CBQ C5P
+44 OAE O5P
+45 NBH N4P
+46 CAY C3P
+47 CBA C2P
+48 SBO S1P
+49 CBP .
+50 OAD .
+51 CAQ .
+52 CAR .
+53 CBT .
+54 CAV .
+55 CAT .
+56 CBS .
+57 OAJ .
+58 CAU .
+59 CAW .
+#
+data_WSD
+#
+_ligand.id               WSD
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'H4B-class'
+#
+data_WWF
+#
+_ligand.id               WWF
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'TDP-class, intermediate state'
 #
 data_XAT
 #
 _ligand.id               XAT
 _ligand.analogue_id      .
-_ligand.priority         n
+_ligand.priority         y
 _ligand.description      .
+_ligand.name   "Violaxanthin"
+#
+data_XAX
+#
+_ligand.id               XAX
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'MGD-class'
+#
+data_XP8
+#
+_ligand.id               XP8
+_ligand.analogue_id      TP7
+_ligand.priority         y
+_ligand.description      'TP7_class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C8 S7
+2 S8 .
+#
+data_XP9
+#
+_ligand.id               XP9
+_ligand.analogue_id      TP7
+_ligand.priority         y
+_ligand.description      'TP7_class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C8 S7
+2 C9 .
+3 S9 .
+#
+data_Y7Y
+#
+_ligand.id               Y7Y
+_ligand.analogue_id      .
+_ligand.priority         n
+_ligand.description      'Carboxy-biotin analogue'
+#
+data_YNC
+#
+_ligand.id               YNC
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C  C6A
+2  N  N6A
+3  N1  N1A
+4  C1  C2A
+5  N2  N3A
+6  C2  C4A
+7  C3  C5A
+8  N4  N9A
+9  C4  C8A
+10 N3  N7A 
+11 C5  C1B
+12 C6 C2B
+13 O  O2B
+14 C7 C3B
+15 O1 O3B
+16 P  P3B
+17 O2 O9A
+18 O3 O7A
+19 O4 O8A
+20 C8 C4B
+21 O16 O4B
+22 C9  C5B
+23 O5  O5B
+24 P1  P1A
+25 O6  O2A
+26 O15 O1A
+27 O7  O3A
+28 P2  P2A
+29 O8  O4A
+30 O14 O5A
+31 O9  O6A
+32 C10 CCP
+33 C11 CBP
+34 C12 CDP
+35 C13 CEP
+36 C14 CAP
+37 O13 OAP
+38 C15 C9P
+39 O12 O9P
+40 N5  N8P
+41 C16 C7P
+42 C17 C6P
+43 C18 C5P
+44 O11 O5P
+45 N6  N4P
+46 C19 C3P
+47 C20 C2P
+48 S   S1P
+49 C21 .
+50 O10 .
+51 C22 .
+52 C23 .
+53 C24 .
+54 C25 .
+55 C26 .
+56 C27 .
+57 C28 .
+58 C29 .
+59 C30 .
+60 C31 .
+61 C32 .
+62 C33 .
+63 C34 .
+#
+data_ZBF
+#
+_ligand.id               ZBF
+_ligand.analogue_id      GSH
+_ligand.priority         y
+_ligand.description      'Glutathione analog' 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O1  O12
+2  C8  C1
+3  O2  O11
+4  C7  CA1
+5  N2  N1
+6  C6  CB1
+7  C5  CG1
+8  C4  CD1
+9  N1  N2
+10 C3  CA2
+11 C2  CB2
+12 C1  SG2
+13 C9  C2 
+14 O6  O2
+15 C   .
+16 C10 CA3
+17 C11 C3
+18 O5  O31
+19 O4  O32
+20 O3  OE1
+21 O7  .
+22 N   .
+23 O   .
+24 C12 .
+25 C13 .
+26 C14 .
+27 C15 .
+28 C16 .
+29 C17 .
+30 C18 .
+31 C19 .
+#
+data_ZEM
+#
+_ligand.id               ZEM
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      'HEA-class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 ZN FE
+2 OZ .
+#
+data_ZID
+#
+_ligand.id               ZID
+_ligand.analogue_id      NAD
+_ligand.priority         y
+_ligand.description      'NAD_class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 C7Z .
+2 O7Z .
+3 C4Z .
+4 C3Z .
+5 C2Z .
+6 N1Z .
+7 C6Z .
+8 C5Z .
 #
 data_ZN
 #
@@ -737,3 +8329,48 @@ _ligand.id               ZN
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
+_ligand.name   "Zinc ion"
+#
+data_ZNH
+#
+_ligand.id               ZNH
+_ligand.analogue_id      HEC
+_ligand.priority         y
+_ligand.description      'HEA-class'
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 ZN FE
+#
+data_ZOZ
+#
+_ligand.id               ZOZ
+_ligand.analogue_id      COA
+_ligand.priority         y
+_ligand.description      "COA-derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O8A O7A
+2  O7A O8A
+3  O4A O5A
+4  O5A O4A
+5  CEP CDP
+6  CDP CEP
+7  "O1'" .
+8  "C4'" .
+9  "C5'" .
+10 "C6'" . 
+11 "C1'" .
+12 "C2'" .
+13 "C7'" .
+14 "C3'" .
+15 "O3'" .
+16 "C8'" .
+17 "C9'" .
+18 C10 .
+#

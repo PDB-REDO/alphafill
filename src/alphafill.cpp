@@ -621,10 +621,12 @@ int a_main(int argc, const char *argv[])
 			try
 			{
 				// try a PDB-REDO layout first
-				mmcif::File pdb_f((pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif")).string());
-				if (not fs::exists)
-					pdb_f = (pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz")).string();
+				fs::path pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif");
+				if (not fs::exists(pdb_path))
+					pdb_path = pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz");
 
+				mmcif::File pdb_f(pdb_path.string());
+				
 				// Check to see if it is any use to continue with this structure
 
 				auto pdb_chem_comp = pdb_f.data().get("chem_comp");
