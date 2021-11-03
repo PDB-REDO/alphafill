@@ -620,7 +620,10 @@ int a_main(int argc, const char *argv[])
 
 			try
 			{
-				mmcif::File pdb_f((pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz")).string());
+				// try a PDB-REDO layout first
+				mmcif::File pdb_f((pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif")).string());
+				if (not fs::exists)
+					pdb_f = (pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz")).string();
 
 				// Check to see if it is any use to continue with this structure
 
