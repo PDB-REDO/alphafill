@@ -125,7 +125,7 @@ class Ligand
 
 	explicit operator bool() const
 	{
-		return mDb != nullptr;
+		return mDb != nullptr and mLigand != nullptr and mLigand->front()["priority"].as<std::string>() != "n";
 	}
 
 	void modify(mmcif::Structure &structure, const std::string &asymID) const;
@@ -271,25 +271,17 @@ double CalculateRMSD(const std::vector<mmcif::Point> &pa, const std::vector<mmci
 double Align(mmcif::Structure &a, mmcif::Structure &b,
 	std::vector<Point> &cAlphaA, std::vector<Point> &cAlphaB)
 {
-	auto ta = Centroid(cAlphaA);
+	auto ta = CenterPoints(cAlphaA);
 
 	if (cif::VERBOSE)
 		std::cerr << "translate A: " << -ta << std::endl;
 
-	for (auto &pt : cAlphaA)
-		pt -= ta;
-
-	auto tb = Centroid(cAlphaB);
+	auto tb = CenterPoints(cAlphaB);
 
 	if (cif::VERBOSE)
 		std::cerr << "translate B: " << -tb << std::endl;
 
-	for (auto &pt : cAlphaB)
-		pt -= tb;
-
-	auto rotation = AlignPoints(cAlphaA, cAlphaB);
-	// for (auto &pt : cAlphaB)
-	// 	pt.rotate(rotation);
+	auto rotation = AlignPoints(cAlphaB, cAlphaA);
 
 	if (cif::VERBOSE)
 	{

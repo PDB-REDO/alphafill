@@ -108,7 +108,7 @@ find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options system iostreams d
 
 find_package(ZLIB)
 find_package(BZip2)
-find_package(cifpp 3.0.0 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
+find_package(cifpp 3.0.1 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
 find_package(zeep 5.1.4 REQUIRED)
 
 if(CIFPP_FOUND)
