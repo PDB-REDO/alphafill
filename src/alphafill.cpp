@@ -684,6 +684,14 @@ int a_main(int argc, const char *argv[])
 							assert(af_ix_trimmed[i] < af_res.size());
 							assert(pdb_ix_trimmed[i] < pdb_res.size());
 
+							if (af_ix_trimmed[i] >= af_res.size() or pdb_ix_trimmed[i] >= pdb_res.size())
+							{
+								if (cif::VERBOSE)
+									std::cerr << "Probably incorrect fasta entry for " << hit.mDefLine << std::endl;
+								continue;
+							}
+
+
 							auto af_ca = af_res[af_ix_trimmed[i]]->atomByID("CA").location();
 							auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->atomByID("CA").location();
 
