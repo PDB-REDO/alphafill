@@ -368,13 +368,16 @@ std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 
 // --------------------------------------------------------------------
 
-bool isUniqueLigand(const mmcif::Structure &structure, float minDistance, const mmcif::Residue &lig)
+bool isUniqueLigand(const mmcif::Structure &structure, float minDistance, const mmcif::Residue &lig, std::string_view id)
 {
 	bool result = true;
 
+	if (id.empty())
+		id = lig.compoundID();
+
 	for (auto &np : structure.nonPolymers())
 	{
-		if (np.compoundID() != lig.compoundID())
+		if (np.compoundID() != id)
 			continue;
 
 		std::vector<mmcif::Point> pa, pb;
@@ -674,6 +677,13 @@ int a_main(int argc, const char *argv[])
 
 					auto &&[af_ix_trimmed, pdb_ix_trimmed] = getTrimmedIndicesForHsp(hsp);
 
+					// sanity check, happened unfortunately when the fasta was out of sync with the real PDB
+					if (pdb_ix_trimmed.back() >= pdb_res.size())
+					{
+						std::cerr << "Probably incorrect fasta entry for " << hit.mDefLine << std::endl;
+						continue;
+					}
+
 					assert(af_ix_trimmed.size() == pdb_ix_trimmed.size());
 
 					std::vector<Point> af_ca_trimmed, pdb_ca_trimmed;
@@ -683,14 +693,6 @@ int a_main(int argc, const char *argv[])
 						{
 							assert(af_ix_trimmed[i] < af_res.size());
 							assert(pdb_ix_trimmed[i] < pdb_res.size());
-
-							if (af_ix_trimmed[i] >= af_res.size() or pdb_ix_trimmed[i] >= pdb_res.size())
-							{
-								if (cif::VERBOSE)
-									std::cerr << "Probably incorrect fasta entry for " << hit.mDefLine << std::endl;
-								continue;
-							}
-
 
 							auto af_ca = af_res[af_ix_trimmed[i]]->atomByID("CA").location();
 							auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->atomByID("CA").location();
@@ -748,7 +750,7 @@ int a_main(int argc, const char *argv[])
 						}
 
 						// check to see if the ligand is unique enough
-						if (not isUniqueLigand(af_structure, minSeparationDistance, res))
+						if (not isUniqueLigand(af_structure, minSeparationDistance, res, ligand.analogueID()))
 						{
 							if (cif::VERBOSE)
 								std::cerr << "Residue is not unique enough" << std::endl;
