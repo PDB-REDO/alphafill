@@ -372,9 +372,6 @@ bool isUniqueLigand(const mmcif::Structure &structure, float minDistance, const 
 {
 	bool result = true;
 
-	if (id.empty())
-		id = lig.compoundID();
-
 	for (auto &np : structure.nonPolymers())
 	{
 		if (np.compoundID() != id)
@@ -749,8 +746,12 @@ int a_main(int argc, const char *argv[])
 								std::cerr << "There are not enough atoms found near residue " << res << " to fine tune rotation" << std::endl;
 						}
 
+						auto analogue = ligand.analogueID();
+						if (analogue.empty())
+							analogue = comp_id;
+
 						// check to see if the ligand is unique enough
-						if (not isUniqueLigand(af_structure, minSeparationDistance, res, ligand.analogueID()))
+						if (not isUniqueLigand(af_structure, minSeparationDistance, res, analogue))
 						{
 							if (cif::VERBOSE)
 								std::cerr << "Residue is not unique enough" << std::endl;
@@ -760,10 +761,6 @@ int a_main(int argc, const char *argv[])
 						auto entity_id = af_structure.createNonPolyEntity(comp_id);
 						auto asym_id = af_structure.createNonpoly(entity_id, res.atoms());
 						
-						auto analogue = ligand.analogueID();
-						if (analogue.empty())
-							analogue = comp_id;
-
 						r_hsp["transplants"].push_back({
 							{ "compound_id", comp_id },
 							{ "entity_id", entity_id },
