@@ -250,6 +250,10 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 
 	if (result)
 	{
+		mismatch.erase(std::unique(mismatch.begin(), mismatch.end()), mismatch.end());
+		unequal_length.erase(std::unique(unequal_length.begin(), unequal_length.end()), unequal_length.end());
+		not_x_related.erase(std::unique(not_x_related.begin(), not_x_related.end()), not_x_related.end());
+
 		std::cout << "Report for fasta check" << std::endl
 				  << std::string(80, '-') << std::endl
 				  << std::endl
@@ -570,8 +574,11 @@ int a_main(int argc, const char *argv[])
 	using namespace cif::literals;
 
 	po::options_description visible_options(argv[0] + " [options] input-file [output-file]"s);
-	visible_options.add_options()("pdb-fasta", po::value<std::string>(), "The FastA file containing the PDB sequences")("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")("ligands", po::value<std::string>()->default_value("af-ligands.cif"),
-		"File in CIF format describing the ligands and their modifications")
+
+	visible_options.add_options()
+		("pdb-fasta", po::value<std::string>(), "The FastA file containing the PDB sequences")
+		("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")
+		("ligands", po::value<std::string>()->default_value("af-ligands.cif"), "File in CIF format describing the ligands and their modifications")
 
 		("max-ligand-to-backbone-distance", po::value<float>()->default_value(6), "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure")
 		("min-hsp-identity", po::value<float>()->default_value(0.7), "The minimal identity for a high scoring pair (note, value between 0 and 1)")
