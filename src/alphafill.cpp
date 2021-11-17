@@ -174,42 +174,49 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 					break;
 				}
 
-				cif::File pdbFile(pdbFileForID(dbDir, id));
-
-				auto a = getSequenceForStrand(pdbFile.firstDatablock(), strand);
-				auto b = encode(seq);
-
-				if (a == b)
-					continue;
-
-				std::unique_lock lock(guard);
-
-				result = -1;
-
-				std::cerr << "Mismatch for " << id << " strand " << strand << std::endl;
-
-				std::cerr << std::endl
-							<< decode(a) << std::endl
-							<< seq << std::endl
-							<< std::endl;
-
-				mismatch.push_back(id);
-
-				if (a.length() != b.length())
+				try
 				{
-					unequal_length.push_back(id);
-					continue;
+					cif::File pdbFile(pdbFileForID(dbDir, id));
+
+					auto a = getSequenceForStrand(pdbFile.firstDatablock(), strand);
+					auto b = encode(seq);
+
+					if (a == b)
+						continue;
+
+					std::unique_lock lock(guard);
+
+					result = -1;
+
+					std::cerr << "Mismatch for " << id << " strand " << strand << std::endl;
+
+					std::cerr << std::endl
+								<< decode(a) << std::endl
+								<< seq << std::endl
+								<< std::endl;
+
+					mismatch.push_back(id);
+
+					if (a.length() != b.length())
+					{
+						unequal_length.push_back(id);
+						continue;
+					}
+
+					for (size_t i = 0; i < a.length(); ++i)
+					{
+						if (a[i] == b[i])
+							continue;
+						
+						if (a[i] == 22 or b[i] == 22)	// either one is X
+							continue;
+						
+						not_x_related.push_back(id);
+					}
 				}
-
-				for (size_t i = 0; i < a.length(); ++i)
+				catch (std::exception const &ex)
 				{
-					if (a[i] == b[i])
-						continue;
-					
-					if (a[i] == 22 or b[i] == 22)	// either one is X
-						continue;
-					
-					not_x_related.push_back(id);
+					std::cerr << ex.what() << std::endl;
 				}
 			}
 		});
