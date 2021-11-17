@@ -38,6 +38,7 @@
 #include <zeep/json/element.hpp>
 
 #include "blast.hpp"
+#include "queue.hpp"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -143,7 +144,7 @@ sequence getSequenceForStrand(cif::Datablock &db, const std::string &strand)
 	return encode(pdb_seq);
 }
 
-int validateFastA(fs::path fasta, fs::path dbDir)
+int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 {
 	int result = 0;
 
@@ -153,7 +154,66 @@ int validateFastA(fs::path fasta, fs::path dbDir)
 	
 	std::string id, strand, seq, line;
 
-	std::vector<std::string> unequal_length, not_x_related;
+	std::vector<std::string> mismatch, unequal_length, not_x_related;
+	blocking_queue<std::tuple<std::string,std::string,std::string>> q;
+
+	std::mutex guard;
+
+	std::vector<std::thread> t;
+	for (int i = 0; i < threads; ++i)
+	{
+		t.emplace_back([&]()
+		{
+			for (;;)
+			{
+				const auto &&[id, strand, seq] = q.pop();
+
+				if (id.empty())	// sentinel
+				{
+					q.push({});
+					break;
+				}
+
+				cif::File pdbFile(pdbFileForID(dbDir, id));
+
+				auto a = getSequenceForStrand(pdbFile.firstDatablock(), strand);
+				auto b = encode(seq);
+
+				if (a == b)
+					continue;
+
+				std::unique_lock lock(guard);
+
+				result = -1;
+
+				std::cerr << "Mismatch for " << id << " strand " << strand << std::endl;
+
+				std::cerr << std::endl
+							<< decode(a) << std::endl
+							<< seq << std::endl
+							<< std::endl;
+
+				mismatch.push_back(id);
+
+				if (a.length() != b.length())
+				{
+					unequal_length.push_back(id);
+					continue;
+				}
+
+				for (size_t i = 0; i < a.length(); ++i)
+				{
+					if (a[i] == b[i])
+						continue;
+					
+					if (a[i] == 22 or b[i] == 22)	// either one is X
+						continue;
+					
+					not_x_related.push_back(id);
+				}
+			}
+		});
+	}
 
 	while (std::getline(f, line))
 	{
@@ -163,43 +223,10 @@ int validateFastA(fs::path fasta, fs::path dbDir)
 			{
 				if (seq.empty() or strand.empty())
 					throw std::runtime_error("No sequence for id " + id);
-				
-				cif::File pdbFile(pdbFileForID(dbDir, id));
 
-				auto a = getSequenceForStrand(pdbFile.firstDatablock(), strand);
-				auto b = encode(seq);
-
-				if (a != b)
-				{
-					std::cerr << "Mismatch for " << id << " strand " << strand << std::endl;
-
-					std::cerr << std::endl
-							  << decode(a) << std::endl
-							  << seq << std::endl
-							  << std::endl;
-
-
-					if (a.length() != b.length())
-						unequal_length.push_back(id);
-					else
-					{
-						for (size_t i = 0; i < a.length(); ++i)
-						{
-							if (a[i] == b[i])
-								continue;
-							
-							if (a[i] == 22 or b[i] == 22)	// either one is X
-								continue;
-							
-							not_x_related.push_back(id);
-							break;
-						}
-					}
-
-					result = -1;
-				}
+				q.push({id, strand, seq });
 			}
-
+				
 			id = line.substr(1, 4);
 			strand = line.substr(6);
 			seq.clear();
@@ -208,10 +235,19 @@ int validateFastA(fs::path fasta, fs::path dbDir)
 			seq.append(line.begin(), line.end());
 	}
 
+	// signal end
+	q.push({});
+
+	for (auto &ti: t)
+		ti.join();
+
 	if (result)
 	{
 		std::cout << "Report for fasta check" << std::endl
 				  << std::string(80, '-') << std::endl
+				  << std::endl
+				  << "PDB ID's with mismatches" << std::endl
+				  << ba::join(mismatch, ", ") << std::endl
 				  << std::endl
 				  << "PDB ID's with differing sequence length" << std::endl
 				  << ba::join(unequal_length, ", ") << std::endl
@@ -622,7 +658,7 @@ int a_main(int argc, const char *argv[])
 	// --------------------------------------------------------------------
 	
 	if (vm.count("validate-fasta"))
-		return validateFastA(vm["pdb-fasta"].as<std::string>(), vm["pdb-dir"].as<std::string>());
+		return validateFastA(vm["pdb-fasta"].as<std::string>(), vm["pdb-dir"].as<std::string>(), std::thread::hardware_concurrency());
 
 	// --------------------------------------------------------------------
 	
