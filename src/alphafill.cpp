@@ -577,6 +577,7 @@ int a_main(int argc, const char *argv[])
 		("min-hsp-identity", po::value<float>()->default_value(0.7), "The minimal identity for a high scoring pair (note, value between 0 and 1)")
 		("min-alignment-length", po::value<int>()->default_value(85), "The minimal length of an alignment")
 		("min-separation-distance", po::value<float>()->default_value(3.5), "The centroids of two identical ligands should be at least this far apart to count as separate occurrences")
+		("blast-report-limit", po::value<uint32_t>()->default_value(250), "Number of blast hits to use")
 
 		("compounds", po::value<std::string>(), "Location of the components.cif file from CCD")
 		("components", po::value<std::string>(), "Location of the components.cif file from CCD, alias")
@@ -744,7 +745,7 @@ int a_main(int argc, const char *argv[])
 					  << seq << std::endl
 					  << std::endl;
 
-		auto result = BlastP(fasta, seq);
+		auto result = BlastP(fasta, seq, vm["blast-report-limit"].as<uint32_t>());
 
 		if (cif::VERBOSE)
 			std::cerr << "Found " << result.size() << " hits" << std::endl;

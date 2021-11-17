@@ -151,29 +151,29 @@ install(TARGETS ${PROJECT_NAME}
 
 # test
 
-add_executable(unit-test ${PROJECT_SOURCE_DIR}/test/unit-test.cpp)
+# add_executable(unit-test ${PROJECT_SOURCE_DIR}/test/unit-test.cpp)
 
-target_include_directories(unit-test PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}/include
-)
+# target_include_directories(unit-test PRIVATE
+# 	${CMAKE_CURRENT_SOURCE_DIR}/include
+# )
 
-target_link_libraries(unit-test Threads::Threads ${Boost_LIBRARIES} cifpp::cifpp)
+# target_link_libraries(unit-test Threads::Threads ${Boost_LIBRARIES} cifpp::cifpp)
 
-if(${ZLIB_FOUND})
-	target_link_libraries(unit-test ZLIB::ZLIB)
-endif()
+# if(${ZLIB_FOUND})
+# 	target_link_libraries(unit-test ZLIB::ZLIB)
+# endif()
 
-if(${BZip2_FOUND})
-	target_link_libraries(unit-test BZip2::BZip2)
-endif()
+# if(${BZip2_FOUND})
+# 	target_link_libraries(unit-test BZip2::BZip2)
+# endif()
 
-if(MSVC)
-	# Specify unwind semantics so that MSVC knowns how to handle exceptions
-	target_compile_options(unit-test PRIVATE /EHsc)
-endif()
+# if(MSVC)
+# 	# Specify unwind semantics so that MSVC knowns how to handle exceptions
+# 	target_compile_options(unit-test PRIVATE /EHsc)
+# endif()
 
-enable_testing()
+# enable_testing()
 
-add_test(NAME unit-test
-	COMMAND $<TARGET_FILE:unit-test>
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
+# add_test(NAME unit-test
+# 	COMMAND $<TARGET_FILE:unit-test>
+# 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
