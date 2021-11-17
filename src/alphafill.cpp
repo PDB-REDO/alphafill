@@ -153,6 +153,8 @@ int validateFastA(fs::path fasta, fs::path dbDir)
 	
 	std::string id, strand, seq, line;
 
+	std::vector<std::string> unequal_length, not_x_related;
+
 	while (std::getline(f, line))
 	{
 		if (line[0] == '>')
@@ -165,7 +167,9 @@ int validateFastA(fs::path fasta, fs::path dbDir)
 				cif::File pdbFile(pdbFileForID(dbDir, id));
 
 				auto a = getSequenceForStrand(pdbFile.firstDatablock(), strand);
-				if (a != encode(seq))
+				auto b = encode(seq);
+
+				if (a != b)
 				{
 					std::cerr << "Mismatch for " << id << " strand " << strand << std::endl;
 
@@ -173,6 +177,24 @@ int validateFastA(fs::path fasta, fs::path dbDir)
 							  << decode(a) << std::endl
 							  << seq << std::endl
 							  << std::endl;
+
+
+					if (a.length() != b.length())
+						unequal_length.push_back(id);
+					else
+					{
+						for (size_t i = 0; i < a.length(); ++i)
+						{
+							if (a[i] == b[i])
+								continue;
+							
+							if (a[i] == 22 or b[i] == 22)	// either one is X
+								continue;
+							
+							not_x_related.push_back(id);
+							break;
+						}
+					}
 
 					result = -1;
 				}
@@ -184,6 +206,19 @@ int validateFastA(fs::path fasta, fs::path dbDir)
 		}
 		else
 			seq.append(line.begin(), line.end());
+	}
+
+	if (result)
+	{
+		std::cout << "Report for fasta check" << std::endl
+				  << std::string(80, '-') << std::endl
+				  << std::endl
+				  << "PDB ID's with differing sequence length" << std::endl
+				  << ba::join(unequal_length, ", ") << std::endl
+				  << std::endl
+				  << "PDB ID's with mismatches that do not involve X" << std::endl
+				  << ba::join(not_x_related, ", ") << std::endl
+				  << std::endl;
 	}
 
 	return result;
