@@ -37,9 +37,17 @@ const uint8_t kResidueNrTable[] = {
 
 sequence encode(const std::string &s)
 {
-	sequence result(s.length(), 0);
-	for (unsigned int i = 0; i < s.length(); ++i)
-		result[i] = is_gap(s[i]) ? '-' : ResidueNr(s[i]);
+	sequence result;
+	result.reserve(s.length());
+
+	for (auto ch : s)
+	{
+		if (ch == '\n' or ch == '\r' or ch == '\t')
+			continue;
+		
+		result.push_back(is_gap(ch) ? '-' : ResidueNr(ch));
+	}
+
 	return result;
 }
 

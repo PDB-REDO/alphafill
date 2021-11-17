@@ -113,6 +113,84 @@ std::string get_version_string()
 
 // --------------------------------------------------------------------
 
+fs::path pdbFileForID(const fs::path &pdbDir, const std::string &pdb_id)
+{
+	// try a PDB-REDO layout first
+	fs::path pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif");
+	if (not fs::exists(pdb_path))
+		pdb_path = pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz");
+
+	if (not fs::exists(pdb_path))
+		throw std::runtime_error("PDB file for " + pdb_id + " not found");
+
+	return pdb_path;
+}
+
+sequence getSequenceForStrand(cif::Datablock &db, const std::string &strand)
+{
+	using namespace cif::literals;
+
+	auto &pdbx_poly_seq_scheme = db["pdbx_poly_seq_scheme"];
+	auto r = pdbx_poly_seq_scheme.find("pdb_strand_id"_key == strand);
+	if (r.empty())
+		throw std::runtime_error("Could not locate sequence in PDB for strand id " + strand);
+
+	auto entity_id = r.front()["entity_id"].as<std::string>();
+
+	auto &entity_poly = db["entity_poly"];
+	auto pdb_seq = entity_poly.find1<std::string>("entity_id"_key == entity_id, "pdbx_seq_one_letter_code_can");
+
+	return encode(pdb_seq);
+}
+
+int validateFastA(fs::path fasta, fs::path dbDir)
+{
+	int result = 0;
+
+	std::ifstream f(fasta);
+	if (not f.is_open())
+		throw std::runtime_error("Could not open fasta file");
+	
+	std::string id, strand, seq, line;
+
+	while (std::getline(f, line))
+	{
+		if (line[0] == '>')
+		{
+			if (not id.empty())
+			{
+				if (seq.empty() or strand.empty())
+					throw std::runtime_error("No sequence for id " + id);
+				
+				cif::File pdbFile(pdbFileForID(dbDir, id));
+
+				auto a = getSequenceForStrand(pdbFile.firstDatablock(), strand);
+				if (a != encode(seq))
+				{
+					std::cerr << "Mismatch for " << id << " strand " << strand << std::endl;
+
+					std::cerr << std::endl
+							  << decode(a) << std::endl
+							  << seq << std::endl
+							  << std::endl;
+
+					result = -1;
+				}
+			}
+
+			id = line.substr(1, 4);
+			strand = line.substr(6);
+			seq.clear();
+		}
+		else
+			seq.append(line.begin(), line.end());
+	}
+
+	return result;
+}
+
+// --------------------------------------------------------------------
+
 class Ligand
 {
   public:
@@ -202,47 +280,11 @@ using mmcif::Quaternion;
 // 	return result;
 // }
 
-void validateHit(mmcif::Structure &structure, const BlastHit &hit)
+bool validateHit(mmcif::Structure &structure, const BlastHit &hit)
 {
 	using namespace cif::literals;
 
-	auto &db = structure.datablock();
-	auto &pdbx_poly_seq_scheme = db["pdbx_poly_seq_scheme"];
-	auto r = pdbx_poly_seq_scheme.find("pdb_strand_id"_key == hit.mDefLine.substr(6));
-	if (r.empty())
-		throw std::runtime_error("Could not locate sequence in PDB for strand id " + hit.mDefLine.substr(6));
-
-	auto entity_id = r.front()["entity_id"].as<std::string>();
-
-	auto &entity_poly = db["entity_poly"];
-	auto pdb_seq = entity_poly.find1<std::string>("entity_id"_key == entity_id, "pdbx_seq_one_letter_code_can");
-
-	auto b = pdb_seq.begin(), d = b;
-	while (b != pdb_seq.end())
-	{
-		if (std::isspace(*b))
-		{
-			++b;
-			continue;
-		}
-
-		*d++ = *b++;
-	}
-
-	assert(b == pdb_seq.end());
-	if (d != b)
-		pdb_seq.erase(d, pdb_seq.end());
-
-	if (hit.mTarget != encode(pdb_seq))
-	{
-		std::cerr << std::endl
-				  << decode(hit.mTarget) << std::endl
-				  << "!=" << std::endl
-				  << pdb_seq << std::endl
-				  << std::endl;
-
-		throw std::runtime_error("The blast hit target does not match the _entity_poly.pdbx_seq_one_letter_code_can in the PDB file");
-	}
+	return getSequenceForStrand(structure.datablock(), hit.mDefLine.substr(6)) == hit.mTarget;
 }
 
 std::vector<mmcif::Residue *> getResiduesForChain(mmcif::Structure &structure, const std::string &chain_id)
@@ -453,24 +495,28 @@ int a_main(int argc, const char *argv[])
 	visible_options.add_options()("pdb-fasta", po::value<std::string>(), "The FastA file containing the PDB sequences")("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")("ligands", po::value<std::string>()->default_value("af-ligands.cif"),
 		"File in CIF format describing the ligands and their modifications")
 
-		("max-ligand-to-backbone-distance",
-			po::value<float>()->default_value(6),
-			"The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure")
+		("max-ligand-to-backbone-distance", po::value<float>()->default_value(6), "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure")
+		("min-hsp-identity", po::value<float>()->default_value(0.7), "The minimal identity for a high scoring pair (note, value between 0 and 1)")
+		("min-alignment-length", po::value<int>()->default_value(85), "The minimal length of an alignment")
+		("min-separation-distance", po::value<float>()->default_value(3.5), "The centroids of two identical ligands should be at least this far apart to count as separate occurrences")
 
-			("min-hsp-identity",
-				po::value<float>()->default_value(0.7),
-				"The minimal identity for a high scoring pair (note, value between 0 and 1)")("min-alignment-length",
-				po::value<int>()->default_value(85),
-				"The minimal length of an alignment")
+		("compounds", po::value<std::string>(), "Location of the components.cif file from CCD")
+		("components", po::value<std::string>(), "Location of the components.cif file from CCD, alias")
+		("extra-compounds", po::value<std::string>(), "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file")
+		("mmcif-dictionary", po::value<std::string>(), "Path to the mmcif_pdbx.dic file to use instead of default")
 
-				("min-separation-distance",
-					po::value<float>()->default_value(3.5),
-					"The centroids of two identical ligands should be at least this far apart to count as separate occurrences")
-
-					("compounds", po::value<std::string>(), "Location of the components.cif file from CCD")("components", po::value<std::string>(), "Location of the components.cif file from CCD, alias")("extra-compounds", po::value<std::string>(), "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file")("mmcif-dictionary", po::value<std::string>(), "Path to the mmcif_pdbx.dic file to use instead of default")("config", po::value<std::string>(), "Config file")("help,h", "Display help message")("version", "Print version")("verbose,v", "Verbose output");
+		("config", po::value<std::string>(), "Config file")
+		("help,h", "Display help message")
+		("version", "Print version")
+		("verbose,v", "Verbose output");
 
 	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()("xyzin,i", po::value<std::string>(), "coordinates file")("output,o", po::value<std::string>(), "Output to this file")("debug,d", po::value<int>(), "Debug level (for even more verbose output)")("test", "Run test code");
+	hidden_options.add_options()
+		("xyzin,i", po::value<std::string>(), "coordinates file")
+		("output,o", po::value<std::string>(), "Output to this file")
+		("debug,d", po::value<int>(), "Debug level (for even more verbose output)")
+		("validate-fasta", "Validate the FastA file (check if all sequence therein are the same as in the corresponding PDB files)")
+		("test", "Run test code");
 
 	po::options_description cmdline_options;
 	cmdline_options.add(visible_options).add(hidden_options);
@@ -512,11 +558,9 @@ int a_main(int argc, const char *argv[])
 		exit(0);
 	}
 
-	if (vm.count("xyzin") == 0)
-	{
-		std::cout << "Input file not specified" << std::endl;
-		exit(1);
-	}
+	cif::VERBOSE = vm.count("verbose") != 0;
+	if (vm.count("debug"))
+		cif::VERBOSE = vm["debug"].as<int>();
 
 	if (vm.count("pdb-fasta") == 0)
 	{
@@ -524,9 +568,34 @@ int a_main(int argc, const char *argv[])
 		exit(1);
 	}
 
-	cif::VERBOSE = vm.count("verbose") != 0;
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
+	if (vm.count("pdb-dir") == 0)
+	{
+		std::cout << "PDB directory not specified" << std::endl;
+		exit(1);
+	}
+
+	// --------------------------------------------------------------------
+
+	std::string fasta = vm["pdb-fasta"].as<std::string>();
+	if (not fs::exists(fasta))
+		throw std::runtime_error("PDB-Fasta file does not exist (" + fasta + ")");
+
+	fs::path pdbDir = vm["pdb-dir"].as<std::string>();
+	if (not fs::is_directory(pdbDir))
+		throw std::runtime_error("PDB directory does not exist");
+
+	// --------------------------------------------------------------------
+	
+	if (vm.count("validate-fasta"))
+		return validateFastA(vm["pdb-fasta"].as<std::string>(), vm["pdb-dir"].as<std::string>());
+
+	// --------------------------------------------------------------------
+	
+	if (vm.count("xyzin") == 0)
+	{
+		std::cout << "Input file not specified" << std::endl;
+		exit(1);
+	}
 
 	// --------------------------------------------------------------------
 	// Load extra CCD definitions, if any
@@ -546,15 +615,6 @@ int a_main(int argc, const char *argv[])
 
 	// --------------------------------------------------------------------
 
-	std::string fasta = vm["pdb-fasta"].as<std::string>();
-	if (not fs::exists(fasta))
-		throw std::runtime_error("PDB-Fasta file does not exist (" + fasta + ")");
-
-	fs::path pdbDir = vm["pdb-dir"].as<std::string>();
-	if (not fs::is_directory(pdbDir))
-		throw std::runtime_error("PDB directory does not exist");
-
-	// --------------------------------------------------------------------
 	fs::path ligandsFile = vm["ligands"].as<std::string>();
 	if (not fs::exists(ligandsFile))
 	{
@@ -640,11 +700,7 @@ int a_main(int argc, const char *argv[])
 
 			try
 			{
-				// try a PDB-REDO layout first
-				fs::path pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif");
-				if (not fs::exists(pdb_path))
-					pdb_path = pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz");
-
+				fs::path pdb_path = pdbFileForID(pdbDir, pdb_id);
 				mmcif::File pdb_f(pdb_path.string());
 
 				// Check to see if it is any use to continue with this structure
@@ -672,13 +728,9 @@ int a_main(int argc, const char *argv[])
 
 				mmcif::Structure pdb_structure(pdb_f);
 
-				try
+				if (not validateHit(pdb_structure, hit))
 				{
-					validateHit(pdb_structure, hit);
-				}
-				catch (const std::exception &e)
-				{
-					std::cerr << e.what() << std::endl;
+					std::cerr << "invalid fasta?" << std::endl;
 					exit(1);
 				}
 
