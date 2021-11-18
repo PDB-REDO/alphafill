@@ -114,8 +114,11 @@ std::string get_version_string()
 
 // --------------------------------------------------------------------
 
-fs::path pdbFileForID(const fs::path &pdbDir, const std::string &pdb_id)
+fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id)
 {
+	for (auto &ch : pdb_id)
+		ch = std::tolower(ch);
+
 	// try a PDB-REDO layout first
 	fs::path pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif");
 	if (not fs::exists(pdb_path))
@@ -813,11 +816,11 @@ int a_main(int argc, const char *argv[])
 
 				mmcif::Structure pdb_structure(pdb_f);
 
-				if (not validateHit(pdb_structure, hit))
-				{
-					std::cerr << "invalid fasta?" << std::endl;
-					exit(1);
-				}
+				// if (not validateHit(pdb_structure, hit))
+				// {
+				// 	std::cerr << "invalid fasta for hit " << hit.mDefLine << std::endl;
+				// 	exit(1);
+				// }
 
 				auto af_res = getResiduesForChain(af_structure, "A");
 				auto pdb_res = getResiduesForChain(pdb_structure, chain_id);
