@@ -17,8 +17,7 @@ find_package(Filesystem REQUIRED)
 
 if(CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter")
-endif()
-if(MSVC)
+elseif(MSVC)
     set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /W4")
 endif()
 
@@ -65,22 +64,19 @@ endif()
 
 # Create a revision file, containing the current git version info
 
-find_package(Git)
-if(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
-	include(GetGitRevisionDescription)
+include(GetGitRevisionDescription)
+option(GENERATE_CUSTOM_VERSION "Generate a custom version string" OFF)
+if(GIT-NOTFOUND OR HEAD-HASH-NOTFOUND OR NOT GENERATE_CUSTOM_VERSION)
     get_git_head_revision(REFSPEC COMMITHASH)
 
 	# Generate our own version string
 	git_describe_working_tree(BUILD_VERSION_STRING --match=build --dirty)
 else()
-    message(STATUS "Git not found, cannot set version info")
-
     SET(BUILD_VERSION_STRING ${PROJECT_VERSION})
 endif()
 
 # generate version.h
-include_directories(${CMAKE_BINARY_DIR} PRIVATE)
-string(TIMESTAMP BUILD_DATE_TIME "%Y-%m-%d" UTC)
+string(TIMESTAMP BUILD_DATE_TIME "%Y-%m-%dT%H:%M:%SZ" UTC)
 configure_file("${CMAKE_SOURCE_DIR}/src/revision.hpp.in" "${CMAKE_BINARY_DIR}/revision.hpp" @ONLY)
 
 # Optionally use mrc to create resources
@@ -126,6 +122,8 @@ target_include_directories(alphafill
 	zeep::zeep
 	${CMAKE_SOURCE_DIR}/include
 	${cifpp_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+
+target_include_directories(alphafill PRIVATE ${CMAKE_BINARY_DIR})
 
 target_link_libraries(alphafill cifpp::cifpp ZLIB::ZLIB BZip2::BZip2 zeep::zeep ${CMAKE_THREAD_LIBS_INIT})
 

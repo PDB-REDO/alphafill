@@ -735,6 +735,8 @@ int a_main(int argc, const char *argv[])
 
 	json &hits = result["hits"] = json::array();
 
+	std::set<std::string> no_compounds;	// a list to avoid reopening files that do not have transplantable compounds
+
 	for (auto r : db["entity_poly"])
 	{
 		auto &&[id, seq] = r.get<std::string, std::string>({"entity_id", "pdbx_seq_one_letter_code"});
@@ -775,6 +777,9 @@ int a_main(int argc, const char *argv[])
 
 			if (cif::VERBOSE)
 				std::cerr << "pdb id: " << pdb_id << '\t' << "chain id: " << chain_id << std::endl;
+			
+			if (no_compounds.count(pdb_id))
+				continue;
 
 			try
 			{
@@ -799,8 +804,11 @@ int a_main(int argc, const char *argv[])
 
 				if (none)
 				{
+					no_compounds.insert(pdb_id);
+
 					if (cif::VERBOSE)
 						std::cerr << "This structure does not contain any transplantable compound" << std::endl;
+
 					continue;
 				}
 
@@ -808,7 +816,7 @@ int a_main(int argc, const char *argv[])
 
 				if (not validateHit(pdb_structure, hit))
 				{
-					std::cerr << "invalid fasta?" << std::endl;
+					std::cerr << "invalid fasta for hit " << hit.mDefLine << std::endl;
 					exit(1);
 				}
 
