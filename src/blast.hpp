@@ -133,8 +133,8 @@ std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank,
 /// \param inQuery		The protein sequence to use as query
 /// \result				An array of blasthit structs
 
-inline std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, const std::string &inQuery)
+inline std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, const std::string &inQuery, uint32_t inReportLimit)
 {
-	return BlastP(inDatabank, inQuery, "BLOSUM62", 3, 10, true, true, 11, 1, 250, std::thread::hardware_concurrency());
+	return BlastP(inDatabank, inQuery, "BLOSUM62", 3, 10, true, true, 11, 1, inReportLimit, std::thread::hardware_concurrency());
 }
 

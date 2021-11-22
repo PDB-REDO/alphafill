@@ -114,8 +114,11 @@ std::string get_version_string()
 
 // --------------------------------------------------------------------
 
-fs::path pdbFileForID(const fs::path &pdbDir, const std::string &pdb_id)
+fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id)
 {
+	for (auto &ch : pdb_id)
+		ch = std::tolower(ch);
+
 	// try a PDB-REDO layout first
 	fs::path pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif");
 	if (not fs::exists(pdb_path))
@@ -250,6 +253,10 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 
 	if (result)
 	{
+		mismatch.erase(std::unique(mismatch.begin(), mismatch.end()), mismatch.end());
+		unequal_length.erase(std::unique(unequal_length.begin(), unequal_length.end()), unequal_length.end());
+		not_x_related.erase(std::unique(not_x_related.begin(), not_x_related.end()), not_x_related.end());
+
 		std::cout << "Report for fasta check" << std::endl
 				  << std::string(80, '-') << std::endl
 				  << std::endl
@@ -570,13 +577,17 @@ int a_main(int argc, const char *argv[])
 	using namespace cif::literals;
 
 	po::options_description visible_options(argv[0] + " [options] input-file [output-file]"s);
-	visible_options.add_options()("pdb-fasta", po::value<std::string>(), "The FastA file containing the PDB sequences")("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")("ligands", po::value<std::string>()->default_value("af-ligands.cif"),
-		"File in CIF format describing the ligands and their modifications")
+
+	visible_options.add_options()
+		("pdb-fasta", po::value<std::string>(), "The FastA file containing the PDB sequences")
+		("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")
+		("ligands", po::value<std::string>()->default_value("af-ligands.cif"), "File in CIF format describing the ligands and their modifications")
 
 		("max-ligand-to-backbone-distance", po::value<float>()->default_value(6), "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure")
 		("min-hsp-identity", po::value<float>()->default_value(0.7), "The minimal identity for a high scoring pair (note, value between 0 and 1)")
 		("min-alignment-length", po::value<int>()->default_value(85), "The minimal length of an alignment")
 		("min-separation-distance", po::value<float>()->default_value(3.5), "The centroids of two identical ligands should be at least this far apart to count as separate occurrences")
+		("blast-report-limit", po::value<uint32_t>()->default_value(250), "Number of blast hits to use")
 
 		("compounds", po::value<std::string>(), "Location of the components.cif file from CCD")
 		("components", po::value<std::string>(), "Location of the components.cif file from CCD, alias")
@@ -746,7 +757,7 @@ int a_main(int argc, const char *argv[])
 					  << seq << std::endl
 					  << std::endl;
 
-		auto result = BlastP(fasta, seq);
+		auto result = BlastP(fasta, seq, vm["blast-report-limit"].as<uint32_t>());
 
 		if (cif::VERBOSE)
 			std::cerr << "Found " << result.size() << " hits" << std::endl;
@@ -814,11 +825,11 @@ int a_main(int argc, const char *argv[])
 
 				mmcif::Structure pdb_structure(pdb_f);
 
-				if (not validateHit(pdb_structure, hit))
-				{
-					std::cerr << "invalid fasta for hit " << hit.mDefLine << std::endl;
-					exit(1);
-				}
+				// if (not validateHit(pdb_structure, hit))
+				// {
+				// 	std::cerr << "invalid fasta for hit " << hit.mDefLine << std::endl;
+				// 	exit(1);
+				// }
 
 				auto af_res = getResiduesForChain(af_structure, "A");
 				auto pdb_res = getResiduesForChain(pdb_structure, chain_id);
