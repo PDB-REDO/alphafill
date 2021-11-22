@@ -6541,8 +6541,8 @@ loop_
 _modification.id
 _modification.atom1
 _modification.atom2
-1 N1 C3
-2 O5 "O2'"
+1  N1   C3
+2 "O2'" O5
 #
 data_OLA
 #
