@@ -1,0 +1,151 @@
+@use "sass:math";
+
+// (Required) Import Bootstrap
+@import "bootstrap/scss/_functions";
+@import "bootstrap/scss/_variables";
+@import "bootstrap/scss/_mixins";
+
+$font-family-sans-serif: "Verdana", "Arial", "Helvetica", "sans-serif";
+
+$primary: rgb(100, 100, 100);
+
+$nav-primary: #FF9933;
+$nav-secondary: #ffecbf;
+$nav-link: #3366cc;
+
+$nav-primary-hover: #d8c7a5;
+
+$theme-colors: (
+	"nav-primary": $nav-primary,
+	"nav-secondary": $nav-secondary,
+
+	"primary": $primary
+);
+
+$navbar-dark-color: $nav-link;
+$navbar-dark-hover-color: $nav-link;
+$navbar-dark-active-color: $nav-link;
+$navbar-dark-disabled-color: rgba($nav-link, .5);
+
+$navbar-padding-y: 0;
+$nav-link-padding-y: math.div($spacer, 2);
+
+// (Required) Import Bootstrap
+@import "bootstrap/scss/bootstrap";
+
+@mixin hover-focus() {
+	&:hover,
+	&:focus {
+		@content;
+	}
+}
+
+.navbar-dark {
+	.navbar-nav {
+	  .nav-link {
+		@include hover-focus() {
+			background-color: $nav-primary-hover;
+		}
+	  }
+	}
+}
+
+// for the pdb-redo header
+
+header {
+    min-height: 6em;
+    padding-bottom: 1em;
+}
+
+.h-left {
+    float: left;
+    min-height: 6em;
+    width: 10em;
+}
+
+.h-right {
+    padding-left: 10em;
+    width: 100%;
+}
+
+.h-left img {
+	min-height: calc(6em + 30px);
+	margin: -15px 0;
+	width: auto;
+}
+
+header div.first, header div.second {
+    /*padding: 0.5em;*/
+    /*font-size: small;*/
+    /*margin-left: 6em;*/
+    padding: 1em !important;
+	min-height: 3em;
+}
+
+header a {
+    text-decoration: none;
+}
+
+header a:hover {
+    text-decoration: underline;
+}
+
+header div.first {
+    background-color: $nav-primary;
+    color: white;
+}
+
+header div.second {
+    background-color: $nav-secondary;
+}
+
+header div.second nav {
+    color: $nav-link;
+}
+
+header div.first a {
+    color: white;
+    text-decoration: none;
+}
+
+header div.second a, .login-links a {
+    color: $nav-link;
+}
+
+header div.second nav {
+    float: left;
+    clear: none;
+}
+
+header div.second span.user-panel {
+    float: right;
+}
+
+header div.second div.clear {
+    clear: both;
+}
+
+@media all and (max-width: 1024px) {
+
+    header {
+        min-height: 4em;
+    }
+
+    .h-left {
+        height: 4em;
+        width: 8em;
+    }
+
+    .h-right {
+        padding-left: 8em;
+    }
+
+    header img {
+       min-height: calc(4em + 30px);
+    }
+
+    header div.first, header div.second {
+        padding: 0;
+        height: 2em;
+    }
+}

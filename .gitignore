@@ -1,8 +1,10 @@
 .vscode
-rsrc/version.txt
-version-info*.txt
-mkdssp
-.vs/
+.vs
 build
-coot-backup/
-0-coot-history*
+node_modules
+node_modules
+docroot/css
+docroot/scripts
+af-filledd.conf
+alphafill.conf
+.gdb_history

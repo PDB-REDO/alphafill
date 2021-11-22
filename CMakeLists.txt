@@ -1,3 +1,27 @@
+# SPDX-License-Identifier: BSD-2-Clause
+
+# Copyright (c) 2021 NKI/AVL, Netherlands Cancer Institute
+
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 cmake_minimum_required(VERSION 3.15)
 
 # set the project name
@@ -6,8 +30,14 @@ project(alphafill VERSION 1.0.0 LANGUAGES CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(GNUInstallDirs)
+include(CheckFunctionExists)
+include(CheckIncludeFiles)
+include(CheckLibraryExists)
+include(CMakePackageConfigHelpers)
 include(Dart)
 include(FindFilesystem)
+include(FindPkgConfig)
+include(GenerateExportHeader)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
@@ -15,10 +45,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Filesystem REQUIRED)
 
-if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter")
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers")
 elseif(MSVC)
-    set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /W4")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 endif()
 
 if(NOT "$ENV{CCP4}" STREQUAL "")
@@ -92,24 +122,22 @@ if(USE_RSRC)
 	set(USE_RSRC 1)
 
 	message("Using resources compiled with ${MRC_EXECUTABLE}")
-	add_compile_definitions(USE_RSRC)
+	add_compile_definitions(USE_RSRC WEBAPP_USES_RESOURCES)
+
+	mrc_write_header(${CMAKE_BINARY_DIR}/mrsrc.hpp)
 endif()
 
 set(CMAKE_THREAD_PREFER_PTHREAD)
 set(THREADS_PREFER_PTHREAD_FLAG)
 find_package(Threads REQUIRED)
 
-set (Boost_DETAILED_FAILURE_MSG ON)
-find_package(Boost 1.70.0 REQUIRED COMPONENTS program_options system iostreams date_time regex)
+set(Boost_DETAILED_FAILURE_MSG ON)
 
-find_package(ZLIB)
-find_package(BZip2)
-find_package(cifpp 3.0.1 CONFIG REQUIRED HINTS $ENV{LOCALAPPDATA}/cifpp)
-find_package(zeep 5.1.4 REQUIRED)
+find_package(zeep 5.1.5 REQUIRED)
+find_package(cifpp REQUIRED)
+find_package(Boost COMPONENTS system date_time program_options regex iostreams)
 
-if(CIFPP_FOUND)
-	add_compile_definitions("DATA_DIR=\"${CIFPP_SHARE_DIR}\"")
-endif()
+# The alphafill executable
 
 add_executable(alphafill
 	${PROJECT_SOURCE_DIR}/src/blast.cpp
@@ -131,47 +159,60 @@ if(USE_RSRC)
 	mrc_target_resources(alphafill ${CIFPP_SHARE_DIR}/mmcif_pdbx_v50.dic)
 endif()
 
+# The web interface, af-filledd
+
+pkg_check_modules(PQ libpq REQUIRED)
+pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED)
+# pkg_check_modules(MAILIO mailio REQUIRED)
+# pkg_check_modules(SSL libssl)
+# pkg_check_modules(CRYPTO libcrypto)
+
+find_program(YARN yarn REQUIRED)
+
+pkg_check_modules(ZLIB zlib)
+# pkg_check_modules(BZIP2 libbz2)
+find_library(BZIP2_LIBRARIES bz2)
+
+find_program(YARN yarn REQUIRED)
+
+# yarn rules for javascripts
+
+set(webpack_input
+	${CMAKE_SOURCE_DIR}/webapp/index.js
+	${CMAKE_SOURCE_DIR}/webapp/molstar.tsx
+	${CMAKE_SOURCE_DIR}/scss/af-style.scss
+	${CMAKE_SOURCE_DIR}/scss/pdb-redo-bootstrap.scss
+)
+
+set(webpack_output ${CMAKE_SOURCE_DIR}/docroot/scripts/index.js)
+
+add_custom_command(
+	OUTPUT ${webpack_output}
+	BYPRODUCTS 
+	DEPENDS ${webpack_input}
+	COMMAND ${YARN} run build
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+add_custom_target(webpack DEPENDS ${webpack_output})
+
+add_executable(af-filledd
+	${CMAKE_SOURCE_DIR}/src/af-filledd.cpp
+	${CMAKE_SOURCE_DIR}/src/db-connection.cpp
+	${CMAKE_SOURCE_DIR}/src/data-service.cpp
+)
+
+target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp squeeze::squeeze ${CMAKE_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS} ${CMAKE_BINARY_DIR})
+target_link_libraries(af-filledd
+	PRIVATE zeep::zeep cifpp::cifpp Boost::date_time Boost::program_options Boost::regex Boost::iostreams
+	${PQXX_LIBRARIES} ${PQ_LIBRARIES} ${MAILIO_LINK_LIBRARIES} ${SSL_LIBRARIES} ${CRYPTO_LIBRARIES} ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} std::filesystem
+	${CMAKE_THREAD_LIBS_INIT})
+
+add_dependencies(af-filledd webpack)
+
+if(USE_RSRC)
+	mrc_target_resources(af-filledd ${CMAKE_SOURCE_DIR}/docroot/)
+endif()
+
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${BIN_INSTALL_DIR}
 )
-
-# # manual
-
-# if(UNIX)
-# 	install(FILES doc/alphafill.1
-# 		DESTINATION ${CMAKE_INSTALL_DATADIR}/man/man1)
-# endif()
-
-# if(EXISTS "${CCP4}/html")
-# 	install(FILES doc/alphafill.html
-# 		DESTINATION ${CCP4}/html)
-# endif()
-
-# test
-
-# add_executable(unit-test ${PROJECT_SOURCE_DIR}/test/unit-test.cpp)
-
-# target_include_directories(unit-test PRIVATE
-# 	${CMAKE_CURRENT_SOURCE_DIR}/include
-# )
-
-# target_link_libraries(unit-test Threads::Threads ${Boost_LIBRARIES} cifpp::cifpp)
-
-# if(${ZLIB_FOUND})
-# 	target_link_libraries(unit-test ZLIB::ZLIB)
-# endif()
-
-# if(${BZip2_FOUND})
-# 	target_link_libraries(unit-test BZip2::BZip2)
-# endif()
-
-# if(MSVC)
-# 	# Specify unwind semantics so that MSVC knowns how to handle exceptions
-# 	target_compile_options(unit-test PRIVATE /EHsc)
-# endif()
-
-# enable_testing()
-
-# add_test(NAME unit-test
-# 	COMMAND $<TARGET_FILE:unit-test>
-# 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/test)
