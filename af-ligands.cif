@@ -3251,7 +3251,7 @@ _modification.atom2
 data_COH
 #
 _ligand.id               COH
-_ligand.analogue_id      HEB
+_ligand.analogue_id      HEM
 _ligand.priority         y
 _ligand.description      HEA-class
 #
@@ -3259,7 +3259,7 @@ loop_
 _modification.id
 _modification.atom1
 _modification.atom2
-1 FE CO
+1 CO FE
 #
 data_COM
 #
@@ -5776,7 +5776,7 @@ _ligand.name   "Manganese (II) ion"
 data_MNH
 #
 _ligand.id               MNH
-_ligand.analogue_id      HEC
+_ligand.analogue_id      HEM
 _ligand.priority         y
 _ligand.description      'HEA-class, manganese2+ PROTOPORPHYRIN IX'
 #
@@ -5789,7 +5789,7 @@ _modification.atom2
 data_MNR
 #
 _ligand.id               MNR
-_ligand.analogue_id      .
+_ligand.analogue_id      HEM
 _ligand.priority         y
 _ligand.description      'HEA-class, manganese3+ PROTOPORPHYRIN IX'
 #
@@ -6532,10 +6532,17 @@ _ligand.name   "Ca-Mn4-O5 cluster"
 data_OGA
 #
 _ligand.id               OGA
-_ligand.analogue_id      .
+_ligand.analogue_id      AKG
 _ligand.priority         y
 _ligand.description      .
-_ligand.name   "N-oxalylglycine"
+_ligand.name   		 "N-oxalylglycine"
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 N1 C3
+2 O5 "O2'"
 #
 data_OLA
 #
@@ -8334,7 +8341,7 @@ _ligand.name   "Zinc ion"
 data_ZNH
 #
 _ligand.id               ZNH
-_ligand.analogue_id      HEC
+_ligand.analogue_id      HEM
 _ligand.priority         y
 _ligand.description      'HEA-class'
 #
