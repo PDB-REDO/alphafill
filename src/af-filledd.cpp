@@ -100,6 +100,68 @@ void affd_html_controller::welcome(const zh::request& request, const zh::scope& 
 
 		sub.put("data", data);
 
+		// reorder data for Tassos
+		
+		std::map<std::string,size_t> compoundIds;
+
+		for (auto &hit : data["hits"])
+			for (auto &transplant : hit["transplants"])
+				compoundIds[transplant["compound_id"].as<std::string>()] += 1;
+
+		zeep::json::element byCompound;
+		for (const auto &[compoundId, count] : compoundIds)
+		{
+			bool firstHit = true;
+
+			std::map<std::tuple<std::string,std::string>,size_t> transplantsPerHit;
+
+			for (auto &hit : data["hits"])
+			{
+				auto key = std::make_tuple(hit["pdb_id"].as<std::string>(), hit["pdb_asym_id"].as<std::string>());
+				for (auto &transplant : hit["transplants"])
+				{
+					if (transplant["compound_id"] == compoundId)
+						transplantsPerHit[key] += 1;
+				}
+			}
+
+			std::tuple<std::string,std::string> lastKey;
+
+			for (auto &hit : data["hits"])
+			{
+				auto key = std::make_tuple(hit["pdb_id"].as<std::string>(), hit["pdb_asym_id"].as<std::string>());
+				bool firstTransplant = key != lastKey;
+				lastKey = key;
+
+				size_t transplantCount = transplantsPerHit[key];
+
+				for (auto &transplant : hit["transplants"])
+				{
+					if (transplant["compound_id"] != compoundId)
+						continue;
+					
+					byCompound.push_back({
+						{ "compound_id", compoundId },
+						{ "pdb_id", hit["pdb_id"] },
+						{ "pdb_asym_id", hit["pdb_asym_id"] },
+						{ "alignment_length", hit["alignment_length"] },
+						{ "identity", hit["identity"] },
+						{ "rmsd", hit["rmsd"] },
+						{ "transplant-count", transplantCount },
+						{ "hit-count", count },
+						{ "first-hit", firstHit },
+						{ "first-transplant", firstTransplant },
+						{ "transplant", transplant }
+					});
+
+					firstTransplant = false;
+					firstHit = false;
+				}
+			}
+		}
+
+		sub.put("by_compound", byCompound);
+
 		using namespace cif::literals;
 
 		cif::File file(cifFile);

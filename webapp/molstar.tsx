@@ -123,12 +123,6 @@ export class Viewer {
 		}));
 	}
 
-	async loadStructureFromData(data: string | number[], format: BuiltInTrajectoryFormat, options?: { dataLabel?: string }) {
-		const _data = await this.plugin.builders.data.rawData({ data, label: options?.dataLabel });
-		const trajectory = await this.plugin.builders.structure.parseTrajectory(_data, format);
-		await this.plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default');
-	}
-
 	handleResize() {
 		this.plugin.layout.events.updated.next(void 0);
 	}
@@ -149,7 +143,6 @@ export class Viewer {
 	
 			this.plugin.managers.interactivity.lociSelects.select({ loci });
 			this.plugin.managers.structure.focus.setFromLoci(loci);
-	
 			this.plugin.managers.camera.focusLoci(loci);
 		}
 	}

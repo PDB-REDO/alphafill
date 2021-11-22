@@ -65,30 +65,30 @@
 
 			<div class="col">
 
-				<table class="table" id="transplant-table">
+				<table class="table" id="transplant-table-by-compound">
 					<thead>
 						<tr>
-							<th>PDB-ID</th>
 							<th>Compound</th>
+							<th>PDB-ID</th>
+							<th>Global RMSd</th>
+							<th>Mapped</th>
 							<th>Asym</th>
-							<th>RMSd</th>
+							<th>Local RMSd</th>
 						</tr>
 					</thead>
 
 					<tbody>
-						<z:block z:each="d: ${data.hits}">
-							<tr z:each="t,i: ${d.transplants}" class="transplanted-row" z:data-asym-id="${t.asym_id}">
-								<td z:if="${i.first}" z:rowspan="${d.transplants.length}">
-									<div style="white-space: pre-line;" z:inline="html">[(${d.pdb_id})].[(${d.pdb_asym_id})]
-										([(#numbers.formatDecimal(d.rmsd, 1, 2))])</div>
-								</td>
-								<td
-									z:text="${t.analogue_id == t.compound_id ? t.compound_id : |${t.compound_id} -&gt; ${t.analogue_id}|}">
-								</td>
-								<td z:text="${t.asym_id}"></td>
-								<td z:text="${#numbers.formatDecimal(t.rmsd, 1, 2)}"></td>
-							</tr>
-						</z:block>
+						<tr z:each="c,i: ${by_compound}" class="transplanted-row" z:with="t=${c.transplant}" z:data-asym-id="${t.asym_id}">
+							<td z:if="${c.first-hit and c.first-transplant}" z:rowspan="${c.hit-count}" z:text="${c.compound_id}"></td>
+							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}" z:text="|${c.pdb_id}.${c.pdb_asym_id}|"></td>
+							<td z:if="${c.first-transplant" z:text="${#numbers.formatDecimal(c.rmsd, 1, 2)}"></td>
+
+							<td
+								z:text="${t.analogue_id == t.compound_id ? t.compound_id : |${t.compound_id} -&gt; ${t.analogue_id}|}">
+							</td>
+							<td z:text="${t.asym_id}"></td>
+							<td z:text="${#numbers.formatDecimal(t.rmsd, 1, 2)}"></td>
+						</tr>
 					</tbody>
 				</table>
 			</div>
@@ -145,7 +145,8 @@
 			<div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo"
 				data-bs-parent="#accordionTables">
 				<div class="accordion-body">
-					<table class="table table-sm table-hover" id="structure-table" z:fragment="structure-table-fragment">
+					<table class="table table-sm table-hover" id="structure-table"
+						z:fragment="structure-table-fragment">
 						<thead>
 							<tr>
 								<th>AF-Structure</th>
@@ -173,7 +174,8 @@
 							<li class="page-item disabled">
 								<a class="page-link">...</a>
 							</li>
-							<li class="page-item" z:each="p: ${ { 1, 2, 3, 4, 5 } }" z:classappend="${p == page ? 'active'}" z:data-page-id="${p}">
+							<li class="page-item" z:each="p: ${ { 1, 2, 3, 4, 5 } }"
+								z:classappend="${p == page ? 'active'}" z:data-page-id="${p}">
 								<a class="page-link" z:text="${p}"></a>
 							</li>
 							<li class="page-item disabled">
