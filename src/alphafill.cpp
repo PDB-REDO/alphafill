@@ -670,7 +670,8 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 	if (not output.empty())
 	{
 		std::ofstream outfile(output);
-		outfile << ba::join(result, ", ") << std::endl;;
+		for (auto &id : result)
+			outfile << id << std::endl;
 	}
 	else
 		std::cout << ba::join(result, ", ") << std::endl;
@@ -690,6 +691,7 @@ int a_main(int argc, const char *argv[])
 	visible_options.add_options()
 		("pdb-fasta", po::value<std::string>(), "The FastA file containing the PDB sequences")
 		("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")
+		("pdb-id-list", po::value<std::string>(), "Optional file containing the list of PDB ID's that have any of the transplantable ligands")
 		("ligands", po::value<std::string>()->default_value("af-ligands.cif"), "File in CIF format describing the ligands and their modifications")
 
 		("max-ligand-to-backbone-distance", po::value<float>()->default_value(6), "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure")
@@ -804,6 +806,15 @@ int a_main(int argc, const char *argv[])
 	if (vm.count("prepare-pdb-list"))
 		return GeneratePDBList(vm["pdb-dir"].as<std::string>(), ligands, vm.count("output") ? vm["output"].as<std::string>() : "");
 
+	cif::iset pdbIDsContainingLigands;
+	if (vm.count("pdb-id-list"))
+	{
+		std::ifstream file(vm["pdb-id-list"].as<std::string>());
+		std::string line;
+		while (std::getline(file, line))
+			pdbIDsContainingLigands.insert(line);
+	}
+
 	// --------------------------------------------------------------------
 	
 	if (vm.count("xyzin") == 0)
@@ -861,7 +872,7 @@ int a_main(int argc, const char *argv[])
 
 	json &hits = result["hits"] = json::array();
 
-	std::set<std::string> no_compounds;	// a list to avoid reopening files that do not have transplantable compounds
+	std::map<std::string,mmcif::File> mmCifFiles;
 
 	for (auto r : db["entity_poly"])
 	{
@@ -904,13 +915,20 @@ int a_main(int argc, const char *argv[])
 			if (cif::VERBOSE)
 				std::cerr << "pdb id: " << pdb_id << '\t' << "chain id: " << chain_id << std::endl;
 			
-			if (no_compounds.count(pdb_id))
+			if (not (pdbIDsContainingLigands.empty() or pdbIDsContainingLigands.count(pdb_id)))
 				continue;
 
 			try
 			{
-				fs::path pdb_path = pdbFileForID(pdbDir, pdb_id);
-				mmcif::File pdb_f(pdb_path.string());
+				auto pdb_fi = mmCifFiles.find(pdb_id);
+				
+				if (pdb_fi == mmCifFiles.end())
+				{
+					fs::path pdb_path = pdbFileForID(pdbDir, pdb_id);
+					std::tie(pdb_fi, std::ignore) = mmCifFiles.emplace(pdb_id, pdb_path.string());
+				}
+
+				auto &pdb_f = pdb_fi->second;
 
 				// Check to see if it is any use to continue with this structure
 
@@ -930,7 +948,7 @@ int a_main(int argc, const char *argv[])
 
 				if (none)
 				{
-					no_compounds.insert(pdb_id);
+					// no_compounds.insert(pdb_id);
 
 					if (cif::VERBOSE)
 						std::cerr << "This structure does not contain any transplantable compound" << std::endl;
