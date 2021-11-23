@@ -1,0 +1,30 @@
+<!DOCTYPE html SYSTEM "about:legacy-compat">
+<html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
+
+<head z:replace="~{head :: head(~{::title}, ~{}, ~{})}">
+	<title>AlphaFold Filled - Download</title>
+</head>
+
+<body>
+	<header z:replace="header::top('download')"></header>
+
+	<div class="container">
+
+		<p>An individual AlphaFill entry can be downloaded via the REST interface. Structure files in mmCIF format are available at</p>
+			
+		<blockquote>`<span class="rest-link">https://alphafill.eu/v1/aff/<span class="entry-id">${entryid}</span></span>`.</blockquote>
+			
+		<p>JSON files with the meta data for the transplants are available at</p>
+		
+		<blockquote>`<span class="rest-link">https://alphafill.eu/v1/aff/<span class="entry-id">${entryid}</span>/json</span>`</blockquote>
+
+		<p>The complete AlphaFill databank can be downloaded by means of rsync through</p>
+		<p><code>rsync -av rsync://rsync.alphafill.eu/alphafill alphafill/</code></p>
+		
+		<p>The JSON-schema providing details on the metadata can be found <a href="alphafill.json.schema">here</a></p>
+		
+	</div>
+
+</body>
+
+</html>

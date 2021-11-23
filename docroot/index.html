@@ -2,7 +2,7 @@
 <html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
 
 <head z:replace="~{head :: head(~{::title}, ~{::link}, ~{::script})}">
-	<title z:text="|AlphaFold Filled - Model ${AF_ID}|"></title>
+	<title>AlphaFold Filled</title>
 
 	<link rel="stylesheet" type="text/css" href="css/molstar.css" />
 
@@ -22,11 +22,11 @@
 		<h2 class="text-center fw-bold">AlphaFold models enriched with ligands and co-factors</h2>
 
 		<form z:action="@{/model}">
-		<div class="input-group mt-5 mb-5">
-			<span class="input-group-text" id="search-af">Alphafold ID</span>
-			<input type="text" class="form-control" placeholder="Search for alphafold ID" aria-label="Alphafold ID"
-				name="id" aria-describedby="search-af" />
-		</div>
+			<div class="input-group mt-5 mb-5">
+				<span class="input-group-text" id="search-af">Alphafold ID</span>
+				<input type="text" class="form-control" placeholder="Search for alphafold ID" aria-label="Alphafold ID"
+					name="id" aria-describedby="search-af" />
+			</div>
 		</form>
 
 		<p><em>AlphaFill</em> is an algorithm based on sequence and structure similarity that “transplants”
@@ -35,7 +35,6 @@
 
 		<p>The AlphaFill databank contains all AlphaFold models including the transferred compounds (if present),
 			including metadata.</p>
-
 	</div>
 
 </body>

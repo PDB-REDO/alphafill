@@ -164,3 +164,32 @@ header div.second div.clear {
 	width: 800px;
 	height: 600px;
 }
+
+/*
+	Other stuff
+*/
+
+footer {
+	/*position: absolute;*/
+	/*left: 0; right: 0; bottom: 0;*/
+	border-top: 1px solid #888;
+	padding: 0.5em;
+	margin-top: 2em;
+	font-size:  small;
+	color: #555;
+	white-space: pre;
+}
+
+span.rest-link {
+	font-style: italic;
+	text-decoration: underline;
+	font-family: monospace;
+}
+
+span.entry-id {
+	color: $nav-link;
+}
+
+tr.bad-score {
+	background-color: rgba(255, 0, 0, 0.111);
+}

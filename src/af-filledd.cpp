@@ -68,18 +68,24 @@ class affd_html_controller : public zh::html_controller
 		mount("model", &affd_html_controller::model);
 		mount("structures", &affd_html_controller::structures);
 		mount("compounds", &affd_html_controller::compounds);
+		mount("about", &affd_html_controller::about);
+		mount("download", &affd_html_controller::download);
 		mount("{css,scripts,fonts,images}/", &affd_html_controller::handle_file);
+		mount("alphafill.json.schema", &affd_html_controller::schema);
 		mount("favicon.ico", &affd_html_controller::handle_file);
 
-		mount("structure-table-page", &affd_html_controller::str_table);
+		mount("structure-table-page", &affd_html_controller::structures_table);
 	}
 
 	void welcome(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 	void model(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 	void structures(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 	void compounds(const zh::request& request, const zh::scope& scope, zh::reply& reply);
+	void about(const zh::request& request, const zh::scope& scope, zh::reply& reply);
+	void download(const zh::request& request, const zh::scope& scope, zh::reply& reply);
+	void schema(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 
-	void str_table(const zh::request& request, const zh::scope& scope, zh::reply& reply);
+	void structures_table(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 
 	fs::path mDbDir;
 };
@@ -125,6 +131,31 @@ void affd_html_controller::structures(const zh::request& request, const zh::scop
 		sub.put("compound", compound);
 
 	return get_template_processor().create_reply_from_template("structures", sub, reply);
+}
+
+void affd_html_controller::structures_table(const zh::request& request, const zh::scope& scope, zh::reply& reply)
+{
+	int page = request.get_parameter("page", 0);
+
+	using json = zeep::json::element;
+
+	zh::scope sub(scope);
+
+	auto &ds = data_service::instance();
+
+	std::string compound;
+	if (request.has_parameter("compound"))
+		compound = request.get_parameter("compound");
+
+	json structures;
+	auto allstructures = 
+		compound.empty()
+			? ds.get_structures(page, kPageSize)
+			: ds.get_structures_for_compound(compound, page, kPageSize);
+	to_element(structures, allstructures);
+	sub.put("structures", structures);
+
+	return get_template_processor().create_reply_from_template("structures::structure-table-fragment", sub, reply);
 }
 
 void affd_html_controller::compounds(const zh::request& request, const zh::scope& scope, zh::reply& reply)
@@ -246,29 +277,21 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 	get_server().get_template_processor().create_reply_from_template("model", sub, reply);
 }
 
-void affd_html_controller::str_table(const zh::request& request, const zh::scope& scope, zh::reply& reply)
+void affd_html_controller::about(const zh::request& request, const zh::scope& scope, zh::reply& reply)
 {
-	int page = request.get_parameter("page", 0);
+	return get_template_processor().create_reply_from_template("about", scope, reply);
+}
 
-	using json = zeep::json::element;
+void affd_html_controller::download(const zh::request& request, const zh::scope& scope, zh::reply& reply)
+{
+	return get_template_processor().create_reply_from_template("download", scope, reply);
+}
 
-	zh::scope sub(scope);
-
-	auto &ds = data_service::instance();
-
-	std::string compound;
-	if (request.has_parameter("compound"))
-		compound = request.get_parameter("compound");
-
-	json structures;
-	auto allstructures = 
-		compound.empty()
-			? ds.get_structures(page, kPageSize)
-			: ds.get_structures_for_compound(compound, page, kPageSize);
-	to_element(structures, allstructures);
-	sub.put("structures", structures);
-
-	return get_template_processor().create_reply_from_template("structures::structure-table-fragment", sub, reply);
+void affd_html_controller::schema(const zh::request& request, const zh::scope& scope, zh::reply& reply)
+{
+	html_controller::handle_file(request, scope, reply);
+	if (reply.get_status() == zeep::http::ok)
+		reply.set_header("Content-Disposition", R"(attachment; filename="alphafill.json.schema")");
 }
 
 // --------------------------------------------------------------------

@@ -20,7 +20,23 @@
 	<div z:if="${data}" class="container">
 		<h2 z:text="${title}" class="mb-4"></h2>
 
-		<div class="row">
+
+		<table class="table table-sm">
+			<tr>
+				<td>Original AlphaFold model</td>
+				<td><a z:href="|https://alphafold.ebi.ac.uk/entry/${af_id}|" z:text="|https://alphafold.ebi.ac.uk/entry/${af_id}|"></a></td>
+			</tr>
+			<tr>
+				<td>Structure file</td>
+				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}|" z:text="|https://alphafill.eu/v1/aff/${af_id}|"></a></td>
+			</tr>
+			<tr>
+				<td>Metadata</td>
+				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}/json|" z:text="|https://alphafill.eu/v1/aff/${af_id}/json|"></a></td>
+			</tr>
+		</table>
+
+		<div class="row mt-5">
 			<div class="col" id="app"></div>
 
 			<div class="col">
@@ -28,16 +44,17 @@
 				<table class="table" id="transplant-table-by-compound">
 					<thead>
 						<tr>
-							<th>Compound</th>
-							<th>PDB-ID</th>
-							<th>Global RMSd</th>
-							<th>Asym</th>
-							<th>Local RMSd</th>
+							<th><abbr title="Name of the compound that was transplanted by AlphaFill">Compound</abbr></th>
+							<th><abbr title="PDB-REDO identifier followed by chain that was used in the alignment">PDB-REDO-ID</abbr></th>
+							<th><abbr title="RMSD for the overall protein alignment based on Cα atoms">Global RMSd</abbr></th>
+							<th><abbr title="The ID for the struct_asym created for this transplant">Asym</abbr></th>
+							<th><abbr title="RMSD of the alignment of all backbone atoms within 6Å of the compound that was transplanted by AlphaFill">Local RMSd</abbr></th>
 						</tr>
 					</thead>
 
 					<tbody>
-						<tr z:each="c,i: ${by_compound}" class="transplanted-row" z:with="t=${c.transplant}" z:data-asym-id="${t.asym_id}">
+						<tr z:each="c,i: ${by_compound}" class="transplanted-row" z:with="t=${c.transplant}" z:data-asym-id="${t.asym_id}"
+							z:classappend="${t.rmsd ge 0.5 or c.rmsd ge 2.0 ? 'bad-score' }">
 							<td z:if="${c.first-hit and c.first-transplant}" z:rowspan="${c.hit-count}"
 								z:text="${t.analogue_id == t.compound_id ? t.compound_id : |${t.compound_id} -&gt; ${t.analogue_id}|}">
 							</td>

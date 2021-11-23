@@ -1,0 +1,118 @@
+{
+    "$schema": "http://json-schema.org/2020-12/schema#",
+    "$ref": "#/definitions/Data",
+    "definitions": {
+        "Data": {
+            "description": "All meta data provided for the AlphaFill-run ",
+            "type": "object",
+            "properties": {
+                "alphafill_version": {
+                    "description": "Version of AlphaFill that was used",
+                    "type": "string"
+                },
+                "date": {
+                    "description": "Date of AlphaFill run",
+                    "type": "string",
+                    "format": "date"
+                },
+                "file": {
+                    "description": "Input file used for AlphaFill",
+                    "type": "string"
+                },
+                "hits": {
+                    "description": "List of hits",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Hit" 
+                    }
+                },
+                "id": {
+                    "description": "AlphaFold identifier",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "alphafill_version",
+                "date",
+                "file",
+                "hits",
+                "id"
+            ],
+            "title": "Data"
+        },
+        "Hit": {
+            "type": "object",
+            "properties": {
+                "alignment_length": {
+                    "description": "Number of residues that was used in the alignment",
+                    "type": "integer"
+                },
+                "identity": {
+                    "description": "Identity within the alignment expressed as fractional value",
+                    "type": "number"
+                },
+                "pdb_asym_id": {
+                    "description": "Asym_id as found in mmCIF file corresponing to the PDB-REDO entry",
+                    "type": "string"
+                },
+                "pdb_id": {
+                    "description": "PDB identifier",
+                    "type": "string"
+                },
+                "rmsd": {
+                    "description": "Root-Mean-Square Deviation of the hit compared to the AlphaFold model",
+                    "type": "number"
+                },
+                "transplants": {
+                    "description": "List of ligands that was transplanted from the PDB-REDO model",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Transplant"
+                    }
+                }
+            },
+            "required": [
+                "alignment_length",
+                "identity",
+                "pdb_asym_id",
+                "pdb_id",
+                "rmsd",
+                "transplants"
+            ],
+            "title": "Hit"
+        },
+        "Transplant": {
+            "type": "object",
+            "properties": {
+                "analogue_id": {
+                    "description": "Compound that was placed (transplanted) in the structure by AlphaFill",
+                    "type": "string"
+                },
+                "asym_id": {
+                    "description": "Chain in which the compound was placed",
+                    "type": "string"
+                },
+                "compound_id": {
+                    "description": "Name of the compound that was found in the corresponding PDB-REDO model",
+                    "type": "string"
+                },
+                "entity_id": {
+                    "description": "Unique identifier for chemical structure of the transplanted ligand",
+                    "type": "string"
+                },
+                "rmsd": {
+                    "description": "Root-Mean-Square Deviation of the ligand binding pocket",
+                    "type": "number"
+                }
+            },
+            "required": [
+                "analogue_id",
+                "asym_id",
+                "compound_id",
+                "entity_id",
+                "rmsd"
+            ],
+            "title": "Transplant"
+        }
+    }
+}
