@@ -571,6 +571,115 @@ bool isUniqueLigand(const mmcif::Structure &structure, float minDistance, const 
 
 // --------------------------------------------------------------------
 
+int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &output)
+{
+	std::cerr << "collecting files...";
+
+	std::vector<fs::path> files;
+	for (fs::recursive_directory_iterator iter(pdbDir); iter != fs::recursive_directory_iterator(); ++iter)
+	{
+		if (not iter->is_regular_file())
+			continue;
+		
+		fs::path file = iter->path();
+
+		if (file.parent_path().filename().string() == "obsolete" or file.parent_path().parent_path().filename().string() == "obsolete")
+			continue;
+
+		std::string name = file.filename().string();
+
+		if (not ba::ends_with(name, "_final.cif"))
+			continue;
+		
+		files.push_back(file);
+	}
+
+	std::cerr << " done!" << std::endl
+			  << "need to process " << files.size() << " files" << std::endl;
+
+	std::sort(files.begin(), files.end());
+
+	cif::Progress progress(files.size(), "Parsing PDB files");
+
+	std::vector<std::string> result;
+
+	int nrOfThreads = std::thread::hardware_concurrency();
+	blocking_queue<fs::path> q;
+	std::mutex guard;
+
+	std::vector<std::thread> t;
+	for (int i = 0; i < nrOfThreads; ++i)
+	{
+		t.emplace_back([&]()
+		{
+			for (;;)
+			{
+				fs::path f = q.pop();
+
+				if (f.empty())	// sentinel
+				{
+					q.push({});
+					break;
+				}
+
+				try
+				{
+					cif::File file(f);
+
+					progress.consumed(1);
+
+					auto &db = file.firstDatablock();
+					auto pdb_chem_comp = db.get("chem_comp");
+					if (not pdb_chem_comp)
+						continue;
+
+					bool none = true;
+					for (const auto &[comp_id] : pdb_chem_comp->rows<std::string>("id"))
+					{
+						if (ligands[comp_id])
+						{
+							none = false;
+							break;
+						}
+					}
+
+					if (none)
+						continue;
+
+					std::unique_lock lock(guard);
+					result.push_back(db.getName());
+				}
+				catch(const std::exception& e)
+				{
+					std::cerr << e.what() << std::endl;
+				}
+			}
+		});
+	}
+
+	for (auto &file : files)
+		q.push(file);
+
+	q.push({});
+
+	// signal end
+
+	for (auto &ti: t)
+		ti.join();
+
+	if (not output.empty())
+	{
+		std::ofstream outfile(output);
+		outfile << ba::join(result, ", ") << std::endl;;
+	}
+	else
+		std::cout << ba::join(result, ", ") << std::endl;
+
+	return 0;
+}
+
+// --------------------------------------------------------------------
+
 int a_main(int argc, const char *argv[])
 {
 	using namespace std::literals;
@@ -605,6 +714,7 @@ int a_main(int argc, const char *argv[])
 		("output,o", po::value<std::string>(), "Output to this file")
 		("debug,d", po::value<int>(), "Debug level (for even more verbose output)")
 		("validate-fasta", "Validate the FastA file (check if all sequence therein are the same as in the corresponding PDB files)")
+		("prepare-pdb-list", "Generate a list with PDB ID's that contain any of the ligands")
 		("test", "Run test code");
 
 	po::options_description cmdline_options;
@@ -679,6 +789,22 @@ int a_main(int argc, const char *argv[])
 		return validateFastA(vm["pdb-fasta"].as<std::string>(), vm["pdb-dir"].as<std::string>(), std::thread::hardware_concurrency());
 
 	// --------------------------------------------------------------------
+
+	fs::path ligandsFile = vm["ligands"].as<std::string>();
+	if (not fs::exists(ligandsFile))
+	{
+		std::cerr << "Ligands file not found" << std::endl;
+		exit(1);
+	}
+
+	LigandsTable ligands(ligandsFile);
+
+	// --------------------------------------------------------------------
+	
+	if (vm.count("prepare-pdb-list"))
+		return GeneratePDBList(vm["pdb-dir"].as<std::string>(), ligands, vm.count("output") ? vm["output"].as<std::string>() : "");
+
+	// --------------------------------------------------------------------
 	
 	if (vm.count("xyzin") == 0)
 	{
@@ -701,17 +827,6 @@ int a_main(int argc, const char *argv[])
 
 	if (vm.count("mmcif-dictionary"))
 		cif::addFileResource("mmcif_pdbx_v50.dic", vm["mmcif-dictionary"].as<std::string>());
-
-	// --------------------------------------------------------------------
-
-	fs::path ligandsFile = vm["ligands"].as<std::string>();
-	if (not fs::exists(ligandsFile))
-	{
-		std::cerr << "Ligands file not found" << std::endl;
-		exit(1);
-	}
-
-	LigandsTable ligands(ligandsFile);
 
 	float minHspIdentity = vm["min-hsp-identity"].as<float>();
 	size_t minAlignmentLength = vm["min-alignment-length"].as<int>();
@@ -1003,9 +1118,11 @@ int a_main(int argc, const char *argv[])
 									{"ptnr1_auth_asym_id", asym_id},
 									{"ptnr1_auth_comp_id", res.compoundID()},
 									{"ptnr1_auth_seq_id", "."},
+									{"ptnr1_auth_atom_id", atom.authAtomID()},
 									{"ptnr2_auth_asym_id", a_a.labelAsymID()},
 									{"ptnr2_auth_comp_id", a_a.labelCompID()},
 									{"ptnr2_auth_seq_id", a_a.labelSeqID()},
+									{"ptnr2_auth_atom_id", a_a.authAtomID()},
 									{"ptnr2_symmetry", "1_555"},
 									{"pdbx_dist_value", Distance(a_a, atom)}});
 							}

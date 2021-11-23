@@ -2059,7 +2059,7 @@ data_AKG
 #
 _ligand.id               AKG
 _ligand.analogue_id      .
-_ligand.priority         n
+_ligand.priority         y
 _ligand.description      2-oxoglutaricAcid
 _ligand.name   "Oxogluric acid"
 #
