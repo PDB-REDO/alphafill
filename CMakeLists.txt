@@ -213,6 +213,6 @@ if(USE_RSRC)
 	mrc_target_resources(af-filledd ${CMAKE_SOURCE_DIR}/docroot/)
 endif()
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS alphafill af-filledd
     RUNTIME DESTINATION ${BIN_INSTALL_DIR}
 )
