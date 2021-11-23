@@ -37,6 +37,8 @@
 #include <zeep/http/html-controller.hpp>
 #include <zeep/http/rest-controller.hpp>
 #include <zeep/json/parser.hpp>
+#include <zeep/crypto.hpp>
+#include <zeep/http/uri.hpp>
 
 #include <cif++/Cif++.hpp>
 #include <cif++/CifUtils.hpp>
@@ -63,6 +65,9 @@ class affd_html_controller : public zh::html_controller
 		: mDbDir(db_dir)
 	{
 		mount("{,index,index.html}", &affd_html_controller::welcome);
+		mount("model", &affd_html_controller::model);
+		mount("structures", &affd_html_controller::structures);
+		mount("compounds", &affd_html_controller::compounds);
 		mount("{css,scripts,fonts,images}/", &affd_html_controller::handle_file);
 		mount("favicon.ico", &affd_html_controller::handle_file);
 
@@ -70,6 +75,9 @@ class affd_html_controller : public zh::html_controller
 	}
 
 	void welcome(const zh::request& request, const zh::scope& scope, zh::reply& reply);
+	void model(const zh::request& request, const zh::scope& scope, zh::reply& reply);
+	void structures(const zh::request& request, const zh::scope& scope, zh::reply& reply);
+	void compounds(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 
 	void str_table(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 
@@ -78,117 +86,164 @@ class affd_html_controller : public zh::html_controller
 
 void affd_html_controller::welcome(const zh::request& request, const zh::scope& scope, zh::reply& reply)
 {
+	if (request.has_parameter("id"))
+	{
+		zeep::http::uri uri(request.get_uri());
+		std::string afId = request.get_parameter("id");
+		reply = zeep::http::reply::redirect(uri.get_path().string() + "model?id=" + zeep::http::encode_url(afId));
+		return;
+	}
+
+	return get_template_processor().create_reply_from_template("index", scope, reply);
+}
+
+void affd_html_controller::structures(const zh::request& request, const zh::scope& scope, zh::reply& reply)
+{
 	using json = zeep::json::element;
 
 	zh::scope sub(scope);
 
-	if (request.has_parameter("id"))
+	auto &ds = data_service::instance();
+
+	std::string compound;
+	if (request.has_parameter("compound"))
+		compound = request.get_parameter("compound");
+
+	json structures;
+	auto allstructures = 
+		compound.empty()
+			? ds.get_structures(0, kPageSize)
+			: ds.get_structures_for_compound(compound, 0, kPageSize);
+	to_element(structures, allstructures);
+	sub.put("structures", structures);
+
+	sub.put("structure-count", ds.count_structures());
+	sub.put("page-size", kPageSize);
+	sub.put("page", 1);
+	
+	if (not compound.empty())
+		sub.put("compound", compound);
+
+	return get_template_processor().create_reply_from_template("structures", sub, reply);
+}
+
+void affd_html_controller::compounds(const zh::request& request, const zh::scope& scope, zh::reply& reply)
+{
+	using json = zeep::json::element;
+
+	zh::scope sub(scope);
+
+	auto &ds = data_service::instance();
+
+	json compounds;
+	auto allCompounds = ds.get_compounds();
+	to_element(compounds, allCompounds);
+	sub.put("compounds", compounds);
+
+	return get_template_processor().create_reply_from_template("compounds", sub, reply);
+}
+
+void affd_html_controller::model(const zh::request& request, const zh::scope& scope, zh::reply& reply)
+{
+	using json = zeep::json::element;
+
+	zh::scope sub(scope);
+
+	if (not request.has_parameter("id"))
+		throw zeep::http::not_found;
+
+	std::string afId = request.get_parameter("id");
+
+	std::regex rx(R"((?:AF-)?(.+?)(?:-F1(?:-model_v1)?)?)");
+	std::smatch m;
+	if (std::regex_match(afId, m, rx))
+		afId = m[1];
+
+	sub.put("af_id", afId);
+
+	fs::path jsonFile = mDbDir / ("AF-" + afId + "-F1-model_v1.cif.json");
+	fs::path cifFile = mDbDir / ("AF-" + afId + "-F1-model_v1.cif.gz");
+
+	if (not fs::exists(jsonFile) or not fs::exists(cifFile))
+		throw zeep::http::not_found;
+
+	json data;
+
+	std::ifstream is(jsonFile);
+	parse_json(is, data);
+
+	sub.put("data", data);
+
+	// reorder data for Tassos
+	
+	std::map<std::string,size_t> compoundIds;
+
+	for (auto &hit : data["hits"])
+		for (auto &transplant : hit["transplants"])
+			compoundIds[transplant["compound_id"].as<std::string>()] += 1;
+
+	json byCompound;
+	for (const auto &[compoundId, count] : compoundIds)
 	{
-		std::string afId = request.get_parameter("id");
-		sub.put("af_id", afId);
+		bool firstHit = true;
 
-		fs::path jsonFile = mDbDir / ("AF-" + afId + "-F1-model_v1.cif.json");
-		fs::path cifFile = mDbDir / ("AF-" + afId + "-F1-model_v1.cif.gz");
-
-		if (not fs::exists(jsonFile) or not fs::exists(cifFile))
-			throw zeep::http::not_found;
-
-		zeep::json::element data;
-
-		std::ifstream is(jsonFile);
-		parse_json(is, data);
-
-		sub.put("data", data);
-
-		// reorder data for Tassos
-		
-		std::map<std::string,size_t> compoundIds;
+		std::map<std::tuple<std::string,std::string>,size_t> transplantsPerHit;
 
 		for (auto &hit : data["hits"])
-			for (auto &transplant : hit["transplants"])
-				compoundIds[transplant["compound_id"].as<std::string>()] += 1;
-
-		zeep::json::element byCompound;
-		for (const auto &[compoundId, count] : compoundIds)
 		{
-			bool firstHit = true;
-
-			std::map<std::tuple<std::string,std::string>,size_t> transplantsPerHit;
-
-			for (auto &hit : data["hits"])
+			auto key = std::make_tuple(hit["pdb_id"].as<std::string>(), hit["pdb_asym_id"].as<std::string>());
+			for (auto &transplant : hit["transplants"])
 			{
-				auto key = std::make_tuple(hit["pdb_id"].as<std::string>(), hit["pdb_asym_id"].as<std::string>());
-				for (auto &transplant : hit["transplants"])
-				{
-					if (transplant["compound_id"] == compoundId)
-						transplantsPerHit[key] += 1;
-				}
-			}
-
-			std::tuple<std::string,std::string> lastKey;
-
-			for (auto &hit : data["hits"])
-			{
-				auto key = std::make_tuple(hit["pdb_id"].as<std::string>(), hit["pdb_asym_id"].as<std::string>());
-				bool firstTransplant = key != lastKey;
-				lastKey = key;
-
-				size_t transplantCount = transplantsPerHit[key];
-
-				for (auto &transplant : hit["transplants"])
-				{
-					if (transplant["compound_id"] != compoundId)
-						continue;
-					
-					byCompound.push_back({
-						{ "compound_id", compoundId },
-						{ "pdb_id", hit["pdb_id"] },
-						{ "pdb_asym_id", hit["pdb_asym_id"] },
-						{ "alignment_length", hit["alignment_length"] },
-						{ "identity", hit["identity"] },
-						{ "rmsd", hit["rmsd"] },
-						{ "transplant-count", transplantCount },
-						{ "hit-count", count },
-						{ "first-hit", firstHit },
-						{ "first-transplant", firstTransplant },
-						{ "transplant", transplant }
-					});
-
-					firstTransplant = false;
-					firstHit = false;
-				}
+				if (transplant["compound_id"] == compoundId)
+					transplantsPerHit[key] += 1;
 			}
 		}
 
-		sub.put("by_compound", byCompound);
+		std::tuple<std::string,std::string> lastKey;
 
-		using namespace cif::literals;
+		for (auto &hit : data["hits"])
+		{
+			auto key = std::make_tuple(hit["pdb_id"].as<std::string>(), hit["pdb_asym_id"].as<std::string>());
+			bool firstTransplant = key != lastKey;
+			lastKey = key;
 
-		cif::File file(cifFile);
+			size_t transplantCount = transplantsPerHit[key];
 
-		std::string title = file.firstDatablock()["entity"].find1<std::string>("id"_key == 1, "pdbx_description");
-		sub.put("title", title);
+			for (auto &transplant : hit["transplants"])
+			{
+				if (transplant["compound_id"] != compoundId)
+					continue;
+				
+				byCompound.push_back({
+					{ "compound_id", compoundId },
+					{ "pdb_id", hit["pdb_id"] },
+					{ "pdb_asym_id", hit["pdb_asym_id"] },
+					{ "alignment_length", hit["alignment_length"] },
+					{ "identity", hit["identity"] },
+					{ "rmsd", hit["rmsd"] },
+					{ "transplant-count", transplantCount },
+					{ "hit-count", count },
+					{ "first-hit", firstHit },
+					{ "first-transplant", firstTransplant },
+					{ "transplant", transplant }
+				});
+
+				firstTransplant = false;
+				firstHit = false;
+			}
+		}
 	}
-	else
-	{
-		auto &ds = data_service::instance();
 
-		json compounds;
-		auto allCompounds = ds.get_compounds();
-		to_element(compounds, allCompounds);
-		sub.put("compounds", compounds);
+	sub.put("by_compound", byCompound);
 
-		json structures;
-		auto allstructures = ds.get_structures(0, kPageSize);
-		to_element(structures, allstructures);
-		sub.put("structures", structures);
+	using namespace cif::literals;
 
-		sub.put("structure-count", ds.count_structures());
-		sub.put("page-size", kPageSize);
-		sub.put("page", 1);
-	}
+	cif::File file(cifFile);
 
-	return get_template_processor().create_reply_from_template("index", sub, reply);
+	std::string title = file.firstDatablock()["entity"].find1<std::string>("id"_key == 1, "pdbx_description");
+	sub.put("title", title);
+
+	get_server().get_template_processor().create_reply_from_template("model", sub, reply);
 }
 
 void affd_html_controller::str_table(const zh::request& request, const zh::scope& scope, zh::reply& reply)
@@ -201,12 +256,19 @@ void affd_html_controller::str_table(const zh::request& request, const zh::scope
 
 	auto &ds = data_service::instance();
 
+	std::string compound;
+	if (request.has_parameter("compound"))
+		compound = request.get_parameter("compound");
+
 	json structures;
-	auto allstructures = ds.get_structures(page, kPageSize);
+	auto allstructures = 
+		compound.empty()
+			? ds.get_structures(page, kPageSize)
+			: ds.get_structures_for_compound(compound, page, kPageSize);
 	to_element(structures, allstructures);
 	sub.put("structures", structures);
 
-	return get_template_processor().create_reply_from_template("index::structure-table-fragment", sub, reply);
+	return get_template_processor().create_reply_from_template("structures::structure-table-fragment", sub, reply);
 }
 
 // --------------------------------------------------------------------

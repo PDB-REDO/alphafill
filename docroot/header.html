@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+
+<html xmlns:z="http://www.hekkelman.com/libzeep/m2" lang="en">
+
+<header z:fragment="top(current)">
+	<div class="h-left">
+		<a href="https://pdb-redo.eu/" z:href="@{/}"><img z:src="@{/images/PDB_logo_rect_medium.svg}"
+				alt="PDB-REDO logo" /></a>
+	</div>
+	<div class="h-right">
+		<div class="first">
+			<nav>
+				<a href="http://www.nki.nl" target="_BLANK">NKI Research</a> |
+				<a href="http://www.nki.nl/divisions/biochemistry/" title="BioChemistry Homepage"
+					target="_BLANK">Biochemistry</a> |
+				<a href="http://www.nki.nl/divisions/biochemistry/perrakis-a-group/" target="_BLANK">Perrakis
+					group</a>
+			</nav>
+		</div>
+	</div>
+
+	<nav class="navbar navbar-expand-sm bg-nav-secondary navbar-dark">
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+			aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+
+		<div class="collapse navbar-collapse" id="navbarSupportedContent">
+			<ul class="navbar-nav mr-auto">
+
+				<li class="nav-item">
+					<a class="nav-link" z:classappend="${current=='home' ? 'active'}" z:href="@{/}">Home</a>
+				</li>
+
+				<li class="nav-item">
+					<a class="nav-link" z:classappend="${current=='structures' ? 'active'}" z:href="@{/structures}">Structures</a>
+				</li>
+
+				<li class="nav-item">
+					<a class="nav-link" z:classappend="${current=='compounds' ? 'active'}" z:href="@{/compounds}">Compounds</a>
+				</li>
+
+				<li class="nav-item">
+					<a class="nav-link" z:classappend="${current=='model' ? 'active' : 'disabled'}" z:href="@{/model}">Model</a>
+				</li>
+
+				<li class="nav-item">
+					<a class="nav-link" z:classappend="${current=='about' ? 'active'}" z:href="@{/about}">About</a>
+				</li>
+				
+				<li class="nav-item">
+					<a class="nav-link" z:classappend="${current=='download' ? 'active'}" z:href="@{/download}">Download</a>
+				</li>
+				
+			</ul>
+		</div>
+	</nav>
+</header>
+
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html SYSTEM "about:legacy-compat">
+<html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
+
+<head z:replace="~{head :: head(~{::title}, ~{::link}, ~{::script})}">
+	<title z:text="|AlphaFold Filled - Model ${AF_ID}|"></title>
+
+	<link rel="stylesheet" type="text/css" href="css/molstar.css" />
+
+	<script z:inline="javascript">
+		const STRUCTURE_COUNT = /*[[${structure-count}]]*/ 0;
+		const PAGE_SIZE = /*[[${page-size}]]*/ 10;
+		let page = /*[[${page}]]*/ 1;
+		const compound = /*[[${compound}]]*/ null;
+	</script>
+
+	<script defer="defer" type="text/javascript" src="scripts/lists.js"></script>
+</head>
+
+<body>
+	<header z:replace="header::top('structures')"></header>
+
+	<div class="container">
+
+		<h4>List of Structures</h4>
+
+		<p>From the List of Structures statistics per AlphaFold entry can be retrieved. The table lists all entries present in the AlphaFill databank that do contain transferred compounds. For each entry, the number of PDB-REDO models that were used in the alignment are displayed (# PDB-REDO hits), combined with the number of compounds that was added by AlphaFill (# of transplants) and the number of different compounds that were added to the model (# of distinct analogues).</p>
+
+		<table class="table table-sm table-hover" id="structure-table" z:fragment="structure-table-fragment">
+			<thead>
+				<tr>
+					<th>Structure ID</th>
+					<th># of PDB-REDO hits</th>
+					<th># of transplants</th>
+					<th># of distinct analogues</th>
+				</tr>
+			</thead>
+
+			<tbody>
+				<tr z:each="c, i: ${structures}" class="structure-row" z:data-row-id="${c.name}">
+					<td z:text="${c.name}"></td>
+					<td z:text="${c.hit-count}"></td>
+					<td z:text="${c.transplant-count}"></td>
+					<td z:text="${c.distinct-analogues}"></td>
+				</tr>
+			</tbody>
+		</table>
+
+		<nav aria-label="paging structures">
+			<ul class="pagination pagination-sm" id="stable-pager">
+				<li class="page-item disabled" data-page-id="previous">
+					<a class="page-link">Previous</a>
+				</li>
+				<li class="page-item disabled">
+					<a class="page-link">...</a>
+				</li>
+				<li class="page-item" z:each="p: ${ { 1, 2, 3, 4, 5 } }" z:classappend="${p == page ? 'active'}"
+					z:data-page-id="${p}">
+					<a class="page-link" z:text="${p}"></a>
+				</li>
+				<li class="page-item disabled">
+					<a class="page-link">...</a>
+				</li>
+				<li class="page-item" data-page-id="next">
+					<a class="page-link">Next</a>
+				</li>
+			</ul>
+		</nav>
+	</div>
+</body>
+
+</html>

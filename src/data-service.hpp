@@ -71,6 +71,7 @@ class data_service
 
 	std::vector<compound> get_compounds() const;
 	std::vector<structure> get_structures(uint32_t page, uint32_t pageSize) const;
+	std::vector<structure> get_structures_for_compound(const std::string &compound, uint32_t page, uint32_t pageSize) const;
 
 	uint32_t count_structures() const;
 };

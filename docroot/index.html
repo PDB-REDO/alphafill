@@ -1,195 +1,43 @@
 <!DOCTYPE html SYSTEM "about:legacy-compat">
 <html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
 
-<head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-	<title>AlphaFold Filled</title>
-	<link rel="stylesheet" type="text/css" href="css/index.css" />
-	<link rel="stylesheet" type="text/css" href="css/af-style.css" />
-	<link href='css/pdb-redo-bootstrap.css' rel='stylesheet' type="text/css" />
+<head z:replace="~{head :: head(~{::title}, ~{::link}, ~{::script})}">
+	<title z:text="|AlphaFold Filled - Model ${AF_ID}|"></title>
+
+	<link rel="stylesheet" type="text/css" href="css/molstar.css" />
 
 	<script z:inline="javascript">
 		const AF_ID = /*[[${af_id}]]*/ null;
-		const STRUCTURE_COUNT = /*[[${structure-count}]]*/ 0;
-		const PAGE_SIZE = /*[[${page-size}]]*/ 10;
-		let page = /*[[${page}]]*/ 1;
 	</script>
 
-	<script defer="defer" type="text/javascript" src="scripts/index.js"></script>
-
+	<script defer="defer" type="text/javascript" src="scripts/model.js"></script>
 </head>
 
 <body>
-	<header>
+	<header z:replace="header::top('home')"></header>
 
-		<div class="h-left">
-			<a href="https://pdb-redo.eu/" z:href="@{/}"><img z:src="@{/images/PDB_logo_rect_medium.svg}"
-					alt="PDB-REDO logo" /></a>
+	<div class="container">
+
+		<h1 class="text-center fw-bold">Alphafill</h1>
+		<h2 class="text-center fw-bold">AlphaFold models enriched with ligands and co-factors</h2>
+
+		<form z:action="@{/model}">
+		<div class="input-group mt-5 mb-5">
+			<span class="input-group-text" id="search-af">Alphafold ID</span>
+			<input type="text" class="form-control" placeholder="Search for alphafold ID" aria-label="Alphafold ID"
+				name="id" aria-describedby="search-af" />
 		</div>
-		<div class="h-right">
-			<div class="first">
-				<nav>
-					<a href="http://www.nki.nl" target="_BLANK">NKI Research</a> |
-					<a href="http://www.nki.nl/divisions/biochemistry/" title="BioChemistry Homepage"
-						target="_BLANK">Biochemistry</a> |
-					<a href="http://www.nki.nl/divisions/biochemistry/perrakis-a-group/" target="_BLANK">Perrakis
-						group</a>
-				</nav>
-			</div>
-		</div>
+		</form>
 
-		<nav class="navbar navbar-expand-sm bg-nav-secondary navbar-dark">
-			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
-				aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-				<span class="navbar-toggler-icon"></span>
-			</button>
+		<p><em>AlphaFill</em> is an algorithm based on sequence and structure similarity that “transplants”
+			missing compounds to the AlphaFold models. By adding the molecular context to the protein structures, the
+			models can be more easily appreciated in terms of function and structure integrity.</p>
 
-			<div class="collapse navbar-collapse" id="navbarSupportedContent">
-				<ul class="navbar-nav mr-auto">
+		<p>The AlphaFill databank contains all AlphaFold models including the transferred compounds (if present),
+			including metadata.</p>
 
-					<li class="nav-item">
-						<a class="nav-link" z:href="@{/}">Home</a>
-					</li>
-
-				</ul>
-			</div>
-		</nav>
-	</header>
-
-	<div z:if="${data}" class="container">
-		<h2 z:text="${title}" class="mb-4"></h2>
-
-		<div class="row">
-			<div class="col" id="app"></div>
-
-			<div class="col">
-
-				<table class="table" id="transplant-table-by-compound">
-					<thead>
-						<tr>
-							<th>Compound</th>
-							<th>PDB-ID</th>
-							<th>Global RMSd</th>
-							<th>Mapped</th>
-							<th>Asym</th>
-							<th>Local RMSd</th>
-						</tr>
-					</thead>
-
-					<tbody>
-						<tr z:each="c,i: ${by_compound}" class="transplanted-row" z:with="t=${c.transplant}" z:data-asym-id="${t.asym_id}">
-							<td z:if="${c.first-hit and c.first-transplant}" z:rowspan="${c.hit-count}" z:text="${c.compound_id}"></td>
-							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}" z:text="|${c.pdb_id}.${c.pdb_asym_id}|"></td>
-							<td z:if="${c.first-transplant" z:text="${#numbers.formatDecimal(c.rmsd, 1, 2)}"></td>
-
-							<td
-								z:text="${t.analogue_id == t.compound_id ? t.compound_id : |${t.compound_id} -&gt; ${t.analogue_id}|}">
-							</td>
-							<td z:text="${t.asym_id}"></td>
-							<td z:text="${#numbers.formatDecimal(t.rmsd, 1, 2)}"></td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
 	</div>
 
-	<div z:if="${not data}" class="container">
-
-		<div class="accordion" id="accordionTables">
-
-			<div class="accordion-item">
-				<h2 class="accordion-header" id="headingOne">
-					<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-						data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-						List of compounds
-					</button>
-				</h2>
-
-				<div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne"
-					data-bs-parent="#accordionTables">
-					<div class="accordion-body">
-						<table class="table table-sm table-hover" id="compound-table">
-							<thead>
-								<tr>
-									<th>Compound</th>
-									<th>Analogue</th>
-									<th># of structures</th>
-									<th># of transplants</th>
-								</tr>
-							</thead>
-
-							<tbody>
-								<tr z:each="c, i: ${compounds}">
-									<td z:text="${c.id}"></td>
-									<td z:text="${c.analogue}"></td>
-									<td z:text="${c.structure-count}"></td>
-									<td z:text="${c.transplant-count}"></td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-				</div>
-			</div>
-
-		</div>
-		<div class="accordion-item">
-			<h2 class="accordion-header" id="headingTwo">
-				<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-					data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-					List of Structures
-				</button>
-			</h2>
-
-			<div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo"
-				data-bs-parent="#accordionTables">
-				<div class="accordion-body">
-					<table class="table table-sm table-hover" id="structure-table"
-						z:fragment="structure-table-fragment">
-						<thead>
-							<tr>
-								<th>AF-Structure</th>
-								<th># of PDB hits</th>
-								<th># of transplants</th>
-								<th># of distinct analogues</th>
-							</tr>
-						</thead>
-
-						<tbody>
-							<tr z:each="c, i: ${structures}" class="structure-row" z:data-row-id="${c.name}">
-								<td z:text="${c.name}"></td>
-								<td z:text="${c.hit-count}"></td>
-								<td z:text="${c.transplant-count}"></td>
-								<td z:text="${c.distinct-analogues}"></td>
-							</tr>
-						</tbody>
-					</table>
-
-					<nav aria-label="paging structures">
-						<ul class="pagination pagination-sm" id="stable-pager">
-							<li class="page-item disabled" data-page-id="previous">
-								<a class="page-link">Previous</a>
-							</li>
-							<li class="page-item disabled">
-								<a class="page-link">...</a>
-							</li>
-							<li class="page-item" z:each="p: ${ { 1, 2, 3, 4, 5 } }"
-								z:classappend="${p == page ? 'active'}" z:data-page-id="${p}">
-								<a class="page-link" z:text="${p}"></a>
-							</li>
-							<li class="page-item disabled">
-								<a class="page-link">...</a>
-							</li>
-							<li class="page-item" data-page-id="next">
-								<a class="page-link">Next</a>
-							</li>
-						</ul>
-					</nav>
-				</div>
-			</div>
-		</div>
-	</div>
 </body>
 
 </html>

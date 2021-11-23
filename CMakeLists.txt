@@ -179,8 +179,9 @@ find_program(YARN yarn REQUIRED)
 
 set(webpack_input
 	${CMAKE_SOURCE_DIR}/webapp/index.js
+	${CMAKE_SOURCE_DIR}/webapp/model.js
+	${CMAKE_SOURCE_DIR}/webapp/lists.js
 	${CMAKE_SOURCE_DIR}/webapp/molstar.tsx
-	${CMAKE_SOURCE_DIR}/scss/af-style.scss
 	${CMAKE_SOURCE_DIR}/scss/pdb-redo-bootstrap.scss
 )
 

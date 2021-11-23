@@ -47,6 +47,10 @@ $nav-link-padding-y: math.div($spacer, 2);
 			background-color: $nav-primary-hover;
 		}
 	  }
+	  .nav-link.active {
+		background-color: lighten($nav-link, 5%);
+		color: white;
+	  }
 	}
 }
 
@@ -148,4 +152,15 @@ header div.second div.clear {
         padding: 0;
         height: 2em;
     }
+}
+
+/*
+	For the molstar viewer
+*/
+
+#app {
+	position: sticky;
+	top: 2em;
+	width: 800px;
+	height: 600px;
 }

@@ -1,0 +1,51 @@
+<!DOCTYPE html SYSTEM "about:legacy-compat">
+<html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
+
+<head z:replace="~{head :: head(~{::title}, ~{::link}, ~{::script})}">
+	<title z:text="|AlphaFold Filled - Model ${AF_ID}|"></title>
+
+	<link rel="stylesheet" type="text/css" href="css/molstar.css" />
+
+	<script z:inline="javascript">
+		const STRUCTURE_COUNT = /*[[${structure-count}]]*/ 0;
+		const PAGE_SIZE = /*[[${page-size}]]*/ 10;
+		let page = /*[[${page}]]*/ 1;
+	</script>
+
+	<script defer="defer" type="text/javascript" src="scripts/lists.js"></script>
+</head>
+
+<body>
+	<header z:replace="header::top('compounds')"></header>
+
+	<div class="container">
+
+		<p>From the List of Compounds the prevalence of the compounds in the AlphaFill databank can be retrieved. This
+			table presents the compounds with their analogue and the number of AlphaFold models to which the compound
+			was transplanted (# of structures), plus the number on how often the compound was transplanted in total (#
+			of transplants). By clicking on a compound, a list of all AlphaFill entries containing that compound is
+			displayed.</p>
+
+		<table class="table table-sm table-hover" id="compound-table">
+			<thead>
+				<tr>
+					<th>Compound</th>
+					<th>Analogue</th>
+					<th># of structures</th>
+					<th># of transplants</th>
+				</tr>
+			</thead>
+
+			<tbody>
+				<tr z:each="c, i: ${compounds}" z:data-id="${c.id}" class="compound-row">
+					<td z:text="${c.id}"></td>
+					<td z:text="${c.analogue}"></td>
+					<td z:text="${c.structure-count}"></td>
+					<td z:text="${c.transplant-count}"></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</body>
+
+</html>

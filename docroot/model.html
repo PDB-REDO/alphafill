@@ -1,0 +1,154 @@
+<!DOCTYPE html SYSTEM "about:legacy-compat">
+<html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
+
+<head z:replace="~{head :: head(~{::title}, ~{::link}, ~{::script})}">
+	<title z:text="|AlphaFold Filled - Model ${AF_ID}|"></title>
+
+	<link rel="stylesheet" type="text/css" href="css/molstar.css" />
+
+	<script z:inline="javascript">
+		const AF_ID = /*[[${af_id}]]*/ null;
+	</script>
+
+	<script defer="defer" type="text/javascript" src="scripts/model.js"></script>
+</head>
+	
+<body>
+
+	<header z:replace="header::top('model')"></header>
+
+	<div z:if="${data}" class="container">
+		<h2 z:text="${title}" class="mb-4"></h2>
+
+		<div class="row">
+			<div class="col" id="app"></div>
+
+			<div class="col">
+
+				<table class="table" id="transplant-table-by-compound">
+					<thead>
+						<tr>
+							<th>Compound</th>
+							<th>PDB-ID</th>
+							<th>Global RMSd</th>
+							<th>Asym</th>
+							<th>Local RMSd</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						<tr z:each="c,i: ${by_compound}" class="transplanted-row" z:with="t=${c.transplant}" z:data-asym-id="${t.asym_id}">
+							<td z:if="${c.first-hit and c.first-transplant}" z:rowspan="${c.hit-count}"
+								z:text="${t.analogue_id == t.compound_id ? t.compound_id : |${t.compound_id} -&gt; ${t.analogue_id}|}">
+							</td>
+
+							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}" z:text="|${c.pdb_id}.${c.pdb_asym_id}|"></td>
+							<td z:if="${c.first-transplant" z:text="${#numbers.formatDecimal(c.rmsd, 1, 2)}"></td>
+
+							<td z:text="${t.asym_id}"></td>
+							<td z:text="${#numbers.formatDecimal(t.rmsd, 1, 2)}"></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<div z:if="${not data}" class="container">
+
+		<div class="accordion" id="accordionTables">
+
+			<div class="accordion-item">
+				<h2 class="accordion-header" id="headingOne">
+					<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+						data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+						List of compounds
+					</button>
+				</h2>
+
+				<div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne"
+					data-bs-parent="#accordionTables">
+					<div class="accordion-body">
+						<table class="table table-sm table-hover" id="compound-table">
+							<thead>
+								<tr>
+									<th>Compound</th>
+									<th>Analogue</th>
+									<th># of structures</th>
+									<th># of transplants</th>
+								</tr>
+							</thead>
+
+							<tbody>
+								<tr z:each="c, i: ${compounds}">
+									<td z:text="${c.id}"></td>
+									<td z:text="${c.analogue}"></td>
+									<td z:text="${c.structure-count}"></td>
+									<td z:text="${c.transplant-count}"></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+		</div>
+		<div class="accordion-item">
+			<h2 class="accordion-header" id="headingTwo">
+				<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+					data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+					List of Structures
+				</button>
+			</h2>
+
+			<div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo"
+				data-bs-parent="#accordionTables">
+				<div class="accordion-body">
+					<table class="table table-sm table-hover" id="structure-table"
+						z:fragment="structure-table-fragment">
+						<thead>
+							<tr>
+								<th>AF-Structure</th>
+								<th># of PDB hits</th>
+								<th># of transplants</th>
+								<th># of distinct analogues</th>
+							</tr>
+						</thead>
+
+						<tbody>
+							<tr z:each="c, i: ${structures}" class="structure-row" z:data-row-id="${c.name}">
+								<td z:text="${c.name}"></td>
+								<td z:text="${c.hit-count}"></td>
+								<td z:text="${c.transplant-count}"></td>
+								<td z:text="${c.distinct-analogues}"></td>
+							</tr>
+						</tbody>
+					</table>
+
+					<nav aria-label="paging structures">
+						<ul class="pagination pagination-sm" id="stable-pager">
+							<li class="page-item disabled" data-page-id="previous">
+								<a class="page-link">Previous</a>
+							</li>
+							<li class="page-item disabled">
+								<a class="page-link">...</a>
+							</li>
+							<li class="page-item" z:each="p: ${ { 1, 2, 3, 4, 5 } }"
+								z:classappend="${p == page ? 'active'}" z:data-page-id="${p}">
+								<a class="page-link" z:text="${p}"></a>
+							</li>
+							<li class="page-item disabled">
+								<a class="page-link">...</a>
+							</li>
+							<li class="page-item" data-page-id="next">
+								<a class="page-link">Next</a>
+							</li>
+						</ul>
+					</nav>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+
+</html>

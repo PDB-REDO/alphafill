@@ -94,6 +94,41 @@ std::vector<structure> data_service::get_structures(uint32_t page, uint32_t page
 	return structures;
 }
 
+std::vector<structure> data_service::get_structures_for_compound(const std::string &compound, uint32_t page, uint32_t pageSize) const
+{
+	pqxx::work tx(db_connection::instance());
+
+	const std::regex rx("AF-(.+?)-F1");
+
+	std::vector<structure> structures;
+	for (auto const& [structure_id, hit_count, transplant_count, distinct]:
+		tx.stream<std::string,uint32_t, uint32_t, uint32_t>(
+		R"(select s.name,
+		          count(distinct h.id) as hit_count,
+				  count(distinct t.id) as transplant_count,
+				  count(distinct t.analogue_id) as dist_transplant_count
+			 from af_structure s
+			 join af_pdb_hit h on s.id = h.af_id
+			 join af_transplant t on t.hit_id = h.id
+			where t.analogue_id = )" + tx.quote(compound) + R"(
+			   or t.compound_id = )" + tx.quote(compound) + R"(
+			group by s.name
+			order by hit_count desc
+			offset )" + std::to_string(page * pageSize) + R"( rows
+			fetch first )" + std::to_string(pageSize) + R"( rows only)"))
+	{
+		std::smatch m;
+		if (std::regex_match(structure_id, m, rx))
+			structures.emplace_back(structure{ m[1], hit_count, transplant_count, distinct });
+		else
+			structures.emplace_back(structure{ structure_id, hit_count, transplant_count, distinct });
+	}
+
+	tx.commit();
+
+	return structures;
+}
+
 uint32_t data_service::count_structures() const
 {
 	pqxx::work tx(db_connection::instance());

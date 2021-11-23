@@ -13,10 +13,11 @@ module.exports = {
 
 	mode: "development",
 	entry: {
-		'af-style': SCSS + "af-style.scss",
 		'pdb-redo-bootstrap': SCSS + "pdb-redo-bootstrap.scss",
 		'molstar': SCRIPTS + "molstar.tsx",
 		'index': SCRIPTS + "index.js",
+		'model': SCRIPTS + "model.js",
+		'lists': SCRIPTS + "lists.js",
 	},
 
 	output: {
