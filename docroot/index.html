@@ -3,14 +3,6 @@
 
 <head z:replace="~{head :: head(~{::title}, ~{::link}, ~{::script})}">
 	<title>AlphaFold Filled</title>
-
-	<link rel="stylesheet" type="text/css" href="css/molstar.css" />
-
-	<script z:inline="javascript">
-		const AF_ID = /*[[${af_id}]]*/ null;
-	</script>
-
-	<script defer="defer" type="text/javascript" src="scripts/model.js"></script>
 </head>
 
 <body class="site">
@@ -24,8 +16,8 @@
 
 		<form z:action="@{/model}">
 			<div class="input-group mt-5 mb-5">
-				<span class="input-group-text" id="search-af">Alphafold ID</span>
-				<input type="text" class="form-control" placeholder="Search for alphafold ID" aria-label="Alphafold ID"
+				<span class="input-group-text" id="search-af">AlphaFold ID</span>
+				<input type="text" class="form-control" placeholder="Search for alphafold ID" aria-label="AlphaFold ID"
 					name="id" aria-describedby="search-af" />
 			</div>
 		</form>

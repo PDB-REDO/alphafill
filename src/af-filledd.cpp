@@ -340,10 +340,14 @@ class affd_rest_controller : public zh::rest_controller
 	{
 		map_get_request("aff/{id}", &affd_rest_controller::get_aff_structure, "id");
 		map_get_request("aff/{id}/json", &affd_rest_controller::get_aff_structure_json, "id");
+
+		map_get_request("aff/{id}/stripped/{asymlist}", &affd_rest_controller::get_aff_structure_stripped, "id", "asymlist");
 	}
 
 	zh::reply get_aff_structure(const std::string &id);
 	zeep::json::element get_aff_structure_json(const std::string &id);
+
+	zh::reply get_aff_structure_stripped(const std::string &id, const std::string &asyms);
 
 	fs::path mDbDir;
 };
@@ -382,6 +386,61 @@ zh::reply affd_rest_controller::get_aff_structure(const std::string &id)
 
 	return rep;
 }
+
+zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &id, const std::string &asyms)
+{
+	using namespace cif::literals;
+
+	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
+
+	fs::path file = mDbDir / ("AF-" + id + "-F1-model_v1.cif.gz");
+
+	if (not fs::exists(file))
+		return zeep::http::reply(zeep::http::not_found, { 1, 1 });
+
+	std::set<std::string> requestedAsyms;
+	ba::split(requestedAsyms, asyms, ba::is_any_of(","));
+	
+	cif::File cif(file);
+	auto &db = cif.firstDatablock();
+
+	cif.loadDictionary("mmcif_pdbx_v50");
+
+	auto &struct_asym = db["struct_asym"];
+	auto &atom_site = db["atom_site"];
+	
+	std::set<std::string> existingAsyms;
+	for (const auto &[asymID] : struct_asym.rows<std::string>("id"))
+		existingAsyms.insert(asymID);
+
+	std::vector<std::string> toBeRemoved;
+	std::set_difference(existingAsyms.begin(), existingAsyms.end(), requestedAsyms.begin(), requestedAsyms.end(), std::back_insert_iterator(toBeRemoved));
+
+	for (auto &asymID : toBeRemoved)
+	{
+		struct_asym.erase("id"_key == asymID);
+		atom_site.erase("label_asym_id"_key == asymID);
+	}
+
+	io::filtering_stream<io::output> out;
+
+	if (get_header("accept-encoding").find("gzip") != std::string::npos)
+	{
+		out.push(io::gzip_compressor());
+		rep.set_header("content-encoding", "gzip");
+	}
+
+	std::unique_ptr<std::iostream> s(new std::stringstream);
+	out.push(*s.get());
+
+	cif.save(out);
+
+	rep.set_content(s.release(), "text/plain");
+	// rep.set_header("content-disposition", "attachement; filename = \"AF-" + id + "-F1-model_v1.cif\"");
+
+	return rep;
+}
+
 
 zeep::json::element affd_rest_controller::get_aff_structure_json(const std::string &id)
 {

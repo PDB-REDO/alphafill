@@ -11,6 +11,7 @@ import { PluginConfig } from 'molstar/lib/mol-plugin/config';
 import { PluginLayoutControlsDisplay } from 'molstar/lib/mol-plugin/layout';
 import { Script } from "molstar/lib/mol-script/script";
 import { Asset } from 'molstar/lib/mol-util/assets';
+import { PluginCommands } from 'molstar/lib/mol-plugin/commands'
 import "regenerator-runtime/runtime";
 
 export { PLUGIN_VERSION as version } from 'molstar/lib/mol-plugin/version';
@@ -107,6 +108,11 @@ export class Viewer {
 	}
 
 	loadStructureFromUrl(url: string, format: BuiltInTrajectoryFormat = 'mmcif', isBinary = false, options?: LoadStructureOptions) {
+
+		if (this.plugin.managers.structure.hierarchy.current.structures.length > 0) {
+			PluginCommands.State.RemoveObject(this.plugin, { state: this.plugin.state.data, ref: this.plugin.state.data.tree.root.ref, removeParentGhosts: true });
+		}
+
 		const params = DownloadStructure.createDefaultParams(this.plugin.state.data.root.obj!, this.plugin);
 		return this.plugin.runTask(this.plugin.state.data.applyAction(DownloadStructure, {
 			source: {
