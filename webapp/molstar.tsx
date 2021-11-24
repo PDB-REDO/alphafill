@@ -1,10 +1,8 @@
 import "core-js/stable";
 import 'molstar/build/viewer/molstar.css';
-import { G3dProvider } from 'molstar/lib/extensions/g3d/format';
 import { StructureSelection } from "molstar/lib/mol-model/structure";
 import { DownloadStructure } from 'molstar/lib/mol-plugin-state/actions/structure';
 import { StructureRepresentationPresetProvider } from 'molstar/lib/mol-plugin-state/builder/structure/representation-preset';
-import { DataFormatProvider } from 'molstar/lib/mol-plugin-state/formats/provider';
 import { BuiltInTrajectoryFormat } from 'molstar/lib/mol-plugin-state/formats/trajectory';
 import { createPlugin } from 'molstar/lib/mol-plugin-ui';
 import { PluginUIContext } from 'molstar/lib/mol-plugin-ui/context';
@@ -146,7 +144,6 @@ export class Viewer {
 			this.plugin.managers.camera.focusLoci(loci);
 		}
 	}
-	
 }
 
 export interface LoadStructureOptions {
