@@ -169,9 +169,32 @@ header div.second div.clear {
 	Other stuff
 */
 
+.site {
+	display: flex;
+	min-height: 100vh;
+	height: 100%;
+	flex-direction: column;
+}
+
+.site header, .site footer {
+	flex: none;
+}
+
+.site-content {
+	flex: 1 0 auto;
+	padding: var(--space) var(--space) 0;
+	width: 100%;
+}
+
+.site-content::after {
+	content: '\00a0'; /* &nbsp; */
+	display: block;
+	margin-top: var(--space);
+	height: 0px;
+	visibility: hidden;
+}
+
 footer {
-	/*position: absolute;*/
-	/*left: 0; right: 0; bottom: 0;*/
 	border-top: 1px solid #888;
 	padding: 0.5em;
 	margin-top: 2em;

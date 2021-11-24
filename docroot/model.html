@@ -13,13 +13,12 @@
 	<script defer="defer" type="text/javascript" src="scripts/model.js"></script>
 </head>
 	
-<body>
+<body class="site">
 
 	<header z:replace="header::top('model')"></header>
 
-	<div z:if="${data}" class="container">
+	<div class="container site-content">
 		<h2 z:text="${title}" class="mb-4"></h2>
-
 
 		<table class="table table-sm">
 			<tr>
@@ -79,101 +78,8 @@
 		</div>
 	</div>
 
-	<div z:if="${not data}" class="container">
+	<footer z:replace="~{footer::content}"></footer>
 
-		<div class="accordion" id="accordionTables">
-
-			<div class="accordion-item">
-				<h2 class="accordion-header" id="headingOne">
-					<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-						data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-						List of compounds
-					</button>
-				</h2>
-
-				<div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne"
-					data-bs-parent="#accordionTables">
-					<div class="accordion-body">
-						<table class="table table-sm table-hover" id="compound-table">
-							<thead>
-								<tr>
-									<th>Compound</th>
-									<th>Analogue</th>
-									<th># of structures</th>
-									<th># of transplants</th>
-								</tr>
-							</thead>
-
-							<tbody>
-								<tr z:each="c, i: ${compounds}">
-									<td z:text="${c.id}"></td>
-									<td z:text="${c.analogue}"></td>
-									<td z:text="${c.structure-count}"></td>
-									<td z:text="${c.transplant-count}"></td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-				</div>
-			</div>
-
-		</div>
-		<div class="accordion-item">
-			<h2 class="accordion-header" id="headingTwo">
-				<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-					data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-					List of Structures
-				</button>
-			</h2>
-
-			<div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo"
-				data-bs-parent="#accordionTables">
-				<div class="accordion-body">
-					<table class="table table-sm table-hover" id="structure-table"
-						z:fragment="structure-table-fragment">
-						<thead>
-							<tr>
-								<th>AF-Structure</th>
-								<th># of PDB hits</th>
-								<th># of transplants</th>
-								<th># of distinct analogues</th>
-							</tr>
-						</thead>
-
-						<tbody>
-							<tr z:each="c, i: ${structures}" class="structure-row" z:data-row-id="${c.name}">
-								<td z:text="${c.name}"></td>
-								<td z:text="${c.hit-count}"></td>
-								<td z:text="${c.transplant-count}"></td>
-								<td z:text="${c.distinct-analogues}"></td>
-							</tr>
-						</tbody>
-					</table>
-
-					<nav aria-label="paging structures">
-						<ul class="pagination pagination-sm" id="stable-pager">
-							<li class="page-item disabled" data-page-id="previous">
-								<a class="page-link">Previous</a>
-							</li>
-							<li class="page-item disabled">
-								<a class="page-link">...</a>
-							</li>
-							<li class="page-item" z:each="p: ${ { 1, 2, 3, 4, 5 } }"
-								z:classappend="${p == page ? 'active'}" z:data-page-id="${p}">
-								<a class="page-link" z:text="${p}"></a>
-							</li>
-							<li class="page-item disabled">
-								<a class="page-link">...</a>
-							</li>
-							<li class="page-item" data-page-id="next">
-								<a class="page-link">Next</a>
-							</li>
-						</ul>
-					</nav>
-				</div>
-			</div>
-		</div>
-	</div>
 </body>
 
 </html>

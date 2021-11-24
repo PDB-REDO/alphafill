@@ -13,10 +13,11 @@
 	<script defer="defer" type="text/javascript" src="scripts/model.js"></script>
 </head>
 
-<body>
+<body class="site">
+
 	<header z:replace="header::top('home')"></header>
 
-	<div class="container">
+	<div class="container site-content">
 
 		<h1 class="text-center fw-bold">AlphaFill</h1>
 		<h2 class="text-center fw-bold">AlphaFold models enriched with ligands and co-factors</h2>
@@ -36,6 +37,8 @@
 		<p>The AlphaFill databank contains all AlphaFold models including the transferred compounds (if present),
 			including metadata.</p>
 	</div>
+
+	<footer z:replace="~{footer::content}"></footer>
 
 </body>
 
