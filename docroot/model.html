@@ -60,12 +60,14 @@
 
 							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}" z:text="|${c.pdb_id}.${c.pdb_asym_id}|"></td>
 
-							<td z:classappend="${c.rmsd ge 5.0 ? 'bad-score' }">
+							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}" 
+								z:classappend="${c.rmsd ge 5.0 ? 'bad-score' }">
 								<span z:text="${#numbers.formatDecimal(c.rmsd, 1, 2)}"></span>
 								<span z:if="${c.rmsd ge 5.0}" class="float-end"><abbr title="This RMSd score is above the confidence level">?</abbr></span>
 							</td>
 
 							<td z:text="${t.asym_id}"></td>
+
 							<td z:classappend="${t.rmsd ge 1.0 ? 'bad-score' }">
 								<span z:text="${#numbers.formatDecimal(t.rmsd, 1, 2)}"></span>
 								<span z:if="${t.rmsd ge 1.0}" class="float-end"><abbr title="This RMSd score is above the confidence level">?</abbr></span>
