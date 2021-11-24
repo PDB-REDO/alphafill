@@ -23,16 +23,16 @@
 
 		<table class="table table-sm">
 			<tr>
-				<td>Original AlphaFold model</td>
-				<td><a z:href="|https://alphafold.ebi.ac.uk/entry/${af_id}|" z:text="|https://alphafold.ebi.ac.uk/entry/${af_id}|"></a></td>
-			</tr>
-			<tr>
 				<td>Structure file</td>
 				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}|" z:text="|https://alphafill.eu/v1/aff/${af_id}|"></a></td>
 			</tr>
 			<tr>
 				<td>Metadata</td>
 				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}/json|" z:text="|https://alphafill.eu/v1/aff/${af_id}/json|"></a></td>
+			</tr>
+			<tr>
+				<td>Original AlphaFold model</td>
+				<td><a z:href="|https://alphafold.ebi.ac.uk/entry/${af_id}|" z:text="|https://alphafold.ebi.ac.uk/entry/${af_id}|" target="_BLANK"></a></td>
 			</tr>
 		</table>
 
@@ -41,7 +41,7 @@
 
 			<div class="col">
 
-				<table class="table" id="transplant-table-by-compound">
+				<table class="table table-sm table-hover" id="transplant-table-by-compound">
 					<thead>
 						<tr>
 							<th><abbr title="Name of the compound that was transplanted by AlphaFill">Compound</abbr></th>
@@ -53,17 +53,23 @@
 					</thead>
 
 					<tbody>
-						<tr z:each="c,i: ${by_compound}" class="transplanted-row" z:with="t=${c.transplant}" z:data-asym-id="${t.asym_id}"
-							z:classappend="${t.rmsd ge 0.5 or c.rmsd ge 2.0 ? 'bad-score' }">
+						<tr z:each="c,i: ${by_compound}" class="transplanted-row" z:with="t=${c.transplant}" z:data-asym-id="${t.asym_id}">
 							<td z:if="${c.first-hit and c.first-transplant}" z:rowspan="${c.hit-count}"
 								z:text="${t.analogue_id == t.compound_id ? t.compound_id : |${t.compound_id} -&gt; ${t.analogue_id}|}">
 							</td>
 
 							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}" z:text="|${c.pdb_id}.${c.pdb_asym_id}|"></td>
-							<td z:if="${c.first-transplant" z:text="${#numbers.formatDecimal(c.rmsd, 1, 2)}"></td>
+
+							<td z:classappend="${c.rmsd ge 5.0 ? 'bad-score' }">
+								<span z:text="${#numbers.formatDecimal(c.rmsd, 1, 2)}"></span>
+								<span z:if="${c.rmsd ge 5.0}" class="float-end"><abbr title="This RMSd score is above the confidence level">?</abbr></span>
+							</td>
 
 							<td z:text="${t.asym_id}"></td>
-							<td z:text="${#numbers.formatDecimal(t.rmsd, 1, 2)}"></td>
+							<td z:classappend="${t.rmsd ge 1.0 ? 'bad-score' }">
+								<span z:text="${#numbers.formatDecimal(t.rmsd, 1, 2)}"></span>
+								<span z:if="${t.rmsd ge 1.0}" class="float-end"><abbr title="This RMSd score is above the confidence level">?</abbr></span>
+							</td>
 						</tr>
 					</tbody>
 				</table>

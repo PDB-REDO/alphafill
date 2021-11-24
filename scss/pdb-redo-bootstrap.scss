@@ -190,6 +190,8 @@ span.entry-id {
 	color: $nav-link;
 }
 
-tr.bad-score {
-	background-color: rgba(255, 0, 0, 0.111);
+td.bad-score {
+	background-color: rgba(255, 0, 0, 0.535);
+	color: white;
+	font-weight: bold;
 }

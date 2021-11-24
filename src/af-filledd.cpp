@@ -205,7 +205,7 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 
 	sub.put("data", data);
 
-	// reorder data for Tassos
+	// reorder data for Tassos & Robbie
 	
 	std::map<std::string,size_t> compoundIds;
 
@@ -213,11 +213,10 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 		for (auto &transplant : hit["transplants"])
 			compoundIds[transplant["compound_id"].as<std::string>()] += 1;
 
-	json byCompound;
+	std::vector<json> rows;
+
 	for (const auto &[compoundId, count] : compoundIds)
 	{
-		bool firstHit = true;
-
 		std::map<std::tuple<std::string,std::string>,size_t> transplantsPerHit;
 
 		for (auto &hit : data["hits"])
@@ -235,9 +234,6 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 		for (auto &hit : data["hits"])
 		{
 			auto key = std::make_tuple(hit["pdb_id"].as<std::string>(), hit["pdb_asym_id"].as<std::string>());
-			bool firstTransplant = key != lastKey;
-			lastKey = key;
-
 			size_t transplantCount = transplantsPerHit[key];
 
 			for (auto &transplant : hit["transplants"])
@@ -245,7 +241,7 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 				if (transplant["compound_id"] != compoundId)
 					continue;
 				
-				byCompound.push_back({
+				rows.push_back({
 					{ "compound_id", compoundId },
 					{ "pdb_id", hit["pdb_id"] },
 					{ "pdb_asym_id", hit["pdb_asym_id"] },
@@ -254,17 +250,56 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 					{ "rmsd", hit["rmsd"] },
 					{ "transplant-count", transplantCount },
 					{ "hit-count", count },
-					{ "first-hit", firstHit },
-					{ "first-transplant", firstTransplant },
 					{ "transplant", transplant }
 				});
-
-				firstTransplant = false;
-				firstHit = false;
 			}
 		}
 	}
 
+	// sort the rows
+	std::sort(rows.begin(), rows.end(), [](json &a, json &b)
+	{
+		int d = a["compound_id"].as<std::string>().compare(b["compound_id"].as<std::string>());
+
+		if (d == 0)
+		{
+			if (a["pdb_id"] != b["pdb_id"] or a["pdb_asym_id"] != b["pdb_asym_id"])
+			{
+				auto fd = a["rmsd"].as<double>() - b["rmsd"].as<double>();
+				if (fd != 0)
+					d = std::signbit(fd) ? -1 : 1;
+			}
+			else
+			{
+				auto fd = a["transplant"]["rmsd"].as<double>() - b["transplant"]["rmsd"].as<double>();
+				if (fd != 0)
+					d = std::signbit(fd) ? -1 : 1;
+			}
+		}
+
+		return d < 0;
+	});
+
+	std::string lastCompound, lastPDBID, lastAsymID;
+	for (auto &row : rows)
+	{
+		if (row["compound_id"] != lastCompound)
+		{
+			row["first-hit"] = true;
+			lastCompound = row["compound_id"].as<std::string>();
+			lastPDBID.clear();
+		}
+
+		if (row["pdb_id"] != lastPDBID or row["pdb_asym_id"] != lastAsymID)
+		{
+			row["first-transplant"] = true;
+			lastPDBID = row["pdb_id"].as<std::string>();
+			lastAsymID = row["pdb_asym_id"].as<std::string>();
+		}
+	}
+
+	json byCompound;
+	to_element(byCompound, rows);
 	sub.put("by_compound", byCompound);
 
 	using namespace cif::literals;
