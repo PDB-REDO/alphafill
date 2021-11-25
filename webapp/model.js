@@ -32,15 +32,7 @@ function updateModel(viewer, cbs, showAllCB) {
 
 window.addEventListener('load', () => {
 
-	const viewer = new Viewer(document.getElementById('app'), {
-		layoutIsExpanded: false,
-		layoutShowControls: false,
-		viewportShowExpand: false,
-		collapseLeftPanel: true,
-		pixelScale: 1,
-		pickScale: 0.25,
-		pickPadding: 1,
-	});
+	const viewer = new Viewer(document.getElementById('app'));
 
 	const showAllCB = document.getElementById('show-all');
 
