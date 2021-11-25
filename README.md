@@ -14,7 +14,7 @@ In order to build alphafill, you need to have a modern C++ compiler (c++17), a r
 - libpq, the PostgreSQL library
 - [libpqxx](http://www.pqxx.org/) version 7.2 or higher
 
-And then you also need [yarn](https://yarnpkg.com/) to package the data for the web interface. Additionally you need [mrs](https://github.com/mhekkel/mrs) to package all the runtime data into resources in the final excutable.
+And then you also need [yarn](https://yarnpkg.com/) to package the data for the web interface. Additionally you need [mrc](https://github.com/mhekkel/mrc) to package all the runtime data into resources in the final excutable.
 
 Once all the requirements are met, building is as simple as:
 
