@@ -810,6 +810,13 @@ int a_main(int argc, const char *argv[])
 	if (vm.count("pdb-id-list"))
 	{
 		std::ifstream file(vm["pdb-id-list"].as<std::string>());
+
+		if (not file.is_open())
+		{
+			std::cerr << "Could not open pdb-id-list " << vm["pdb-id-list"].as<std::string>() << std::endl;
+			exit(1);
+		}
+
 		std::string line;
 		while (std::getline(file, line))
 			pdbIDsContainingLigands.insert(line);
