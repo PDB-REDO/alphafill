@@ -42,18 +42,61 @@ std::vector<compound> data_service::get_compounds() const
 	pqxx::work tx(db_connection::instance());
 
 	std::vector<compound> compounds;
-	for (auto const& [compound_id, analogue_id, s_count, t_count]:
-		tx.stream<std::string,std::string,uint32_t, uint32_t>(
-		R"(select t.compound_id,
+	for (auto const& [compound_id, analogue_id, s_count_35, t_count_35, s_count_50, t_count_50, s_count_70, t_count_70 ]:
+		tx.stream<std::string,std::string,uint32_t, uint32_t,uint32_t, uint32_t,uint32_t, uint32_t>(
+		R"(
+		 select x.compound_id,
+		        x.analogue_id,
+				max(s_count_35),
+				max(t_count_35),
+				max(s_count_50),
+				max(t_count_50),
+				max(s_count_70),
+				max(t_count_70)
+		   from (
+		 select t.compound_id,
 		        t.analogue_id,
-				count(distinct h.af_id) as s_count,
-				count(distinct t.id) as t_count
+				count(distinct h.af_id) as s_count_35,
+				count(distinct t.id) as t_count_35,
+				0 as s_count_50,
+				0 as t_count_50,
+				0 as s_count_70,
+				0 as t_count_70
 		   from af_pdb_hit h
 		   join af_transplant t on h.id = t.hit_id
+		  where h.identity >= 0.35
 		  group by t.compound_id, t.analogue_id
-		  order by s_count desc)"))
+		  union
+		 select t.compound_id,
+		        t.analogue_id,
+				0 as s_count_35,
+				0 as t_count_35,
+				count(distinct h.af_id) as s_count_50,
+				count(distinct t.id) as t_count_50,
+				0 as s_count_70,
+				0 as t_count_70
+		   from af_pdb_hit h
+		   join af_transplant t on h.id = t.hit_id
+		  where h.identity >= 0.50
+		  group by t.compound_id, t.analogue_id
+		  union
+		 select t.compound_id,
+		        t.analogue_id,
+				0 as s_count_35,
+				0 as t_count_35,
+				0 as s_count_50,
+				0 as t_count_50,
+				count(distinct h.af_id) as s_count_70,
+				count(distinct t.id) as t_count_70
+		   from af_pdb_hit h
+		   join af_transplant t on h.id = t.hit_id
+		  where h.identity >= 0.70
+		  group by t.compound_id, t.analogue_id
+		  ) x
+		  group by x.compound_id, x.analogue_id
+	      order by x.compound_id asc)"))
 	{
-		compounds.emplace_back(compound{ compound_id, analogue_id, s_count, t_count });
+		compounds.emplace_back(compound{ compound_id, analogue_id, { s_count_35, s_count_50, s_count_70 }, { t_count_35, t_count_50, t_count_70 } });
 	}
 
 	tx.commit();
@@ -68,25 +111,77 @@ std::vector<structure> data_service::get_structures(uint32_t page, uint32_t page
 	const std::regex rx("AF-(.+?)-F1");
 
 	std::vector<structure> structures;
-	for (auto const& [structure_id, hit_count, transplant_count, distinct]:
-		tx.stream<std::string,uint32_t, uint32_t, uint32_t>(
-		R"(select s.name,
-		          count(distinct h.id) as hit_count,
-				  count(distinct t.id) as transplant_count,
-				  count(distinct t.analogue_id) as dist_transplant_count
-			 from af_structure s
-			 join af_pdb_hit h on s.id = h.af_id
-			 join af_transplant t on t.hit_id = h.id
-			group by s.name
-			order by hit_count desc
+	for (auto const& [structure_id, hit_count_35, transplant_count_35, distinct_35, hit_count_50, transplant_count_50, distinct_50, hit_count_70, transplant_count_70, distinct_70]:
+		tx.stream<std::string,uint32_t, uint32_t, uint32_t,uint32_t, uint32_t, uint32_t,uint32_t, uint32_t, uint32_t>(
+		R"(select name,
+				max(hit_count_35) as max_hit_count_35,
+				max(transplant_count_35) as max_transplant_count_35,
+				max(distinct_35) as max_distinct_35,
+				max(hit_count_50) as max_hit_count_50,
+				max(transplant_count_50) as max_transplant_count_50,
+				max(distinct_50) as max_distinct_50,
+				max(hit_count_70) as max_hit_count_70,
+				max(transplant_count_70) as max_transplant_count_70,
+				max(distinct_70) as max_distinct_70
+			from (
+					select s.name as name,
+							count(distinct h.id) as hit_count_35,
+							count(distinct t.id) as transplant_count_35,
+							count(distinct t.analogue_id) as distinct_35,
+							0 as hit_count_50,
+							0 as transplant_count_50,
+							0 as distinct_50,
+							0 as hit_count_70,
+							0 as transplant_count_70,
+							0 as distinct_70
+						from af_structure s
+						join af_pdb_hit h on s.id = h.af_id
+						join af_transplant t on t.hit_id = h.id
+						where h.identity >= 0.35
+						group by s.name
+						union
+					select s.name as name,
+							0 as hit_count_35,
+							0 as transplant_count_35,
+							0 as distinct_35,
+							count(distinct h.id) as hit_count_50,
+							count(distinct t.id) as transplant_count_50,
+							count(distinct t.analogue_id) as distinct_50,
+							0 as hit_count_70,
+							0 as transplant_count_70,
+							0 as distinct_70
+						from af_structure s
+						join af_pdb_hit h on s.id = h.af_id
+						join af_transplant t on t.hit_id = h.id
+						where h.identity >= 0.5
+						group by s.name
+						union
+					select s.name as name,
+							0 as hit_count_35,
+							0 as transplant_count_35,
+							0 as distinct_35,
+							0 as hit_count_50,
+							0 as transplant_count_50,
+							0 as distinct_50,
+							count(distinct h.id) as hit_count_70,
+							count(distinct t.id) as transplant_count_70,
+							count(distinct t.analogue_id) as distinct_70
+						from af_structure s
+						join af_pdb_hit h on s.id = h.af_id
+						join af_transplant t on t.hit_id = h.id
+						where h.identity >= 0.7
+						group by s.name
+			) x
+			group by x.name
+			order by max_hit_count_35 desc, name asc
 			offset )" + std::to_string(page * pageSize) + R"( rows
 			fetch first )" + std::to_string(pageSize) + R"( rows only)"))
 	{
 		std::smatch m;
 		if (std::regex_match(structure_id, m, rx))
-			structures.emplace_back(structure{ m[1], hit_count, transplant_count, distinct });
+			structures.emplace_back(structure{ m[1], { hit_count_35, hit_count_50, hit_count_70 }, { transplant_count_35, transplant_count_50, transplant_count_70 }, { distinct_35, distinct_50, distinct_70 } });
 		else
-			structures.emplace_back(structure{ structure_id, hit_count, transplant_count, distinct });
+			structures.emplace_back(structure{ structure_id, { hit_count_35, hit_count_50, hit_count_70 }, { transplant_count_35, transplant_count_50, transplant_count_70 }, { distinct_35, distinct_50, distinct_70 } });
 	}
 
 	tx.commit();

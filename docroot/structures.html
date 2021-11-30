@@ -28,7 +28,19 @@
 		<table class="table table-sm table-hover" id="structure-table" z:fragment="structure-table-fragment">
 			<thead>
 				<tr>
+					<th></th>
+					<th colspan="3">35% identity</th>
+					<th colspan="3">50% identity</th>
+					<th colspan="3">70% identity</th>
+				</tr>
+				<tr>
 					<th>Structure ID</th>
+					<th># of PDB-REDO hits</th>
+					<th># of transplants</th>
+					<th># of distinct analogues</th>
+					<th># of PDB-REDO hits</th>
+					<th># of transplants</th>
+					<th># of distinct analogues</th>
 					<th># of PDB-REDO hits</th>
 					<th># of transplants</th>
 					<th># of distinct analogues</th>
@@ -36,11 +48,17 @@
 			</thead>
 
 			<tbody>
-				<tr z:each="c, i: ${structures}" class="structure-row" z:data-row-id="${c.name}">
+				<tr z:each="c, i: ${structures}" class="structure-row" z:data-row-id="${c.name}" role="button">
 					<td z:text="${c.name}"></td>
-					<td z:text="${c.hit-count}"></td>
-					<td z:text="${c.transplant-count}"></td>
-					<td z:text="${c.distinct-analogues}"></td>
+					<td z:text="${c.hit-count[0]}"></td>
+					<td z:text="${c.transplant-count[0]}"></td>
+					<td z:text="${c.distinct-analogues[0]}"></td>
+					<td z:text="${c.hit-count[1]}"></td>
+					<td z:text="${c.transplant-count[1]}"></td>
+					<td z:text="${c.distinct-analogues[1]}"></td>
+					<td z:text="${c.hit-count[2]}"></td>
+					<td z:text="${c.transplant-count[2]}"></td>
+					<td z:text="${c.distinct-analogues[2]}"></td>
 				</tr>
 			</tbody>
 		</table>
@@ -48,20 +66,20 @@
 		<nav aria-label="paging structures">
 			<ul class="pagination pagination-sm" id="stable-pager">
 				<li class="page-item disabled" data-page-id="previous">
-					<a class="page-link">Previous</a>
+					<a class="page-link" role="button">Previous</a>
 				</li>
 				<li class="page-item disabled">
-					<a class="page-link">...</a>
+					<a class="page-link" role="button">...</a>
 				</li>
 				<li class="page-item" z:each="p: ${ { 1, 2, 3, 4, 5 } }" z:classappend="${p == page ? 'active'}"
 					z:data-page-id="${p}">
-					<a class="page-link" z:text="${p}"></a>
+					<a class="page-link" role="button" z:text="${p}"></a>
 				</li>
 				<li class="page-item disabled">
-					<a class="page-link">...</a>
+					<a class="page-link" role="button">...</a>
 				</li>
 				<li class="page-item" data-page-id="next">
-					<a class="page-link">Next</a>
+					<a class="page-link" role="button">Next</a>
 				</li>
 			</ul>
 		</nav>

@@ -33,8 +33,8 @@ struct compound
 	std::string id;
 	std::string analogue;
 	// std::string name;
-	uint32_t count_structures;
-	uint32_t count_transplants;
+	std::array<uint32_t,3> count_structures;
+	std::array<uint32_t,3> count_transplants;
 
 	template<typename Archive>
 	void serialize(Archive &ar, unsigned long)
@@ -50,9 +50,9 @@ struct compound
 struct structure
 {
 	std::string name;
-	uint32_t count_hits;
-	uint32_t count_transplants;
-	uint32_t distinct_analogues;
+	std::array<uint32_t,3> count_hits;
+	std::array<uint32_t,3> count_transplants;
+	std::array<uint32_t,3> distinct_analogues;
 
 	template<typename Archive>
 	void serialize(Archive &ar, unsigned long)

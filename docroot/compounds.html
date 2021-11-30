@@ -31,19 +31,33 @@
 		<table class="table table-sm table-hover" id="compound-table">
 			<thead>
 				<tr>
+					<th colspan="2"></th>
+					<th colspan="2">35% identity</th>
+					<th colspan="2">50% identity</th>
+					<th colspan="2">70% identity</th>
+				</tr>
+				<tr>
 					<th>Compound</th>
 					<th>Analogue</th>
+					<th># of structures</th>
+					<th># of transplants</th>
+					<th># of structures</th>
+					<th># of transplants</th>
 					<th># of structures</th>
 					<th># of transplants</th>
 				</tr>
 			</thead>
 
 			<tbody>
-				<tr z:each="c, i: ${compounds}" z:data-id="${c.id}" class="compound-row">
+				<tr z:each="c, i: ${compounds}" z:data-id="${c.id}" class="compound-row" role="button">
 					<td z:text="${c.id}"></td>
 					<td z:text="${c.analogue}"></td>
-					<td z:text="${c.structure-count}"></td>
-					<td z:text="${c.transplant-count}"></td>
+					<td z:text="${c.structure-count[0]}"></td>
+					<td z:text="${c.transplant-count[0]}"></td>
+					<td z:text="${c.structure-count[1]}"></td>
+					<td z:text="${c.transplant-count[1]}"></td>
+					<td z:text="${c.structure-count[2]}"></td>
+					<td z:text="${c.transplant-count[2]}"></td>
 				</tr>
 			</tbody>
 		</table>
