@@ -120,8 +120,8 @@ void affd_html_controller::structures(const zh::request& request, const zh::scop
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
-	if (identity < 0)
-		identity = 0;
+	if (identity < 35)
+		identity = 35;
 	if (identity > 100)
 		identity = 100;
 
@@ -163,8 +163,8 @@ void affd_html_controller::structures_table(const zh::request& request, const zh
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
-	if (identity < 0)
-		identity = 0;
+	if (identity < 35)
+		identity = 35;
 	if (identity > 100)
 		identity = 100;
 
@@ -193,8 +193,8 @@ void affd_html_controller::compounds(const zh::request& request, const zh::scope
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
-	if (identity < 0)
-		identity = 0;
+	if (identity < 35)
+		identity = 35;
 	if (identity > 100)
 		identity = 100;
 
