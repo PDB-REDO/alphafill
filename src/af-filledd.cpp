@@ -325,13 +325,19 @@ class affd_rest_controller : public zh::rest_controller
 		map_get_request("aff/{id}", &affd_rest_controller::get_aff_structure, "id");
 		map_get_request("aff/{id}/json", &affd_rest_controller::get_aff_structure_json, "id");
 
-		map_get_request("aff/{id}/stripped/{asymlist}", &affd_rest_controller::get_aff_structure_stripped, "id", "asymlist");
+		map_get_request("aff/{id}/stripped/{asymlist}", &affd_rest_controller::get_aff_structure_stripped_def, "id", "asymlist");
+		map_get_request("aff/{id}/stripped/{asymlist}/{identity}", &affd_rest_controller::get_aff_structure_stripped, "id", "asymlist", "identity");
 	}
 
 	zh::reply get_aff_structure(const std::string &id);
 	zeep::json::element get_aff_structure_json(const std::string &id);
 
-	zh::reply get_aff_structure_stripped(const std::string &id, const std::string &asyms);
+	zh::reply get_aff_structure_stripped_def(const std::string &id, const std::string &asyms)
+	{
+		return get_aff_structure_stripped(id, asyms, 0);
+	}
+
+	zh::reply get_aff_structure_stripped(const std::string &id, const std::string &asyms, int identity);
 
 	fs::path mDbDir;
 };
@@ -371,7 +377,7 @@ zh::reply affd_rest_controller::get_aff_structure(const std::string &id)
 	return rep;
 }
 
-zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &id, const std::string &asyms)
+zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &id, const std::string &asyms, int identity)
 {
 	using namespace cif::literals;
 
@@ -384,7 +390,32 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &id
 
 	std::set<std::string> requestedAsyms;
 	ba::split(requestedAsyms, asyms, ba::is_any_of(","));
-	
+
+	// optionally remove asyms whose blast origin's identity is too low
+	if (identity > 0)
+	{
+		using json = zeep::json::element;
+
+		fs::path jsonFile = mDbDir / ("AF-" + id + "-F1-model_v1.cif.json");
+
+		if (not fs::exists(jsonFile) /*or not fs::exists(cifFile)*/)
+			throw zeep::http::not_found;
+
+		json data;
+
+		std::ifstream is(jsonFile);
+		parse_json(is, data);
+
+		for (auto &hit : data["hits"])
+		{
+			if (hit["identity"].as<float>() >= identity * 0.01f)
+				continue;
+
+			for (auto &transplant : hit["transplants"])
+				requestedAsyms.erase(transplant["asym_id"].as<std::string>());
+		}
+	}
+
 	cif::File cif(file);
 	auto &db = cif.firstDatablock();
 

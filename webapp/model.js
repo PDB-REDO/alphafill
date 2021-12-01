@@ -27,7 +27,7 @@ function updateModel(viewer, cbs, showAllCB) {
 	
 	selected.push('A');
 	
-	return viewer.loadStructureFromUrl(`v1/aff/${AF_ID}/stripped/${selected.join(',')}`);
+	return viewer.loadStructureFromUrl(`v1/aff/${AF_ID}/stripped/${selected.join(',')}/${IDENTITY}`);
 }
 
 window.addEventListener('load', () => {
@@ -52,7 +52,8 @@ window.addEventListener('load', () => {
 		cb.addEventListener('change', () => updateModel(viewer, cbs, showAllCB));
 	});
 
-	viewer.loadStructureFromUrl(`/v1/aff/${AF_ID}`)
+	// viewer.loadStructureFromUrl(`/v1/aff/${AF_ID}`)
+	updateModel(viewer, cbs, showAllCB)
 		.then(() => {
 			const rows = document.querySelectorAll("tr.transplanted-row");
 			[...rows].forEach(row => {
