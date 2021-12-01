@@ -74,4 +74,5 @@ class data_service
 	std::vector<structure> get_structures_for_compound(float min_identity, const std::string &compound, uint32_t page, uint32_t pageSize) const;
 
 	uint32_t count_structures(float min_identity) const;
+	uint32_t count_structures(float min_identity, const std::string &compound) const;
 };

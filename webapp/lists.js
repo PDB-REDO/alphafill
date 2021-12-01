@@ -90,6 +90,7 @@ class Pager {
 			const a = btn.querySelector('a');
 			a.textContent = pageNr;
 			btn.classList.toggle('active', pageNr == this.page);
+			btn.classList.toggle('d-none', pageNr > this.lastPage)
 		}
 	
 		this.buttons[this.buttons.length - 2].style.display = pageForBtn1 < this.lastPage - this.pageButtonCount ? '' : 'none';
@@ -127,6 +128,9 @@ window.addEventListener('load', () => {
 	const ibs = [...document.querySelectorAll("input[type='radio']")];
 	ibs.forEach(ib => {
 		const identity = ib.getAttribute('data-identity');
-		ib.addEventListener('click', () => window.location = `?identity=${identity}`)
+		if (typeof compound == 'string')
+			ib.addEventListener('click', () => window.location = `?identity=${identity}&compound=${compound}`)
+		else
+			ib.addEventListener('click', () => window.location = `?identity=${identity}`)
 	});
 })

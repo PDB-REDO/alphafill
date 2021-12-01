@@ -135,7 +135,10 @@ void affd_html_controller::structures(const zh::request& request, const zh::scop
 	to_element(structures, allstructures);
 	sub.put("structures", structures);
 
-	sub.put("structure-count", ds.count_structures(identity * 0.01f));
+	sub.put("structure-count",
+		compound.empty()
+			? ds.count_structures(identity * 0.01f)
+			: ds.count_structures(identity * 0.01f, compound));
 	sub.put("page-size", kPageSize);
 	sub.put("page", 1);
 	
