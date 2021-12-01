@@ -102,7 +102,7 @@ function setupTableLinks2() {
 	[...rows].forEach(row => {
 		row.addEventListener('click', () => {
 			const id = row.getAttribute('data-id');
-			window.location = `./structures?compound=${id}`;
+			window.location = `./structures?compound=${id}&identity=${IDENTITY}`;
 		})
 	});
 }
