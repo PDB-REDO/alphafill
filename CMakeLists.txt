@@ -133,7 +133,7 @@ find_package(Threads REQUIRED)
 
 set(Boost_DETAILED_FAILURE_MSG ON)
 
-find_package(zeep 5.1.5 REQUIRED)
+find_package(zeep 5.1.6 REQUIRED)
 find_package(cifpp REQUIRED)
 find_package(Boost COMPONENTS system date_time program_options regex iostreams)
 

@@ -71,5 +71,12 @@ window.addEventListener('load', () => {
 			});
 		});
 
+	// identity buttons
+
+	const ibs = [...document.querySelectorAll("input[type='radio']")];
+	ibs.forEach(ib => {
+		const identity = ib.getAttribute('data-identity');
+		ib.addEventListener('click', () => window.location = `model?id=${AF_ID}&identity=${identity}`)
+	});
 
 })

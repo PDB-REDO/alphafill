@@ -96,6 +96,7 @@ void affd_html_controller::welcome(const zh::request& request, const zh::scope& 
 	{
 		zeep::http::uri uri(request.get_uri());
 		std::string afId = request.get_parameter("id");
+
 		reply = zeep::http::reply::redirect(uri.get_path().string() + "model?id=" + zeep::http::encode_url(afId));
 		return;
 	}
@@ -184,6 +185,13 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 		throw zeep::http::not_found;
 
 	std::string afId = request.get_parameter("id");
+	int identity = std::stoi(request.get_parameter("identity", "35"));
+	if (identity < 35)
+		identity = 35;
+	if (identity > 100)
+		identity = 100;
+
+	sub.put("identity", identity);
 
 	std::regex rx(R"((?:AF-)?(.+?)(?:-F1(?:-model_v1)?)?)");
 	std::smatch m;
@@ -195,7 +203,7 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 	fs::path jsonFile = mDbDir / ("AF-" + afId + "-F1-model_v1.cif.json");
 	fs::path cifFile = mDbDir / ("AF-" + afId + "-F1-model_v1.cif.gz");
 
-	if (not fs::exists(jsonFile) or not fs::exists(cifFile))
+	if (not fs::exists(jsonFile) /*or not fs::exists(cifFile)*/)
 		throw zeep::http::not_found;
 
 	json data;
@@ -203,7 +211,8 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 	std::ifstream is(jsonFile);
 	parse_json(is, data);
 
-	sub.put("data", data);
+	auto &hits = data["hits"];
+	hits.erase(std::remove_if(hits.begin(), hits.end(), [cutoff=identity*0.01f](json &hit) { return hit["identity"].as<float>() < cutoff; }), hits.end());
 
 	// reorder data for Tassos & Robbie
 	
@@ -304,10 +313,17 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 
 	using namespace cif::literals;
 
-	cif::File file(cifFile);
+	try
+	{
+		cif::File file(cifFile);
 
-	std::string title = file.firstDatablock()["entity"].find1<std::string>("id"_key == 1, "pdbx_description");
-	sub.put("title", title);
+		std::string title = file.firstDatablock()["entity"].find1<std::string>("id"_key == 1, "pdbx_description");
+		sub.put("title", title);
+	}
+	catch(const std::exception& e)
+	{
+		sub.put("title", e.what());
+	}
 
 	get_server().get_template_processor().create_reply_from_template("model", sub, reply);
 }
