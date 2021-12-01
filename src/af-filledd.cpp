@@ -211,99 +211,67 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 	std::ifstream is(jsonFile);
 	parse_json(is, data);
 
-	auto &hits = data["hits"];
-	hits.erase(std::remove_if(hits.begin(), hits.end(), [cutoff=identity*0.01f](json &hit) { return hit["identity"].as<float>() < cutoff; }), hits.end());
+	auto &dHits = data["hits"];
+	std::vector<json> hits;
+
+	std::copy_if(dHits.begin(), dHits.end(), std::back_inserter(hits), [cutoff=identity*0.01f](json &hit) { return hit["identity"].as<float>() >= cutoff; });
 
 	// reorder data for Tassos & Robbie
-	
-	std::map<std::string,size_t> compoundIds;
 
-	for (auto &hit : data["hits"])
+	std::map<std::string,size_t> compoundIDHitCounts;
+
+	for (auto &hit : hits)
 		for (auto &transplant : hit["transplants"])
-			compoundIds[transplant["compound_id"].as<std::string>()] += 1;
+			compoundIDHitCounts[transplant["compound_id"].as<std::string>()] += 1;
 
 	std::vector<json> rows;
 
-	for (const auto &[compoundId, count] : compoundIds)
+	for (const auto &[compoundID, count] : compoundIDHitCounts)
 	{
-		std::map<std::tuple<std::string,std::string>,size_t> transplantsPerHit;
+		std::vector<json> hitsC;
 
-		for (auto &hit : data["hits"])
+		bool firstHit = true;
+
+		for (auto &hit : hits)
 		{
-			auto key = std::make_tuple(hit["pdb_id"].as<std::string>(), hit["pdb_asym_id"].as<std::string>());
-			for (auto &transplant : hit["transplants"])
+			json hitC = hit;
+
+			auto &hitTransplants = hitC["transplants"];
+
+			std::vector<json> transplants;
+			std::copy_if(hitTransplants.begin(), hitTransplants.end(), std::back_inserter(transplants), [id=compoundID] (json &t) { return t["compound_id"] == id; });
+
+			if (transplants.empty())
+				continue;
+
+			std::sort(transplants.begin(), transplants.end(), [](json &a, json &b) {
+				int d = 0;
+				auto fd = a["rmsd"].as<double>() - b["rmsd"].as<double>();
+				if (fd != 0)
+					d = std::signbit(fd) ? -1 : 1;
+				return d < 0;
+			});
+
+			bool firstTransplant = true;
+			for (auto &transplant : transplants)
 			{
-				if (transplant["compound_id"] == compoundId)
-					transplantsPerHit[key] += 1;
-			}
-		}
-
-		std::tuple<std::string,std::string> lastKey;
-
-		for (auto &hit : data["hits"])
-		{
-			auto key = std::make_tuple(hit["pdb_id"].as<std::string>(), hit["pdb_asym_id"].as<std::string>());
-			size_t transplantCount = transplantsPerHit[key];
-
-			for (auto &transplant : hit["transplants"])
-			{
-				if (transplant["compound_id"] != compoundId)
-					continue;
-				
 				rows.push_back({
-					{ "compound_id", compoundId },
+					{ "compound_id", compoundID },
 					{ "pdb_id", hit["pdb_id"] },
 					{ "pdb_asym_id", hit["pdb_asym_id"] },
 					{ "alignment_length", hit["alignment_length"] },
 					{ "identity", hit["identity"] },
 					{ "rmsd", hit["rmsd"] },
-					{ "transplant-count", transplantCount },
+					{ "transplant-count", transplants.size() },
+					{ "first-hit", firstHit },
 					{ "hit-count", count },
-					{ "transplant", transplant }
+					{ "transplant", transplant },
+					{ "first-transplant", firstTransplant }
 				});
+
+				firstHit = false;
+				firstTransplant = false;
 			}
-		}
-	}
-
-	// sort the rows
-	std::sort(rows.begin(), rows.end(), [](json &a, json &b)
-	{
-		int d = a["compound_id"].as<std::string>().compare(b["compound_id"].as<std::string>());
-
-		if (d == 0)
-		{
-			if (a["pdb_id"] != b["pdb_id"] or a["pdb_asym_id"] != b["pdb_asym_id"])
-			{
-				auto fd = a["rmsd"].as<double>() - b["rmsd"].as<double>();
-				if (fd != 0)
-					d = std::signbit(fd) ? -1 : 1;
-			}
-			else
-			{
-				auto fd = a["transplant"]["rmsd"].as<double>() - b["transplant"]["rmsd"].as<double>();
-				if (fd != 0)
-					d = std::signbit(fd) ? -1 : 1;
-			}
-		}
-
-		return d < 0;
-	});
-
-	std::string lastCompound, lastPDBID, lastAsymID;
-	for (auto &row : rows)
-	{
-		if (row["compound_id"] != lastCompound)
-		{
-			row["first-hit"] = true;
-			lastCompound = row["compound_id"].as<std::string>();
-			lastPDBID.clear();
-		}
-
-		if (row["pdb_id"] != lastPDBID or row["pdb_asym_id"] != lastAsymID)
-		{
-			row["first-transplant"] = true;
-			lastPDBID = row["pdb_id"].as<std::string>();
-			lastAsymID = row["pdb_asym_id"].as<std::string>();
 		}
 	}
 

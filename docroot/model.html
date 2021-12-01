@@ -93,6 +93,7 @@
 					<tbody>
 						<tr z:each="c,i: ${by_compound}" class="transplanted-row" z:with="t=${c.transplant}"
 							role="button" z:data-asym-id="${t.asym_id}">
+
 							<td z:if="${c.first-hit and c.first-transplant}" z:rowspan="${c.hit-count}"
 								z:text="${t.analogue_id == t.compound_id ? t.compound_id : |${t.compound_id} -&gt; ${t.analogue_id}|}">
 							</td>
