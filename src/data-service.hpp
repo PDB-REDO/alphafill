@@ -33,8 +33,8 @@ struct compound
 	std::string id;
 	std::string analogue;
 	// std::string name;
-	std::array<uint32_t,3> count_structures;
-	std::array<uint32_t,3> count_transplants;
+	uint32_t count_structures;
+	uint32_t count_transplants;
 
 	template<typename Archive>
 	void serialize(Archive &ar, unsigned long)
@@ -50,9 +50,9 @@ struct compound
 struct structure
 {
 	std::string name;
-	std::array<uint32_t,3> count_hits;
-	std::array<uint32_t,3> count_transplants;
-	std::array<uint32_t,3> distinct_analogues;
+	uint32_t count_hits;
+	uint32_t count_transplants;
+	uint32_t distinct_analogues;
 
 	template<typename Archive>
 	void serialize(Archive &ar, unsigned long)
@@ -69,9 +69,9 @@ class data_service
   public:
 	static data_service &instance();
 
-	std::vector<compound> get_compounds() const;
-	std::vector<structure> get_structures(uint32_t page, uint32_t pageSize) const;
-	std::vector<structure> get_structures_for_compound(const std::string &compound, uint32_t page, uint32_t pageSize) const;
+	std::vector<compound> get_compounds(float min_identity) const;
+	std::vector<structure> get_structures(float min_identity, uint32_t page, uint32_t pageSize) const;
+	std::vector<structure> get_structures_for_compound(float min_identity, const std::string &compound, uint32_t page, uint32_t pageSize) const;
 
-	uint32_t count_structures() const;
+	uint32_t count_structures(float min_identity) const;
 };

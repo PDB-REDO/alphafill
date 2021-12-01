@@ -116,15 +116,26 @@ void affd_html_controller::structures(const zh::request& request, const zh::scop
 	if (request.has_parameter("compound"))
 		compound = request.get_parameter("compound");
 
+	int identity = 0;
+	if (request.has_parameter("identity"))
+		identity = std::stoi(request.get_parameter("identity"));
+	
+	if (identity < 0)
+		identity = 0;
+	if (identity > 100)
+		identity = 100;
+
+	sub.put("identity", identity);
+
 	json structures;
 	auto allstructures = 
 		compound.empty()
-			? ds.get_structures(0, kPageSize)
-			: ds.get_structures_for_compound(compound, 0, kPageSize);
+			? ds.get_structures(identity * 0.01f, 0, kPageSize)
+			: ds.get_structures_for_compound(identity * 0.01f, compound, 0, kPageSize);
 	to_element(structures, allstructures);
 	sub.put("structures", structures);
 
-	sub.put("structure-count", ds.count_structures());
+	sub.put("structure-count", ds.count_structures(identity * 0.01f));
 	sub.put("page-size", kPageSize);
 	sub.put("page", 1);
 	
@@ -148,11 +159,22 @@ void affd_html_controller::structures_table(const zh::request& request, const zh
 	if (request.has_parameter("compound"))
 		compound = request.get_parameter("compound");
 
+	int identity = 0;
+	if (request.has_parameter("identity"))
+		identity = std::stoi(request.get_parameter("identity"));
+	
+	if (identity < 0)
+		identity = 0;
+	if (identity > 100)
+		identity = 100;
+
+	sub.put("identity", identity);
+
 	json structures;
 	auto allstructures = 
 		compound.empty()
-			? ds.get_structures(page, kPageSize)
-			: ds.get_structures_for_compound(compound, page, kPageSize);
+			? ds.get_structures(identity * 0.01f, page, kPageSize)
+			: ds.get_structures_for_compound(identity * 0.01f, compound, page, kPageSize);
 	to_element(structures, allstructures);
 	sub.put("structures", structures);
 
@@ -167,8 +189,19 @@ void affd_html_controller::compounds(const zh::request& request, const zh::scope
 
 	auto &ds = data_service::instance();
 
+	int identity = 0;
+	if (request.has_parameter("identity"))
+		identity = std::stoi(request.get_parameter("identity"));
+	
+	if (identity < 0)
+		identity = 0;
+	if (identity > 100)
+		identity = 100;
+
+	sub.put("identity", identity);
+
 	json compounds;
-	auto allCompounds = ds.get_compounds();
+	auto allCompounds = ds.get_compounds(identity * 0.01f);
 	to_element(compounds, allCompounds);
 	sub.put("compounds", compounds);
 

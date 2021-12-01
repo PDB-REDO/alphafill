@@ -58,7 +58,7 @@ class Pager {
 		if (page < 1)
 			page = 1;
 
-		fetch(`./structure-table-page?page=${page}${compound != null ? '&compound='+compound : ''}`, {
+		fetch(`./structure-table-page?page=${page}${compound != null ? '&compound='+compound : ''}&identity=${IDENTITY ? IDENTITY : 0}`, {
 			credentials: "include"
 		}).then(reply => {
 			if (reply.ok)
@@ -120,4 +120,13 @@ window.addEventListener('load', () => {
 	setupTableLinks();
 
 	setupTableLinks2();
+
+
+	// identity buttons
+
+	const ibs = [...document.querySelectorAll("input[type='radio']")];
+	ibs.forEach(ib => {
+		const identity = ib.getAttribute('data-identity');
+		ib.addEventListener('click', () => window.location = `?identity=${identity}`)
+	});
 })
