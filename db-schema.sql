@@ -10,7 +10,7 @@ create table af_structure (
 	af_file varchar not null
 );
 
-alter table af_structure owner to "af_admin";
+alter table af_structure owner to "$OWNER";
 
 create table af_pdb_hit (
 	id serial primary key,
@@ -22,7 +22,7 @@ create table af_pdb_hit (
 	rmsd float
 );
 
-alter table af_pdb_hit owner to "af_admin";
+alter table af_pdb_hit owner to "$OWNER";
 
 create table af_transplant (
 	id serial primary key,
@@ -34,9 +34,9 @@ create table af_transplant (
 	rmsd float
 );
 
-alter table af_transplant owner to "af_admin";
+alter table af_transplant owner to "$OWNER";
 
 -- indices
 
-create index hit_identity_ix on af_pdb_hit(identity);
-create index hit_af_id_ix on af_pdb_hit(af_id);
+-- create index hit_identity_ix on af_pdb_hit(identity);
+-- create index hit_af_id_ix on af_pdb_hit(af_id);

@@ -510,8 +510,10 @@ zeep::json::element affd_rest_controller::get_aff_structure_json(const std::stri
 
 // --------------------------------------------------------------------
 
-int rebuild_db(fs::path db_dir)
+int rebuild_db(fs::path db_dir, const std::string &db_user)
 {
+	data_service::instance().reinit(db_user);
+
 	std::vector<fs::path> files;
 	for (auto di = fs::directory_iterator(db_dir); di != fs::directory_iterator(); ++di)
 	{
@@ -650,12 +652,16 @@ int main(int argc, char* const argv[])
 			throw std::runtime_error("db-dir does not exist");
 
 		std::vector<std::string> vConn;
+		std::string db_user;
 		for (std::string opt: { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
 		{
 			if (vm.count(opt) == 0)
 				continue;
 			
 			vConn.push_back(opt.substr(3) + "=" + vm[opt].as<std::string>());
+
+			if (opt == "db-user")
+				db_user = vm[opt].as<std::string>();
 		}
 
 		db_connection::init(ba::join(vConn, " "));
@@ -663,7 +669,7 @@ int main(int argc, char* const argv[])
 		// --------------------------------------------------------------------
 		
 		if (vm.count("rebuild-db"))
-			return rebuild_db(dbDir);
+			return rebuild_db(dbDir, db_user);
 
 		if (vm.count("help") or vm.count("command") == 0 or vm.count("db-dir") == 0)
 		{

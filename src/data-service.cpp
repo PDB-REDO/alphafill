@@ -26,8 +26,14 @@
 
 #include <regex>
 
+#include <boost/algorithm/string.hpp>
+
+#include "mrsrc.hpp"
+
 #include "data-service.hpp"
 #include "db-connection.hpp"
+
+namespace ba = boost::algorithm;
 
 // --------------------------------------------------------------------
 
@@ -168,3 +174,36 @@ uint32_t data_service::count_structures(float min_identity, const std::string &c
 	return r.front().as<uint32_t>();
 }
 
+// --------------------------------------------------------------------
+
+void data_service::reinit(const std::string &db_user)
+{
+	pqxx::work tx(db_connection::instance());
+
+#if USE_RSRC
+	mrsrc::rsrc schema("db-schema.sql");
+	if (not schema)
+		throw std::runtime_error("database schema not found, did you include the resource?");
+	
+	std::string s(schema.data(), schema.size());
+
+	ba::replace_all(s, "$OWNER", db_user);
+
+	tx.exec0(s);
+	tx.commit();
+#else
+	try
+	{
+		auto r = tx.exec1("select count(*) from af_structure");
+		tx.commit();
+
+		if (r.front().as<uint32_t>() > 0)
+			throw std::runtime_error("not empty");
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << "Not built using resources, please create and/or empty the tables manually before running --rebuild-db" << std::endl;
+		exit(1);
+	}
+#endif
+}

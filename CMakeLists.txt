@@ -211,7 +211,7 @@ target_link_libraries(af-filledd
 add_dependencies(af-filledd webpack)
 
 if(USE_RSRC)
-	mrc_target_resources(af-filledd ${CMAKE_SOURCE_DIR}/docroot/)
+	mrc_target_resources(af-filledd ${CMAKE_SOURCE_DIR}/docroot/ ${CMAKE_SOURCE_DIR}/db-schema.sql)
 endif()
 
 install(TARGETS alphafill af-filledd
