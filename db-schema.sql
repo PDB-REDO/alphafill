@@ -38,5 +38,5 @@ alter table af_transplant owner to "$OWNER";
 
 -- indices
 
--- create index hit_identity_ix on af_pdb_hit(identity);
--- create index hit_af_id_ix on af_pdb_hit(af_id);
+create index hit_identity_ix on af_pdb_hit(identity);
+create index hit_af_id_ix on af_pdb_hit(af_id);
