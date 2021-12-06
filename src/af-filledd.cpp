@@ -349,6 +349,10 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 	std::vector<transplant_info> transplants;
 	for (auto &hit : data["hits"])
 	{
+		double hitIdentity = hit["identity"].as<double>();
+		if (hitIdentity * 100 < identity)
+			continue;
+
 		++hit_nr;
 		for (auto &transplant : hit["transplants"])
 		{
@@ -357,7 +361,7 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 				transplant["analogue_id"].as<std::string>(),
 				hit_nr,
 				hit["pdb_id"].as<std::string>() + '.' + hit["pdb_asym_id"].as<std::string>(),
-				hit["identity"].as<double>(),
+				hitIdentity,
 				hit["rmsd"].as<double>(),
 				transplant["asym_id"].as<std::string>(),
 				transplant["rmsd"].as<double>()
