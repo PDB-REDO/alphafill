@@ -83,7 +83,7 @@ bool missing_entry_error_handler::create_error_reply(const zeep::http::request& 
 	}
 	catch (const missing_entry_error &ex)
 	{
-		zeep::http::scope scope;
+		zeep::http::scope scope(*get_server(), req);
 		scope.put("missing", ex.what());
 
 		get_server()->get_template_processor().create_reply_from_template("index", scope, reply);
