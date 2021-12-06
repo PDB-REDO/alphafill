@@ -7,10 +7,6 @@ const SCSS = __dirname + "/scss/";
 const DEST = __dirname + "/docroot/";
 
 module.exports = {
-	// node: {
-	// 	fs: 'empty'
-	// },
-
 	mode: "development",
 	entry: {
 		'pdb-redo-bootstrap': SCSS + "pdb-redo-bootstrap.scss",

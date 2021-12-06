@@ -5,6 +5,13 @@
 @import "bootstrap/scss/_variables";
 @import "bootstrap/scss/_mixins";
 
+.alert {
+	border: 1px solid;
+}
+
+@import "bootstrap/scss/_alert";
+
+
 $font-family-sans-serif: "Verdana", "Arial", "Helvetica", "sans-serif";
 
 $primary: rgb(100, 100, 100);
@@ -214,7 +221,7 @@ span.entry-id {
 }
 
 td.unreliable {
-	background-color: rgba(255, 0, 0, 0.2);
+	background-color: rgba(255, 25, 0, 0.2);
 	color: rgb(80, 0, 0);
 }
 
@@ -234,3 +241,4 @@ td.suspect {
 // 	// color: black;
 // 	// font-weight: bold;
 // }
+
