@@ -102,18 +102,22 @@
 								z:text="|${c.pdb_id}.${c.pdb_asym_id}|"></td>
 
 							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}"
-								z:classappend="${c.rmsd ge 5.0 ? 'bad-score' }">
+								z:classappend="${c.rmsd gt 8.56 ? 'unreliable' : c.rmsd gt 4.55 ? 'suspect' }">
 								<span z:text="${#numbers.formatDecimal(c.rmsd, 1, 2)}"></span>
-								<span z:if="${c.rmsd ge 5.0}" class="float-end"><abbr
-										title="This RMSd score is above the confidence level">?</abbr></span>
-							</td>
+								<span z:if="${c.rmsd gt 4.55 and c.rmsd le 8.56}" class="float-end"><abbr
+										title="This transplant is considered suspect">?</abbr></span>
+								<span z:if="${c.rmsd gt 8.56}" class="float-end"><abbr
+									title="This transplant is considered unreliable">?</abbr></span>
+								</td>
 
 							<td z:text="${t.asym_id}"></td>
 
-							<td z:classappend="${t.rmsd ge 1.0 ? 'bad-score' }">
+							<td z:classappend="${t.rmsd gt 2 ? 'unreliable' : t.rmsd gt 1.05 ? 'suspect' }">
 								<span z:text="${#numbers.formatDecimal(t.rmsd, 1, 2)}"></span>
-								<span z:if="${t.rmsd ge 1.0}" class="float-end"><abbr
-										title="This RMSd score is above the confidence level">?</abbr></span>
+								<span z:if="${t.rmsd gt 1.05 and t.rmsd le 2}" class="float-end"><abbr
+										title="This transplant is considered suspect">?</abbr></span>
+								<span z:if="${t.rmsd gt 2}" class="float-end"><abbr
+									title="This transplant is considered unreliable">?</abbr></span>
 							</td>
 
 							<td>
