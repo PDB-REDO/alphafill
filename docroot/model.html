@@ -91,39 +91,39 @@
 					</thead>
 
 					<tbody>
-						<tr z:each="c,i: ${by_compound}" class="transplanted-row" z:with="t=${c.transplant}"
-							role="button" z:data-asym-id="${t.asym_id}">
+						<tr z:each="c,i: ${by_compound}" class="transplanted-row"
+							role="button" z:data-asym-id="${c.asym_id}">
 
 							<td z:if="${c.first-hit and c.first-transplant}" z:rowspan="${c.hit-count}"
-								z:text="${t.analogue_id == t.compound_id ? t.compound_id : |${t.compound_id} -&gt; ${t.analogue_id}|}">
+								z:text="${c.analogue_id == c.compound_id ? c.compound_id : |${c.compound_id} -&gt; ${c.analogue_id}|}">
 							</td>
 
 							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}"
-								z:text="|${c.pdb_id}.${c.pdb_asym_id}|"></td>
+								z:text="${c.pdb_id}"></td>
 
 							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}"
-								z:classappend="${c.rmsd gt 8.56 ? 'unreliable' : c.rmsd gt 4.55 ? 'suspect' }">
-								<span z:text="${#numbers.formatDecimal(c.rmsd, 1, 2)}"></span>
-								<span z:if="${c.rmsd gt 4.55 and c.rmsd le 8.56}" class="float-end"><abbr
+								z:classappend="${c.global-rmsd gt 8.56 ? 'unreliable' : c.global-rmsd gt 4.55 ? 'suspect' }">
+								<span z:text="${#numbers.formatDecimal(c.global-rmsd, 1, 2)}"></span>
+								<span z:if="${c.global-rmsd gt 4.55 and c.global-rmsd le 8.56}" class="float-end"><abbr
 										title="This transplant is considered suspect">?</abbr></span>
-								<span z:if="${c.rmsd gt 8.56}" class="float-end"><abbr
+								<span z:if="${c.global-rmsd gt 8.56}" class="float-end"><abbr
 									title="This transplant is considered unreliable">?</abbr></span>
 								</td>
 
-							<td z:text="${t.asym_id}"></td>
+							<td z:text="${c.asym_id}"></td>
 
-							<td z:classappend="${t.rmsd gt 2 ? 'unreliable' : t.rmsd gt 1.05 ? 'suspect' }">
-								<span z:text="${#numbers.formatDecimal(t.rmsd, 1, 2)}"></span>
-								<span z:if="${t.rmsd gt 1.05 and t.rmsd le 2}" class="float-end"><abbr
+							<td z:classappend="${c.local-rmsd gt 2 ? 'unreliable' : c.local-rmsd gt 1.05 ? 'suspect' }">
+								<span z:text="${#numbers.formatDecimal(c.local-rmsd, 1, 2)}"></span>
+								<span z:if="${c.local-rmsd gt 1.05 and c.local-rmsd le 2}" class="float-end"><abbr
 										title="This transplant is considered suspect">?</abbr></span>
-								<span z:if="${t.rmsd gt 2}" class="float-end"><abbr
+								<span z:if="${c.local-rmsd gt 2}" class="float-end"><abbr
 									title="This transplant is considered unreliable">?</abbr></span>
 							</td>
 
 							<td>
 								<div class="form-check">
 									<input class="form-check-input" type="checkbox" checked="checked"
-										z:data-asym-id="${t.asym_id}" />
+										z:data-asym-id="${c.asym_id}" />
 								</div>
 							</td>
 						</tr>

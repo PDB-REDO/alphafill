@@ -96,8 +96,6 @@ bool missing_entry_error_handler::create_error_reply(const zeep::http::request& 
 	return result;
 }
 
-
-
 // --------------------------------------------------------------------
 
 class affd_html_controller : public zh::html_controller
@@ -253,6 +251,64 @@ void affd_html_controller::compounds(const zh::request& request, const zh::scope
 	return get_template_processor().create_reply_from_template("compounds", sub, reply);
 }
 
+struct transplant_info
+{
+	std::string compound_id, analogue_id;
+	int hit_nr;
+	std::string pdb_id;
+	double identity;
+	double gRMSd;
+	std::string asym_id;
+	double lRMSd;
+	bool firstHit = false;
+	bool firstTransplant = false;
+	int hitCount = 1;
+	int transplantCount = 1;
+
+	template<typename Archive>
+	void serialize(Archive &ar, unsigned long)
+	{
+		ar & zeep::make_nvp("compound_id", compound_id)
+		   & zeep::make_nvp("analogue_id", analogue_id)
+		   & zeep::make_nvp("pdb_id", pdb_id)
+		   & zeep::make_nvp("identity", identity)
+		   & zeep::make_nvp("global-rmsd", gRMSd)
+		   & zeep::make_nvp("asym_id", asym_id)
+		   & zeep::make_nvp("local-rmsd", lRMSd)
+		   & zeep::make_nvp("first-hit", firstHit)
+		   & zeep::make_nvp("first-transplant", firstTransplant)
+		   & zeep::make_nvp("hit-count", hitCount)
+		   & zeep::make_nvp("transplant-count", transplantCount);
+	}
+
+	bool operator<(const transplant_info &rhs) const
+	{
+		int d = compound_id.compare(rhs.compound_id);
+
+		if (d == 0)
+		{
+			double dd = gRMSd - rhs.gRMSd;
+			if (dd != 0)
+				d = std::signbit(dd) ? -1 : 1;
+		}
+
+		if (d == 0)
+			d = pdb_id.compare(rhs.pdb_id);
+
+		if (d == 0)
+		{
+			double dd = lRMSd - rhs.lRMSd;
+			if (dd != 0)
+				d = std::signbit(dd) ? -1 : 1;
+		}
+
+		if (d == 0)
+			d = asym_id.compare(rhs.asym_id);
+
+		return d < 0;
+	}
+};
+
 void affd_html_controller::model(const zh::request& request, const zh::scope& scope, zh::reply& reply)
 {
 	using json = zeep::json::element;
@@ -289,72 +345,60 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 	std::ifstream is(jsonFile);
 	parse_json(is, data);
 
-	auto &dHits = data["hits"];
-	std::vector<json> hits;
-
-	std::copy_if(dHits.begin(), dHits.end(), std::back_inserter(hits), [cutoff=identity*0.01f](json &hit) { return hit["identity"].as<float>() >= cutoff; });
-
-	// reorder data for Tassos & Robbie
-
-	std::map<std::string,size_t> compoundIDHitCounts;
-
-	for (auto &hit : hits)
-		for (auto &transplant : hit["transplants"])
-			compoundIDHitCounts[transplant["compound_id"].as<std::string>()] += 1;
-
-	std::vector<json> rows;
-
-	for (const auto &[compoundID, count] : compoundIDHitCounts)
+	int hit_nr = 0;
+	std::vector<transplant_info> transplants;
+	for (auto &hit : data["hits"])
 	{
-		std::vector<json> hitsC;
-
-		bool firstHit = true;
-
-		for (auto &hit : hits)
+		++hit_nr;
+		for (auto &transplant : hit["transplants"])
 		{
-			json hitC = hit;
-
-			auto &hitTransplants = hitC["transplants"];
-
-			std::vector<json> transplants;
-			std::copy_if(hitTransplants.begin(), hitTransplants.end(), std::back_inserter(transplants), [id=compoundID] (json &t) { return t["compound_id"] == id; });
-
-			if (transplants.empty())
-				continue;
-
-			std::sort(transplants.begin(), transplants.end(), [](json &a, json &b) {
-				int d = 0;
-				auto fd = a["rmsd"].as<double>() - b["rmsd"].as<double>();
-				if (fd != 0)
-					d = std::signbit(fd) ? -1 : 1;
-				return d < 0;
+			transplants.emplace_back(transplant_info{
+				transplant["compound_id"].as<std::string>(),
+				transplant["analogue_id"].as<std::string>(),
+				hit_nr,
+				hit["pdb_id"].as<std::string>() + '.' + hit["pdb_asym_id"].as<std::string>(),
+				hit["identity"].as<double>(),
+				hit["rmsd"].as<double>(),
+				transplant["asym_id"].as<std::string>(),
+				transplant["rmsd"].as<double>()
 			});
-
-			bool firstTransplant = true;
-			for (auto &transplant : transplants)
-			{
-				rows.push_back({
-					{ "compound_id", compoundID },
-					{ "pdb_id", hit["pdb_id"] },
-					{ "pdb_asym_id", hit["pdb_asym_id"] },
-					{ "alignment_length", hit["alignment_length"] },
-					{ "identity", hit["identity"] },
-					{ "rmsd", hit["rmsd"] },
-					{ "transplant-count", transplants.size() },
-					{ "first-hit", firstHit },
-					{ "hit-count", count },
-					{ "transplant", transplant },
-					{ "first-transplant", firstTransplant }
-				});
-
-				firstHit = false;
-				firstTransplant = false;
-			}
 		}
 	}
 
+	std::sort(transplants.begin(), transplants.end());
+
+	auto e = transplants.end();
+	for (auto i = transplants.begin(); i != transplants.end();)
+	{
+		i->firstHit = true;
+
+		auto j = i + 1;
+		while (j != e and j->compound_id == i->compound_id)
+			++j;
+		
+		size_t n = j - i;
+		for (; i != j; ++i)
+			i->hitCount = n;
+	}
+
+	for (auto i = transplants.begin(); i != e;)
+	{
+		i->firstTransplant = true;
+
+		auto j = i + 1;
+		while (j != e and j->hit_nr == i->hit_nr)
+			++j;
+		
+		size_t n = j - i;
+		for (; i != j; ++i)
+			i->transplantCount = n;
+	}
+
 	json byCompound;
-	to_element(byCompound, rows);
+	to_element(byCompound, transplants);
+
+std::cerr << std::endl << byCompound << std::endl;
+
 	sub.put("by_compound", byCompound);
 
 	using namespace cif::literals;
