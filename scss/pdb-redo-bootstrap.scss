@@ -214,13 +214,23 @@ span.entry-id {
 }
 
 td.unreliable {
-	background-color: #ff9999;
-	// color: black;
-	// font-weight: bold;
+	background-color: rgba(255, 0, 0, 0.2);
+	color: rgb(80, 0, 0);
 }
 
 td.suspect {
-	background-color: #ffff99;
-	// color: black;
-	// font-weight: bold;
+	background-color: rgba(255, 196, 0, 0.2);
+	color: rgb(80, 64, 0);
 }
+
+// td.unreliable {
+// 	background-color: #ff9999;
+// 	// color: black;
+// 	// font-weight: bold;
+// }
+
+// td.suspect {
+// 	background-color: #ffff99;
+// 	// color: black;
+// 	// font-weight: bold;
+// }
