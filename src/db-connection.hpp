@@ -66,7 +66,7 @@ class db_connection
 
 // --------------------------------------------------------------------
 
-class prsm_db_error_handler : public zeep::http::error_handler
+class db_error_handler : public zeep::http::error_handler
 {
   public:
 

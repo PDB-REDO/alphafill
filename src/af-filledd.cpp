@@ -58,6 +58,48 @@ const uint32_t kPageSize = 20;
 
 // --------------------------------------------------------------------
 
+class missing_entry_error : public std::runtime_error
+{
+  public:
+	missing_entry_error(const std::string &id)
+		: runtime_error(id) {}
+};
+
+// --------------------------------------------------------------------
+
+class missing_entry_error_handler : public zeep::http::error_handler
+{
+  public:
+	virtual bool create_error_reply(const zeep::http::request& req, std::exception_ptr eptr, zeep::http::reply& reply);
+};
+
+bool missing_entry_error_handler::create_error_reply(const zeep::http::request& req, std::exception_ptr eptr, zeep::http::reply& reply)
+{
+	bool result = false;
+
+	try
+	{
+		std::rethrow_exception(eptr);
+	}
+	catch (const missing_entry_error &ex)
+	{
+		zeep::http::scope scope;
+		scope.put("missing", ex.what());
+
+		get_server()->get_template_processor().create_reply_from_template("index", scope, reply);
+		result = true;
+	}
+	catch (...)
+	{
+	}
+	
+	return result;
+}
+
+
+
+// --------------------------------------------------------------------
+
 class affd_html_controller : public zh::html_controller
 {
   public:
@@ -218,7 +260,7 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 	zh::scope sub(scope);
 
 	if (not request.has_parameter("id"))
-		throw zeep::http::not_found;
+		throw missing_entry_error("<missing-id>");
 
 	std::string afId = request.get_parameter("id");
 	int identity = std::stoi(request.get_parameter("identity", "35"));
@@ -240,7 +282,7 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 	fs::path cifFile = mDbDir / ("AF-" + afId + "-F1-model_v1.cif.gz");
 
 	if (not fs::exists(jsonFile) /*or not fs::exists(cifFile)*/)
-		throw zeep::http::not_found;
+		throw missing_entry_error(afId);
 
 	json data;
 
@@ -692,7 +734,8 @@ int main(int argc, char* const argv[])
 
 			auto s = new zeep::http::server(/*sc*/);
 
-			// s->add_error_handler(new ibs_db_error_handler());
+			s->add_error_handler(new db_error_handler());
+			s->add_error_handler(new missing_entry_error_handler());
 
 #ifndef NDEBUG
 			s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
