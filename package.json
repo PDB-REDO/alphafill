@@ -13,7 +13,8 @@
 		"molstar": "^2.3.5"
 	},
 	"scripts": {
-		"build": "webpack --config webpack.config.js"
+		"build": "webpack --config webpack.config.js",
+		"build-production": "webpack --config webpack.config.js --env PRODUCTION"
 	},
 	"devDependencies": {
 		"@babel/core": "^7.16.0",
@@ -26,7 +27,9 @@
 		"mini-css-extract-plugin": "^2.4.3",
 		"sass": "^1.43.4",
 		"sass-loader": "^12.3.0",
+		"terser-webpack-plugin": "^5.2.5",
 		"ts-loader": "^9.2.6",
+		"uglifyjs-webpack-plugin": "^2.2.0",
 		"webpack": "^5.60.0",
 		"webpack-cli": "^4.9.1"
 	},

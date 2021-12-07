@@ -191,7 +191,7 @@ add_custom_command(
 	OUTPUT ${webpack_output}
 	BYPRODUCTS 
 	DEPENDS ${webpack_input}
-	COMMAND ${YARN} run build
+	COMMAND ${YARN} run $<IF:$<CONFIG:Debug>,build,build-production>
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_custom_target(webpack DEPENDS ${webpack_output})
