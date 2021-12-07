@@ -414,7 +414,7 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 		i->firstTransplant = true;
 
 		auto j = i + 1;
-		while (j != e and j->hit_nr == i->hit_nr)
+		while (j != e and j->compound_id == i->compound_id and j->hit_nr == i->hit_nr)
 			++j;
 		
 		size_t n = j - i;
