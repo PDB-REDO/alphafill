@@ -26,6 +26,8 @@
 
 #pragma once
 
+#include <filesystem>
+
 #include <zeep/nvp.hpp>
 
 struct compound
@@ -69,7 +71,7 @@ class data_service
   public:
 	static data_service &instance();
 
-	void reinit(const std::string &db_user);
+	static int rebuild(const std::string &db_user, const std::filesystem::path &db_dir);
 
 	std::vector<compound> get_compounds(float min_identity) const;
 	std::vector<structure> get_structures(float min_identity, uint32_t page, uint32_t pageSize) const;

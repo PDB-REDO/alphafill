@@ -43,6 +43,15 @@ class blocking_queue
 		m_signal.notify_one();
 	}
 
+	void push(T &&value)
+	{
+		{
+			std::lock_guard<std::mutex> lock(m_guard);
+			m_queue.push(std::move(value));
+		}
+		m_signal.notify_one();
+	}
+
 	T pop()
 	{
 		std::unique_lock<std::mutex> lock(m_guard);

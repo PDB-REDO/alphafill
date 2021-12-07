@@ -26,14 +26,23 @@
 
 #include <regex>
 
+#include <fstream>
+#include <thread>
+
 #include <boost/algorithm/string.hpp>
+
+#include <cif++/CifUtils.hpp>
+
+#include <zeep/json/parser.hpp>
 
 #include "mrsrc.hpp"
 
 #include "data-service.hpp"
 #include "db-connection.hpp"
+#include "queue.hpp"
 
 namespace ba = boost::algorithm;
+namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
 
@@ -176,7 +185,65 @@ uint32_t data_service::count_structures(float min_identity, const std::string &c
 
 // --------------------------------------------------------------------
 
-void data_service::reinit(const std::string &db_user)
+using json = zeep::json::element;
+
+void process(blocking_queue<json> &q, cif::Progress &p)
+{
+	for (;;)
+	{
+		auto data = q.pop();
+		if (data.empty())
+			break;
+		
+		std::string id = data["id"].as<std::string>();
+
+		p.message(id);
+
+		pqxx::transaction tx1(db_connection::instance());
+		auto r = tx1.exec1(R"(INSERT INTO af_structure (name, af_version, created, af_file) VALUES()" +
+			tx1.quote(id) + "," +
+			tx1.quote(data["alphafill_version"].as<std::string>()) + "," +
+			tx1.quote(data["date"].as<std::string>()) + "," +
+			tx1.quote(data["file"].as<std::string>()) +
+		") RETURNING id");
+
+		int64_t structure_id = r[0].as<int64_t>();
+
+		for (auto &alignment : data["hits"])
+		{
+			r = tx1.exec1(R"(INSERT INTO af_pdb_hit (af_id, identity, length, pdb_asym_id, pdb_id, rmsd) VALUES ()" +
+				std::to_string(structure_id) + ", " +
+				std::to_string(alignment["identity"].as<double>()) + ", " +
+				std::to_string(alignment["alignment_length"].as<int64_t>()) + ", " +
+				tx1.quote(alignment["pdb_asym_id"].as<std::string>()) + ", " +
+				tx1.quote(alignment["pdb_id"].as<std::string>()) + ", " +
+				std::to_string(alignment["rmsd"].as<double>()) +
+			")  RETURNING id");
+
+			int64_t hit_id = r.front().as<int64_t>();
+
+			for (auto &transplant : alignment["transplants"])
+			{
+				tx1.exec0(R"(INSERT INTO af_transplant (hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd) VALUES ()" +
+					std::to_string(hit_id) + ", " +
+					tx1.quote(transplant["asym_id"].as<std::string>()) + ", " +
+					tx1.quote(transplant["compound_id"].as<std::string>()) + ", " +
+					tx1.quote(transplant["analogue_id"].as<std::string>()) + ", " +
+					tx1.quote(transplant["entity_id"].as<std::string>()) + ", " +
+					std::to_string(alignment["rmsd"].as<double>()) +
+				")");	
+			}
+		}
+
+		tx1.commit();
+
+		p.consumed(1);
+	}
+}
+
+// --------------------------------------------------------------------
+
+int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 {
 	pqxx::work tx(db_connection::instance());
 
@@ -206,4 +273,47 @@ void data_service::reinit(const std::string &db_user)
 		exit(1);
 	}
 #endif
+
+	std::vector<fs::path> files;
+	for (auto di = fs::directory_iterator(db_dir); di != fs::directory_iterator(); ++di)
+	{
+		if (di->path().extension() != ".json")
+			continue;
+		files.push_back(di->path());
+	}
+
+	cif::Progress progress(files.size(), "Processing");
+	blocking_queue<json> q;
+	std::exception_ptr ep;
+
+	std::thread t([&q, &progress, &ep]() {
+		try
+		{
+			process(q, progress);
+		}
+		catch (const std::exception &ex)
+		{
+			ep = std::current_exception();
+		}
+	});
+
+	for (auto &f : files)
+	{
+		std::ifstream file(f);
+
+		zeep::json::element data;
+		zeep::json::parse_json(file, data);
+
+		q.push(std::move(data));
+	}
+
+	q.push({});
+
+	t.join();
+
+	if (ep)
+		std::rethrow_exception(ep);
+
+	return 0;
 }
+

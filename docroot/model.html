@@ -1,8 +1,11 @@
-<!DOCTYPE html SYSTEM "about:legacy-compat">
+<!DOCTYPE html SYSTEM "about:legacy-compat" [
+<!ENTITY mdash "&#8212;">
+]>
+
 <html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
 
 <head z:replace="~{head :: head(~{::title}, ~{::link}, ~{::script})}">
-	<title z:text="|AlphaFold Filled - Model ${AF_ID}|"></title>
+	<title z:text="|AlphaFold Filled - Model ${af_id}|"></title>
 
 	<link rel="stylesheet" type="text/css" href="css/molstar.css" />
 
@@ -19,9 +22,10 @@
 	<header z:replace="header::top('model')"></header>
 
 	<div class="container site-content">
-		<h2 z:text="${title}" class="mb-4"></h2>
+		<h2 z:text="${af_id}"></h2>
+		<h5 z:text="${title}"></h5>
 
-		<table class="table table-sm">
+		<table class="table table-sm mt-4">
 			<tr>
 				<td>Structure file</td>
 				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}|"

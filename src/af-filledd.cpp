@@ -319,13 +319,6 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 		throw missing_entry_error("<missing-id>");
 
 	std::string afId = request.get_parameter("id");
-	int identity = std::stoi(request.get_parameter("identity", "35"));
-	if (identity < 35)
-		identity = 35;
-	if (identity > 100)
-		identity = 100;
-
-	sub.put("identity", identity);
 
 	std::regex rx(R"((?:AF-)?(.+?)(?:-F1(?:-model_v1)?)?)");
 	std::smatch m;
@@ -344,6 +337,37 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 
 	std::ifstream is(jsonFile);
 	parse_json(is, data);
+
+	int identity;
+
+	if (request.has_parameter("identity"))
+	{
+		identity = std::stoi(request.get_parameter("identity"));
+		if (identity < 35)
+			identity = 35;
+		if (identity > 100)
+			identity = 100;
+	}
+	else	// see article, take highest identity that results in transplants
+	{
+		identity = 35;
+		for (int i : { 70, 60, 50, 40 })
+		{
+			for (auto &hit : data["hits"])
+			{
+				if (hit["identity"].as<double>() * 100 < i)
+					continue;
+				
+				identity = i;
+				break;
+			}
+
+			if (identity > 35)
+				break;
+		}
+	}
+
+	sub.put("identity", identity);
 
 	int hit_nr = 0;
 	std::vector<transplant_info> transplants;
@@ -400,8 +424,6 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 
 	json byCompound;
 	to_element(byCompound, transplants);
-
-std::cerr << std::endl << byCompound << std::endl;
 
 	sub.put("by_compound", byCompound);
 
@@ -600,75 +622,6 @@ zeep::json::element affd_rest_controller::get_aff_structure_json(const std::stri
 
 // --------------------------------------------------------------------
 
-int rebuild_db(fs::path db_dir, const std::string &db_user)
-{
-	data_service::instance().reinit(db_user);
-
-	std::vector<fs::path> files;
-	for (auto di = fs::directory_iterator(db_dir); di != fs::directory_iterator(); ++di)
-	{
-		if (di->path().extension() != ".json")
-			continue;
-		files.push_back(di->path());
-	}
-
-	cif::Progress progress(files.size(), "Processing");
-
-	for (auto &f : files)
-	{
-		progress.message(f.filename());
-
-		std::ifstream file(f);
-
-		zeep::json::element data;
-		zeep::json::parse_json(file, data);
-
-		pqxx::transaction tx1(db_connection::instance());
-		auto r = tx1.exec1(R"(INSERT INTO af_structure (name, af_version, created, af_file) VALUES()" +
-			tx1.quote(data["id"].as<std::string>()) + "," +
-			tx1.quote(data["alphafill_version"].as<std::string>()) + "," +
-			tx1.quote(data["date"].as<std::string>()) + "," +
-			tx1.quote(data["file"].as<std::string>()) +
-		") RETURNING id");
-
-		int64_t structure_id = r[0].as<int64_t>();
-
-		for (auto &alignment : data["hits"])
-		{
-			r = tx1.exec1(R"(INSERT INTO af_pdb_hit (af_id, identity, length, pdb_asym_id, pdb_id, rmsd) VALUES ()" +
-				std::to_string(structure_id) + ", " +
-				std::to_string(alignment["identity"].as<double>()) + ", " +
-				std::to_string(alignment["alignment_length"].as<int64_t>()) + ", " +
-				tx1.quote(alignment["pdb_asym_id"].as<std::string>()) + ", " +
-				tx1.quote(alignment["pdb_id"].as<std::string>()) + ", " +
-				std::to_string(alignment["rmsd"].as<double>()) +
-			")  RETURNING id");
-
-			int64_t hit_id = r.front().as<int64_t>();
-
-			for (auto &transplant : alignment["transplants"])
-			{
-				tx1.exec0(R"(INSERT INTO af_transplant (hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd) VALUES ()" +
-					std::to_string(hit_id) + ", " +
-					tx1.quote(transplant["asym_id"].as<std::string>()) + ", " +
-					tx1.quote(transplant["compound_id"].as<std::string>()) + ", " +
-					tx1.quote(transplant["analogue_id"].as<std::string>()) + ", " +
-					tx1.quote(transplant["entity_id"].as<std::string>()) + ", " +
-					std::to_string(alignment["rmsd"].as<double>()) +
-				")");	
-			}
-		}
-
-		tx1.commit();
-
-		progress.consumed(1);
-	}
-
-	return 0;
-}
-
-// --------------------------------------------------------------------
-
 int main(int argc, char* const argv[])
 {
 	using namespace std::literals;
@@ -759,9 +712,9 @@ int main(int argc, char* const argv[])
 		// --------------------------------------------------------------------
 		
 		if (vm.count("rebuild-db"))
-			return rebuild_db(dbDir, db_user);
+			return data_service::rebuild(db_user, dbDir);
 
-		if (vm.count("help") or vm.count("command") == 0 or vm.count("db-dir") == 0)
+		if (vm.count("help") or vm.count("command") == 0)
 		{
 			std::cerr << visible << std::endl
 					<< config << std::endl;
