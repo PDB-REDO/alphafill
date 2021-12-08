@@ -1173,6 +1173,8 @@ int a_main(int argc, const char *argv[])
 
 	af_structure.cleanupEmptyCategories();
 
+	af_structure.datablock().add_software("alphafill", "model annotation", gVersionNr, gVersionDate);
+
 	if (vm.count("output"))
 	{
 		fs::path output = vm["output"].as<std::string>();
