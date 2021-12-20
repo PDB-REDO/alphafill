@@ -473,12 +473,15 @@ class affd_rest_controller : public zh::rest_controller
 		map_get_request("aff/{id}", &affd_rest_controller::get_aff_structure, "id");
 		map_get_request("aff/{id}/json", &affd_rest_controller::get_aff_structure_json, "id");
 
+		map_get_request("aff/3d-beacon/{id}", &affd_rest_controller::get_aff_3d_beacon, "id");
+
 		map_get_request("aff/{id}/stripped/{asymlist}", &affd_rest_controller::get_aff_structure_stripped_def, "id", "asymlist");
 		map_get_request("aff/{id}/stripped/{asymlist}/{identity}", &affd_rest_controller::get_aff_structure_stripped, "id", "asymlist", "identity");
 	}
 
 	zh::reply get_aff_structure(const std::string &id);
 	zeep::json::element get_aff_structure_json(const std::string &id);
+	zeep::json::element get_aff_3d_beacon(const std::string &id);
 
 	zh::reply get_aff_structure_stripped_def(const std::string &id, const std::string &asyms)
 	{
@@ -616,6 +619,44 @@ zeep::json::element affd_rest_controller::get_aff_structure_json(const std::stri
 
 	std::ifstream is(file);
 	parse_json(is, result);
+
+	return result;
+}
+
+zeep::json::element affd_rest_controller::get_aff_3d_beacon(const std::string &id)
+{
+	fs::path file = mDbDir / ("AF-" + id + "-F1-model_v1.cif.json");
+
+	if (not fs::exists(file))
+		throw zeep::http::not_found;
+
+	zeep::json::element result{
+		{ "uniprot_entry",
+		{
+			{ "ac", id }
+		}}
+	};
+
+	using namespace std::chrono;
+
+	auto ft = fs::last_write_time(file);
+	auto sctp = time_point_cast<system_clock::duration>(ft - decltype(ft)::clock::now() + system_clock::now());
+	std::time_t cft = system_clock::to_time_t(sctp);
+	std::tm *tm = std::gmtime(&cft);
+
+	std::stringstream ss;
+	ss << std::put_time(tm, "%F");
+
+	result["structures"].push_back({
+		{ "model_identifier", id },
+		{ "model_category", "DEEP-LEARNING" },
+		{ "model_url", "https://alphafill.eu/v1/aff/" + id },
+		{ "model_format", "MMCIF" },
+		{ "provider", "AlphaFill" },
+		{ "created", ss.str() },
+		{ "sequence_identity", 1.0 },
+		{ "coverage", 1.0 }
+	});
 
 	return result;
 }
