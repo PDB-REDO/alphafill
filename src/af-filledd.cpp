@@ -481,7 +481,7 @@ class affd_rest_controller : public zh::rest_controller
 
 	zh::reply get_aff_structure(const std::string &id);
 	zeep::json::element get_aff_structure_json(const std::string &id);
-	zeep::json::element get_aff_3d_beacon(const std::string &id);
+	zeep::json::element get_aff_3d_beacon(std::string id);
 
 	zh::reply get_aff_structure_stripped_def(const std::string &id, const std::string &asyms)
 	{
@@ -623,8 +623,11 @@ zeep::json::element affd_rest_controller::get_aff_structure_json(const std::stri
 	return result;
 }
 
-zeep::json::element affd_rest_controller::get_aff_3d_beacon(const std::string &id)
+zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string id)
 {
+	if (ba::ends_with(id, ".json"))
+		id.erase(id.begin() + id.length() - 5, id.end());
+
 	fs::path file = mDbDir / ("AF-" + id + "-F1-model_v1.cif.json");
 
 	if (not fs::exists(file))

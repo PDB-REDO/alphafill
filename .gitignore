@@ -8,3 +8,4 @@ docroot/scripts
 af-filledd.conf
 alphafill.conf
 .gdb_history
+oprofile_data/

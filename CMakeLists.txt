@@ -154,7 +154,7 @@ target_include_directories(alphafill
 
 target_include_directories(alphafill PRIVATE ${CMAKE_BINARY_DIR})
 
-target_link_libraries(alphafill cifpp::cifpp ZLIB::ZLIB BZip2::BZip2 zeep::zeep ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(alphafill cifpp::cifpp ZLIB::ZLIB zeep::zeep ${CMAKE_THREAD_LIBS_INIT})
 
 if(USE_RSRC)
 	mrc_target_resources(alphafill ${CIFPP_SHARE_DIR}/mmcif_pdbx_v50.dic)
@@ -171,8 +171,6 @@ pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED)
 find_program(YARN yarn REQUIRED)
 
 pkg_check_modules(ZLIB zlib)
-# pkg_check_modules(BZIP2 libbz2)
-find_library(BZIP2_LIBRARIES bz2)
 
 find_program(YARN yarn REQUIRED)
 
@@ -206,7 +204,7 @@ add_executable(af-filledd
 target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp squeeze::squeeze ${CMAKE_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS} ${CMAKE_BINARY_DIR})
 target_link_libraries(af-filledd
 	PRIVATE zeep::zeep cifpp::cifpp Boost::date_time Boost::program_options Boost::regex Boost::iostreams
-	${PQXX_LIBRARIES} ${PQ_LIBRARIES} ${MAILIO_LINK_LIBRARIES} ${SSL_LIBRARIES} ${CRYPTO_LIBRARIES} ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} std::filesystem
+	${PQXX_LIBRARIES} ${PQ_LIBRARIES} ${MAILIO_LINK_LIBRARIES} ${SSL_LIBRARIES} ${CRYPTO_LIBRARIES} ${ZLIB_LIBRARIES} std::filesystem
 	${CMAKE_THREAD_LIBS_INIT})
 
 add_dependencies(af-filledd webpack)
