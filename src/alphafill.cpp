@@ -757,7 +757,9 @@ int a_main(int argc, const char *argv[])
 	if (vm.count("quiet"))
 		cif::VERBOSE = -1;
 
-	cif::VERBOSE = vm.count("verbose") != 0;
+	if (vm.count("verbose"))
+		cif::VERBOSE = 1;
+
 	if (vm.count("debug"))
 		cif::VERBOSE = vm["debug"].as<int>();
 
