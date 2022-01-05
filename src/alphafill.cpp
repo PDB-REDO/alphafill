@@ -462,8 +462,7 @@ double Align(mmcif::Structure &a, mmcif::Structure &b,
 	}
 
 	a.translate(-ta);
-	b.translate(-tb);
-	b.rotate(rotation);
+	b.translateAndRotate(-tb, rotation);
 
 	for (auto &pt : cAlphaB)
 		pt.rotate(rotation);
@@ -896,7 +895,7 @@ int a_main(int argc, const char *argv[])
 			std::cerr << "Found " << result.size() << " hits" << std::endl;
 
 		std::unique_ptr<cif::Progress> progress;
-		if (not cif::VERBOSE)
+		if (cif::VERBOSE < 1)
 			progress.reset(new cif::Progress(result.size() + 1, "matching"));
 
 		for (auto &hit : result)
