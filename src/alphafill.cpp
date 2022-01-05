@@ -708,7 +708,8 @@ int a_main(int argc, const char *argv[])
 		("config", po::value<std::string>(), "Config file")
 		("help,h", "Display help message")
 		("version", "Print version")
-		("verbose,v", "Verbose output");
+		("verbose,v", "Verbose output")
+		("quiet", "Do not produce warnings");
 
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
@@ -758,6 +759,9 @@ int a_main(int argc, const char *argv[])
 		std::cout << visible_options << std::endl;
 		exit(0);
 	}
+
+	if (vm.count("quiet"))
+		cif::VERBOSE = -1;
 
 	cif::VERBOSE = vm.count("verbose") != 0;
 	if (vm.count("debug"))
