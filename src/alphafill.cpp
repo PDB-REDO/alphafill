@@ -445,17 +445,17 @@ double Align(mmcif::Structure &a, mmcif::Structure &b,
 {
 	auto ta = CenterPoints(cAlphaA);
 
-	if (cif::VERBOSE)
+	if (cif::VERBOSE > 0)
 		std::cerr << "translate A: " << -ta << std::endl;
 
 	auto tb = CenterPoints(cAlphaB);
 
-	if (cif::VERBOSE)
+	if (cif::VERBOSE > 0)
 		std::cerr << "translate B: " << -tb << std::endl;
 
 	auto rotation = AlignPoints(cAlphaB, cAlphaA);
 
-	if (cif::VERBOSE)
+	if (cif::VERBOSE > 0)
 	{
 		const auto &[angle, axis] = mmcif::QuaternionToAngleAxis(rotation);
 		std::cerr << "rotation: " << angle << " degrees rotation around axis " << axis << std::endl;
@@ -470,7 +470,7 @@ double Align(mmcif::Structure &a, mmcif::Structure &b,
 
 	double result = CalculateRMSD(cAlphaA, cAlphaB);
 
-	if (cif::VERBOSE)
+	if (cif::VERBOSE > 0)
 		std::cerr << "RMSd: " << result << std::endl;
 
 	return result;
@@ -885,14 +885,14 @@ int a_main(int argc, const char *argv[])
 	{
 		auto &&[id, seq] = r.get<std::string, std::string>({"entity_id", "pdbx_seq_one_letter_code"});
 
-		if (cif::VERBOSE)
+		if (cif::VERBOSE > 0)
 			std::cerr << "Blasting:" << std::endl
 					  << seq << std::endl
 					  << std::endl;
 
 		auto result = BlastP(fasta, seq, vm["blast-report-limit"].as<uint32_t>());
 
-		if (cif::VERBOSE)
+		if (cif::VERBOSE > 0)
 			std::cerr << "Found " << result.size() << " hits" << std::endl;
 
 		std::unique_ptr<cif::Progress> progress;
@@ -907,7 +907,7 @@ int a_main(int argc, const char *argv[])
 			std::smatch m;
 			if (not regex_match(hit.mDefLine, m, kIDRx))
 			{
-				if (cif::VERBOSE)
+				if (cif::VERBOSE > 0)
 					std::cerr << "Could not interpret defline from blast hit:" << std::endl
 							  << hit.mDefLine << std::endl;
 				continue;
@@ -919,7 +919,7 @@ int a_main(int argc, const char *argv[])
 			if (progress)
 				progress->message(pdb_id);
 
-			if (cif::VERBOSE)
+			if (cif::VERBOSE > 0)
 				std::cerr << "pdb id: " << pdb_id << '\t' << "chain id: " << chain_id << std::endl;
 			
 			if (not (pdbIDsContainingLigands.empty() or pdbIDsContainingLigands.count(pdb_id)))
@@ -957,7 +957,7 @@ int a_main(int argc, const char *argv[])
 				{
 					// no_compounds.insert(pdb_id);
 
-					if (cif::VERBOSE)
+					if (cif::VERBOSE > 0)
 						std::cerr << "This structure does not contain any transplantable compound" << std::endl;
 
 					continue;
@@ -982,19 +982,19 @@ int a_main(int argc, const char *argv[])
 
 				for (auto &hsp : hit.mHsps)
 				{
-					if (cif::VERBOSE)
+					if (cif::VERBOSE > 0)
 						std::cerr << "hsp, identity " << std::fixed << std::setprecision(2) << hsp.identity() << " length " << hsp.length() << std::endl;
 
 					if (hsp.length() < minAlignmentLength)
 					{
-						if (cif::VERBOSE)
+						if (cif::VERBOSE > 0)
 							std::cerr << "hsp not long enough" << std::endl;
 						continue;
 					}
 
 					if (hsp.identity() < minHspIdentity)
 					{
-						if (cif::VERBOSE)
+						if (cif::VERBOSE > 0)
 							std::cerr << "hsp not identical enough" << std::endl;
 						continue;
 					}
@@ -1056,7 +1056,7 @@ int a_main(int argc, const char *argv[])
 
 						if (pdb_near_r.size() == 0)
 						{
-							if (cif::VERBOSE)
+							if (cif::VERBOSE > 0)
 								std::cerr << "There are no atoms found near residue " << res << std::endl;
 							continue;
 						}
@@ -1064,10 +1064,10 @@ int a_main(int argc, const char *argv[])
 						// realign based on these nearest atoms.
 						if (pdb_near_r.size() > 3)
 							rmsd = Align(af_structure, pdb_structure, af_near_r, pdb_near_r);
-						else if (cif::VERBOSE)
+						else if (cif::VERBOSE > 0)
 						{
 							rmsd = 0;
-							if (cif::VERBOSE)
+							if (cif::VERBOSE > 0)
 								std::cerr << "There are not enough atoms found near residue " << res << " to fine tune rotation" << std::endl;
 						}
 
@@ -1078,7 +1078,7 @@ int a_main(int argc, const char *argv[])
 						// check to see if the ligand is unique enough
 						if (not isUniqueLigand(af_structure, minSeparationDistance, res, analogue))
 						{
-							if (cif::VERBOSE)
+							if (cif::VERBOSE > 0)
 								std::cerr << "Residue is not unique enough" << std::endl;
 							continue;
 						}
@@ -1121,7 +1121,7 @@ int a_main(int argc, const char *argv[])
 
 								if (not a_a)
 								{
-									if (cif::VERBOSE)
+									if (cif::VERBOSE > 0)
 										std::cerr << "Could not create a connection to " << atom << std::endl;
 									continue;
 								}
@@ -1155,7 +1155,7 @@ int a_main(int argc, const char *argv[])
 						// now fix up the newly created residue
 						ligand.modify(af_structure, asym_id);
 
-						if (cif::VERBOSE)
+						if (cif::VERBOSE > 0)
 							std::cerr << "Created asym " << asym_id << " for " << np << std::endl;
 					}
 
