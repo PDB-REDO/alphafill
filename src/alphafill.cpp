@@ -491,22 +491,19 @@ std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 
 		for (const char *atom_id : {"C", "CA", "N", "O"})
 		{
-			try
-			{
-				assert(pdb_ix[i] < pdb.size());
+			assert(pdb_ix[i] < pdb.size());
 
-				auto atom = pdb[pdb_ix[i]]->atomByID(atom_id);
-				for (auto &b : residue)
-				{
-					if (Distance(atom, b) <= maxDistance)
-					{
-						nearby = true;
-						break;
-					}
-				}
-			}
-			catch (const std::exception &e)
+			auto atom = pdb[pdb_ix[i]]->atomByID(atom_id);
+			if (not atom)
+				continue;
+
+			for (auto &b : residue)
 			{
+				if (Distance(atom, b) <= maxDistance)
+				{
+					nearby = true;
+					break;
+				}
 			}
 
 			if (nearby)
@@ -518,20 +515,17 @@ std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 
 		for (const char *atom_id : {"C", "CA", "N", "O"})
 		{
-			try
-			{
-				assert(af_ix[i] < af.size());
-				assert(pdb_ix[i] < pdb.size());
+			assert(af_ix[i] < af.size());
+			assert(pdb_ix[i] < pdb.size());
 
-				auto pt_a = pdb[pdb_ix[i]]->atomByID(atom_id).location();
-				auto pt_b = af[af_ix[i]]->atomByID(atom_id).location();
+			auto pt_a = pdb[pdb_ix[i]]->atomByID(atom_id);
+			auto pt_b = af[af_ix[i]]->atomByID(atom_id);
 
-				ra.push_back(pt_a);
-				rb.push_back(pt_b);
-			}
-			catch (const std::exception &e)
-			{
-			}
+			if (not pt_a and pt_b)
+				continue;
+
+			ra.push_back(pt_a.location());
+			rb.push_back(pt_b.location());
 		}
 	}
 
@@ -1017,20 +1011,19 @@ int a_main(int argc, const char *argv[])
 					std::vector<Point> af_ca_trimmed, pdb_ca_trimmed;
 					for (size_t i = 0; i < af_ix_trimmed.size(); ++i)
 					{
-						try
-						{
-							assert(af_ix_trimmed[i] < af_res.size());
-							assert(pdb_ix_trimmed[i] < pdb_res.size());
+						assert(af_ix_trimmed[i] < af_res.size());
+						assert(pdb_ix_trimmed[i] < pdb_res.size());
 
-							auto af_ca = af_res[af_ix_trimmed[i]]->atomByID("CA").location();
-							auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->atomByID("CA").location();
+						auto af_ca = af_res[af_ix_trimmed[i]]->atomByID("CA");
+						if (not af_ca)	
+								continue;
 
-							af_ca_trimmed.push_back(af_ca);
-							pdb_ca_trimmed.push_back(pdb_ca);
-						}
-						catch (const std::exception &e)
-						{
-						}
+						auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->atomByID("CA");
+						if (not pdb_ca)
+							continue;
+
+						af_ca_trimmed.push_back(af_ca.location());
+						pdb_ca_trimmed.push_back(pdb_ca.location());
 					}
 
 					double rmsd = Align(af_structure, pdb_structure, af_ca_trimmed, pdb_ca_trimmed);
