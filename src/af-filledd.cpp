@@ -628,7 +628,7 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string id)
 	if (ba::ends_with(id, ".json"))
 		id.erase(id.begin() + id.length() - 5, id.end());
 
-	fs::path file = mDbDir / ("AF-" + id + "-F1-model_v1.cif.json");
+	fs::path file = mDbDir / ("AF-" + id + "-F1-model_v1.cif.gz");
 
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
@@ -650,6 +650,14 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string id)
 	std::stringstream ss;
 	ss << std::put_time(tm, "%F");
 
+	// get the chain length...
+
+	cif::File cf(file);
+	auto &struct_ref_seq = cf.firstDatablock()["struct_ref_seq"];
+
+	int uniprot_start, uniprot_end;
+	cif::tie(uniprot_start, uniprot_end) = struct_ref_seq.front().get("db_align_beg", "db_align_end");
+
 	result["structures"].push_back({
 		{ "model_identifier", id },
 		{ "model_category", "DEEP-LEARNING" },
@@ -658,7 +666,9 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string id)
 		{ "provider", "AlphaFill" },
 		{ "created", ss.str() },
 		{ "sequence_identity", 1.0 },
-		{ "coverage", 1.0 }
+		{ "coverage", 1.0 },
+		{ "uniprot_start", uniprot_start },
+		{ "uniprot_end", uniprot_end }
 	});
 
 	return result;
