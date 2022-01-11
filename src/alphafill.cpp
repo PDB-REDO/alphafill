@@ -537,18 +537,19 @@ bool isUniqueLigand(const mmcif::Structure &structure, float minDistance, const 
 {
 	bool result = true;
 
+	std::vector<mmcif::Point> pa;
+
+	for (auto &a : lig.atoms())
+		pa.push_back(a.location());
+	auto ca = mmcif::Centroid(pa);
+
 	for (auto &np : structure.nonPolymers())
 	{
 		if (np.compoundID() != id)
 			continue;
-
-		std::vector<mmcif::Point> pa, pb;
+		std::vector<mmcif::Point> pb;
 
 		for (auto &a : np.atoms())
-			pa.push_back(a.location());
-		auto ca = mmcif::Centroid(pa);
-
-		for (auto &a : lig.atoms())
 			pb.push_back(a.location());
 		auto cb = mmcif::Centroid(pb);
 
@@ -1016,8 +1017,8 @@ int a_main(int argc, const char *argv[])
 						assert(pdb_ix_trimmed[i] < pdb_res.size());
 
 						auto af_ca = af_res[af_ix_trimmed[i]]->atomByID("CA");
-						if (not af_ca)	
-								continue;
+						if (not af_ca)
+							continue;
 
 						auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->atomByID("CA");
 						if (not pdb_ca)
@@ -1025,6 +1026,16 @@ int a_main(int argc, const char *argv[])
 
 						af_ca_trimmed.push_back(af_ca.location());
 						pdb_ca_trimmed.push_back(pdb_ca.location());
+					}
+
+					if (af_ca_trimmed.size() < af_ix_trimmed.size() and cif::VERBOSE > 0)
+						std::cerr << "Nr of missing CA: " << (af_ix_trimmed.size() - af_ca_trimmed.size()) << std::endl;
+					
+					if (af_ca_trimmed.empty())
+					{
+						if (cif::VERBOSE > 0)
+							std::cerr << "No CA atoms mapped, skipping" << std::endl;
+						continue;
 					}
 
 					double rmsd = Align(af_structure, pdb_structure, af_ca_trimmed, pdb_ca_trimmed);
