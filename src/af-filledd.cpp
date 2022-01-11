@@ -58,6 +58,73 @@ const uint32_t kPageSize = 20;
 
 // --------------------------------------------------------------------
 
+class file_locator
+{
+  public:
+	static void init(const fs::path &db_dir,
+		const std::string &structure_name_pattern, const std::string &metadata_name_pattern)
+	{
+		s_instance.reset(new file_locator(db_dir, structure_name_pattern, metadata_name_pattern));
+	}
+
+	static fs::path get_structure_file(const std::string &id)
+	{
+		return s_instance->get_file(id, s_instance->m_structure_name_pattern);
+	}
+
+	static fs::path get_metdata_file(const std::string &id)
+	{
+		return s_instance->get_file(id, s_instance->m_metadata_name_pattern);
+	}
+
+  private:
+
+	static std::unique_ptr<file_locator> s_instance;
+
+	file_locator(const file_locator&) = delete;
+	file_locator& operator=(const file_locator&) = delete;
+
+	file_locator(const fs::path &db_dir,
+		const std::string &structure_name_pattern, const std::string &metadata_name_pattern)
+		: m_db_dir(db_dir)
+		, m_structure_name_pattern(structure_name_pattern)
+		, m_metadata_name_pattern(metadata_name_pattern)
+	{
+	}
+
+	fs::path get_file(const std::string &id, std::string pattern)
+	{
+		std::string::size_type i;
+
+		while ((i = pattern.find("${db-dir}")) != std::string::npos)
+			pattern.replace(i, strlen("${db-dir}"), m_db_dir);
+
+		std::regex rx(R"(\$\{id:(\d+):(\d+)\})");
+		std::smatch m;
+
+		while (std::regex_search(pattern, m, rx))
+		{
+			int start = stoi(m[1]);
+			int length = stoi(m[2]);
+
+			pattern.replace(m[0].first, m[0].second, id.substr(start, length));
+		}
+
+		while ((i = pattern.find("${id}")) != std::string::npos)
+			pattern.replace(i, strlen("${id}"), id);
+		
+		return pattern;
+	}
+
+	const fs::path m_db_dir;
+	const std::string m_structure_name_pattern;
+	const std::string m_metadata_name_pattern;
+};
+
+std::unique_ptr<file_locator> file_locator::s_instance;
+
+// --------------------------------------------------------------------
+
 class missing_entry_error : public std::runtime_error
 {
   public:
@@ -101,8 +168,7 @@ bool missing_entry_error_handler::create_error_reply(const zeep::http::request& 
 class affd_html_controller : public zh::html_controller
 {
   public:
-	affd_html_controller(const fs::path &db_dir)
-		: mDbDir(db_dir)
+	affd_html_controller()
 	{
 		mount("{,index,index.html}", &affd_html_controller::welcome);
 		mount("model", &affd_html_controller::model);
@@ -126,8 +192,6 @@ class affd_html_controller : public zh::html_controller
 	void schema(const zh::request& request, const zh::scope& scope, zh::reply& reply);
 
 	void structures_table(const zh::request& request, const zh::scope& scope, zh::reply& reply);
-
-	fs::path mDbDir;
 };
 
 void affd_html_controller::welcome(const zh::request& request, const zh::scope& scope, zh::reply& reply)
@@ -327,8 +391,8 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 
 	sub.put("af_id", afId);
 
-	fs::path jsonFile = mDbDir / ("AF-" + afId + "-F1-model_v1.cif.json");
-	fs::path cifFile = mDbDir / ("AF-" + afId + "-F1-model_v1.cif.gz");
+	fs::path jsonFile = file_locator::get_metdata_file(afId);
+	fs::path cifFile = file_locator::get_structure_file(afId);
 
 	if (not fs::exists(jsonFile) /*or not fs::exists(cifFile)*/)
 		throw missing_entry_error(afId);
@@ -466,9 +530,8 @@ void affd_html_controller::schema(const zh::request& request, const zh::scope& s
 class affd_rest_controller : public zh::rest_controller
 {
   public:
-	affd_rest_controller(const fs::path &db_dir)
+	affd_rest_controller()
 		: zh::rest_controller("v1")
-		, mDbDir(db_dir)
 	{
 		map_get_request("aff/{id}", &affd_rest_controller::get_aff_structure, "id");
 		map_get_request("aff/{id}/json", &affd_rest_controller::get_aff_structure_json, "id");
@@ -489,15 +552,13 @@ class affd_rest_controller : public zh::rest_controller
 	}
 
 	zh::reply get_aff_structure_stripped(const std::string &id, const std::string &asyms, int identity);
-
-	fs::path mDbDir;
 };
 
 zh::reply affd_rest_controller::get_aff_structure(const std::string &id)
 {
 	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
 
-	fs::path file = mDbDir / ("AF-" + id + "-F1-model_v1.cif.gz");
+	fs::path file = file_locator::get_structure_file(id);
 
 	if (not fs::exists(file))
 		return zeep::http::reply(zeep::http::not_found, { 1, 1 });
@@ -534,7 +595,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &id
 
 	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
 
-	fs::path file = mDbDir / ("AF-" + id + "-F1-model_v1.cif.gz");
+	fs::path file = file_locator::get_structure_file(id);
 
 	if (not fs::exists(file))
 		return zeep::http::reply(zeep::http::not_found, { 1, 1 });
@@ -547,7 +608,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &id
 	{
 		using json = zeep::json::element;
 
-		fs::path jsonFile = mDbDir / ("AF-" + id + "-F1-model_v1.cif.json");
+		fs::path jsonFile = file_locator::get_metdata_file(id);
 
 		if (not fs::exists(jsonFile) /*or not fs::exists(cifFile)*/)
 			throw zeep::http::not_found;
@@ -610,7 +671,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &id
 
 zeep::json::element affd_rest_controller::get_aff_structure_json(const std::string &id)
 {
-	fs::path file = mDbDir / ("AF-" + id + "-F1-model_v1.cif.json");
+	fs::path file = file_locator::get_metdata_file(id);
 
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
@@ -628,7 +689,7 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string id)
 	if (ba::ends_with(id, ".json"))
 		id.erase(id.begin() + id.length() - 5, id.end());
 
-	fs::path file = mDbDir / ("AF-" + id + "-F1-model_v1.cif.gz");
+	fs::path file = file_locator::get_structure_file(id);
 
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
@@ -701,6 +762,9 @@ int main(int argc, char* const argv[])
 		("db-password",	po::value<std::string>(),	"AF DB password")
 		("db-host",		po::value<std::string>(),	"AF DB host")
 		("db-port",		po::value<std::string>(),	"AF DB 5432")
+
+		("structure-name-pattern",	po::value<std::string>(),	"Pattern for locating structure files")
+		("metadata-name-pattern",	po::value<std::string>(),	"Pattern for locating metadata files")
 		;
 
 	po::options_description hidden("hidden options");
@@ -746,7 +810,12 @@ int main(int argc, char* const argv[])
 		fs::path dbDir = vm["db-dir"].as<std::string>();
 
 		if (not fs::exists(dbDir))
-			throw std::runtime_error("db-dir does not exist");
+			throw std::runtime_error("db-dir does not exist"); 
+		
+		if (not (vm.count("structure-name-pattern") and vm.count("metadata-name-pattern")))
+			throw std::runtime_error("name patterns not specified"); 
+
+		file_locator::init(dbDir, vm["structure-name-pattern"].as<std::string>(), vm["metadata-name-pattern"].as<std::string>());
 
 		std::vector<std::string> vConn;
 		std::string db_user;
@@ -779,7 +848,7 @@ int main(int argc, char* const argv[])
 		
 		std::string command = vm["command"].as<std::string>();
 		
-		zh::daemon server([&, dbDir]()
+		zh::daemon server([&]()
 		{
 			// auto sc = new zh::security_context(secret, ibs_user_service::instance());
 			// sc->add_rule("/admin", { "ADMIN" });
@@ -800,8 +869,8 @@ int main(int argc, char* const argv[])
 			// s->add_controller(new zh::login_controller());
 			// s->add_controller(new user_admin_rest_controller());
 
-			s->add_controller(new affd_html_controller(dbDir));
-			s->add_controller(new affd_rest_controller(dbDir));
+			s->add_controller(new affd_html_controller());
+			s->add_controller(new affd_rest_controller());
 
 			return s;
 		}, PACKAGE_NAME);
