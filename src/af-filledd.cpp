@@ -723,6 +723,7 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string id)
 		{ "model_identifier", id },
 		{ "model_category", "DEEP-LEARNING" },
 		{ "model_url", "https://alphafill.eu/v1/aff/" + id },
+		{ "model_page_url", "https://alphafill.eu/model?id=" + id },
 		{ "model_format", "MMCIF" },
 		{ "provider", "AlphaFill" },
 		{ "created", ss.str() },
