@@ -275,7 +275,7 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 #endif
 
 	std::vector<fs::path> files;
-	for (auto di = fs::directory_iterator(db_dir); di != fs::directory_iterator(); ++di)
+	for (auto di = fs::recursive_directory_iterator(db_dir); di != fs::recursive_directory_iterator(); ++di)
 	{
 		if (di->path().extension() != ".json")
 			continue;

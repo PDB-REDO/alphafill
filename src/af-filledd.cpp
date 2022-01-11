@@ -741,72 +741,73 @@ int main(int argc, char* const argv[])
 {
 	using namespace std::literals;
 
-	po::options_description visible("vvrd options");
-	visible.add_options()
-		("command",		po::value<std::string>(),	"Command, one of start, stop, status or reload")
-		("no-daemon,F",								"Do not fork a background process")
-		("config",		po::value<std::string>(),	"Name of config file to use, default is " PACKAGE_NAME ".conf located in current of home directory")
-		("help,h",									"Show help message")
-		;
-
-
-	po::options_description config("config-file options");
-	config.add_options()
-		("address",		po::value<std::string>(),	"Address to listen to")
-		("port",		po::value<unsigned short>(),"Port to listen to")
-		("user",		po::value<std::string>(),	"User to run as")
-		("db-dir",		po::value<std::string>(),	"Directory containing the af-filled data")
-
-		("db-dbname",	po::value<std::string>(),	"AF DB name")
-		("db-user",		po::value<std::string>(),	"AF DB owner")
-		("db-password",	po::value<std::string>(),	"AF DB password")
-		("db-host",		po::value<std::string>(),	"AF DB host")
-		("db-port",		po::value<std::string>(),	"AF DB 5432")
-
-		("structure-name-pattern",	po::value<std::string>(),	"Pattern for locating structure files")
-		("metadata-name-pattern",	po::value<std::string>(),	"Pattern for locating metadata files")
-		;
-
-	po::options_description hidden("hidden options");
-	hidden.add_options()
-		("rebuild-db",								"Rebuild the af-filled-db")
-		("debug,d", po::value<int>(),				"Debug level (for even more verbose output)");
-
-	po::options_description cmdline_options;
-	cmdline_options.add(visible).add(config).add(hidden);
-
-	po::positional_options_description p;
-	p.add("command", 1);
-
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-
-	fs::path configFile = PACKAGE_NAME ".conf";
-	if (not fs::exists(configFile) and getenv("HOME") != nullptr)
-		configFile = fs::path(getenv("HOME")) / ".config" / PACKAGE_NAME ".conf";
-	
-	if (vm.count("config") != 0)
-	{
-		configFile = vm["config"].as<std::string>();
-		if (not fs::exists(configFile))
-			throw std::runtime_error("Specified config file does not seem to exist");
-	}
-	
-	if (fs::exists(configFile))
-	{
-		po::options_description config_options ;
-		config_options.add(config).add(hidden);
-
-		std::ifstream cfgFile(configFile);
-		if (cfgFile.is_open())
-			po::store(po::parse_config_file(cfgFile, config_options), vm);
-	}
-	
-	po::notify(vm);
 	int result = 0;
 
 	try
 	{
+		po::options_description visible("vvrd options");
+		visible.add_options()
+			("command",		po::value<std::string>(),	"Command, one of start, stop, status or reload")
+			("no-daemon,F",								"Do not fork a background process")
+			("config",		po::value<std::string>(),	"Name of config file to use, default is " PACKAGE_NAME ".conf located in current of home directory")
+			("help,h",									"Show help message")
+			;
+
+
+		po::options_description config("config-file options");
+		config.add_options()
+			("address",		po::value<std::string>(),	"Address to listen to")
+			("port",		po::value<unsigned short>(),"Port to listen to")
+			("user",		po::value<std::string>(),	"User to run as")
+			("db-dir",		po::value<std::string>(),	"Directory containing the af-filled data")
+
+			("db-dbname",	po::value<std::string>(),	"AF DB name")
+			("db-user",		po::value<std::string>(),	"AF DB owner")
+			("db-password",	po::value<std::string>(),	"AF DB password")
+			("db-host",		po::value<std::string>(),	"AF DB host")
+			("db-port",		po::value<std::string>(),	"AF DB 5432")
+
+			("structure-name-pattern",	po::value<std::string>(),	"Pattern for locating structure files")
+			("metadata-name-pattern",	po::value<std::string>(),	"Pattern for locating metadata files")
+			;
+
+		po::options_description hidden("hidden options");
+		hidden.add_options()
+			("rebuild-db",								"Rebuild the af-filled-db")
+			("debug,d", po::value<int>(),				"Debug level (for even more verbose output)");
+
+		po::options_description cmdline_options;
+		cmdline_options.add(visible).add(config).add(hidden);
+
+		po::positional_options_description p;
+		p.add("command", 1);
+
+		po::variables_map vm;
+		po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
+
+		fs::path configFile = PACKAGE_NAME ".conf";
+		if (not fs::exists(configFile) and getenv("HOME") != nullptr)
+			configFile = fs::path(getenv("HOME")) / ".config" / PACKAGE_NAME ".conf";
+		
+		if (vm.count("config") != 0)
+		{
+			configFile = vm["config"].as<std::string>();
+			if (not fs::exists(configFile))
+				throw std::runtime_error("Specified config file does not seem to exist");
+		}
+		
+		if (fs::exists(configFile))
+		{
+			po::options_description config_options ;
+			config_options.add(config).add(hidden);
+
+			std::ifstream cfgFile(configFile);
+			if (cfgFile.is_open())
+				po::store(po::parse_config_file(cfgFile, config_options), vm);
+		}
+		
+		po::notify(vm);
+
 		fs::path dbDir = vm["db-dir"].as<std::string>();
 
 		if (not fs::exists(dbDir))
