@@ -440,7 +440,7 @@ double CalculateRMSD(const std::vector<mmcif::Point> &pa, const std::vector<mmci
 	return RMSd(pa, pb);
 }
 
-double Align(mmcif::Structure &a, mmcif::Structure &b,
+double Align(const mmcif::Structure &a, mmcif::Structure &b,
 	std::vector<Point> &cAlphaA, std::vector<Point> &cAlphaB)
 {
 	auto ta = CenterPoints(cAlphaA);
@@ -461,8 +461,7 @@ double Align(mmcif::Structure &a, mmcif::Structure &b,
 		std::cerr << "rotation: " << angle << " degrees rotation around axis " << axis << std::endl;
 	}
 
-	a.translate(-ta);
-	b.translateAndRotate(-tb, rotation);
+	b.translateRotateAndTranslate(-tb, rotation, ta);
 
 	for (auto &pt : cAlphaB)
 		pt.rotate(rotation);
@@ -919,12 +918,12 @@ int a_main(int argc, const char *argv[])
 			if (progress)
 				progress->message(pdb_id);
 
-			if (cif::VERBOSE > 0)
-				std::cerr << "pdb id: " << pdb_id << '\t' << "chain id: " << chain_id << std::endl;
-			
 			if (not (pdbIDsContainingLigands.empty() or pdbIDsContainingLigands.count(pdb_id)))
 				continue;
 
+			if (cif::VERBOSE > 0)
+				std::cerr << "pdb id: " << pdb_id << '\t' << "chain id: " << chain_id << std::endl;
+			
 			try
 			{
 				auto pdb_fi = mmCifFiles.find(pdb_id);
@@ -1071,6 +1070,9 @@ int a_main(int argc, const char *argv[])
 							continue;
 						}
 
+						if (cif::VERBOSE > 1)
+							std::cerr << "Found " << pdb_near_r.size() << " atoms nearby" << std::endl;
+
 						// realign based on these nearest atoms.
 						if (pdb_near_r.size() > 3)
 							rmsd = Align(af_structure, pdb_structure, af_near_r, pdb_near_r);
@@ -1089,7 +1091,7 @@ int a_main(int argc, const char *argv[])
 						if (not isUniqueLigand(af_structure, minSeparationDistance, res, analogue))
 						{
 							if (cif::VERBOSE > 0)
-								std::cerr << "Residue is not unique enough" << std::endl;
+								std::cerr << "Residue " << res << " is not unique enough" << std::endl;
 							continue;
 						}
 
