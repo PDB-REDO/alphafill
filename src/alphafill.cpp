@@ -878,7 +878,8 @@ int a_main(int argc, const char *argv[])
 
 	json &hits = result["hits"] = json::array();
 
-	std::map<std::string,mmcif::File> mmCifFiles;
+	// keep a LRU cache of mmCIF parsed files
+	std::list<std::tuple<std::string,std::shared_ptr<mmcif::File>>> mmCifFiles;
 
 	for (auto r : db["entity_poly"])
 	{
@@ -926,15 +927,37 @@ int a_main(int argc, const char *argv[])
 			
 			try
 			{
-				auto pdb_fi = mmCifFiles.find(pdb_id);
-				
-				if (pdb_fi == mmCifFiles.end())
+				auto ci = mmCifFiles.begin();
+
+				for (; ci != mmCifFiles.end(); ++ci)
 				{
-					fs::path pdb_path = pdbFileForID(pdbDir, pdb_id);
-					std::tie(pdb_fi, std::ignore) = mmCifFiles.emplace(pdb_id, pdb_path.string());
+					auto &&[c_id, c_file] = *ci;
+
+					if (c_id != pdb_id)
+						continue;
+					
+					if (ci == mmCifFiles.begin())
+						break;
+					
+					mmCifFiles.emplace_front(c_id, c_file);
+					mmCifFiles.erase(ci);
+
+					ci = mmCifFiles.begin();
+					break;
 				}
 
-				auto &pdb_f = pdb_fi->second;
+				if (ci == mmCifFiles.end())
+				{
+					fs::path pdb_path = pdbFileForID(pdbDir, pdb_id);
+
+					mmCifFiles.emplace_front(pdb_id, std::make_shared<mmcif::File>(pdb_path.string()));
+					ci = mmCifFiles.begin();
+
+					if (mmCifFiles.size() > 5)
+						mmCifFiles.pop_back();
+				}
+
+				auto &pdb_f = *std::get<1>(*ci);
 
 				// Check to see if it is any use to continue with this structure
 
