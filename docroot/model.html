@@ -102,8 +102,12 @@
 								z:text="${c.analogue_id == c.compound_id ? c.compound_id : |${c.compound_id} -&gt; ${c.analogue_id}|}">
 							</td>
 
-							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}"
-								z:text="${c.pdb_id}"></td>
+							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}" z:with="link=${#af.link(${c.pdb_id})}">
+								<z:block z:switch="${link}">
+									<span z:case="null" z:text="${c.pdb_id}"></span>
+									<a z:case="*" z:href="${link}" z:text="${c.pdb_id}"></a>
+								</z:block>
+							</td>
 
 							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}"
 								z:classappend="${c.global-rmsd gt 8.56 ? 'unreliable' : c.global-rmsd gt 4.55 ? 'suspect' }">

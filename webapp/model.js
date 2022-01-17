@@ -52,6 +52,12 @@ window.addEventListener('load', () => {
 		cb.addEventListener('change', () => updateModel(viewer, cbs, showAllCB));
 	});
 
+
+	const links = [...document.querySelectorAll("tr.transplanted-row a")];
+	links.forEach(link => {
+		link.addEventListener('click', (evt) => evt.stopPropagation());
+	});
+
 	// viewer.loadStructureFromUrl(`/v1/aff/${AF_ID}`)
 	updateModel(viewer, cbs, showAllCB)
 		.then(() => {

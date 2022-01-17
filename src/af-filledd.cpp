@@ -124,6 +124,56 @@ class file_locator
 std::unique_ptr<file_locator> file_locator::s_instance;
 
 // --------------------------------------------------------------------
+// Register an object to handle #af.link('pdb-id') calls from the template
+// processor.
+
+class af_link_template_object : public zh::expression_utility_object<af_link_template_object>
+{
+  public:
+
+	static constexpr const char* name() { return "af"; }
+
+	void set_template(const std::string &t)
+	{
+		m_template = t;
+	}
+
+	virtual zh::object evaluate(const zh::scope& scope, const std::string& methodName,
+		const std::vector<zh::object>& parameters) const
+	{
+		zh::object result;
+
+		if (methodName == "link" and parameters.size() >= 1 and not m_template.empty())
+		{
+			try
+			{
+				auto id = parameters.front().as<std::string>();
+				std::regex rx(R"([0-9][0-9a-z]{3}(?:\.[a-z]+))", std::regex_constants::icase);
+
+				if (std::regex_match(id, rx))
+					id.erase(4, std::string::npos);
+
+				auto url = m_template;
+				std::string::size_type s;
+				while ((s = url.find("${id}")) != std::string::npos)
+					url.replace(s, 5, id);
+
+				to_element(result, url);
+			}
+			catch(const std::exception& e)
+			{
+				std::cerr << "Error getting post by ID: " << e.what() << std::endl;
+			}
+		}
+
+		return result;
+	}
+	
+  private:
+	std::string m_template;
+} s_af_object;
+
+// --------------------------------------------------------------------
 
 class missing_entry_error : public std::runtime_error
 {
@@ -668,7 +718,6 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &id
 	return rep;
 }
 
-
 zeep::json::element affd_rest_controller::get_aff_structure_json(const std::string &id)
 {
 	fs::path file = file_locator::get_metdata_file(id);
@@ -761,6 +810,8 @@ int main(int argc, char* const argv[])
 			("port",		po::value<unsigned short>(),"Port to listen to")
 			("user",		po::value<std::string>(),	"User to run as")
 			("db-dir",		po::value<std::string>(),	"Directory containing the af-filled data")
+			("db-link-template",
+							po::value<std::string>(),	"Template for links to pdb(-redo) entry")
 
 			("db-dbname",	po::value<std::string>(),	"AF DB name")
 			("db-user",		po::value<std::string>(),	"AF DB owner")
@@ -847,7 +898,10 @@ int main(int argc, char* const argv[])
 		}
 
 		// --------------------------------------------------------------------
-		
+
+		if (vm.count("db-link-template"))
+			s_af_object.set_template(vm["db-link-template"].as<std::string>());
+
 		std::string command = vm["command"].as<std::string>();
 		
 		zh::daemon server([&]()

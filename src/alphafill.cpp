@@ -698,6 +698,8 @@ int a_main(int argc, const char *argv[])
 		("extra-compounds", po::value<std::string>(), "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file")
 		("mmcif-dictionary", po::value<std::string>(), "Path to the mmcif_pdbx.dic file to use instead of default")
 
+		("threads,t", po::value<size_t>()->default_value(1), "Number of threads to use, zero means all available cores")
+
 		("config", po::value<std::string>(), "Config file")
 		("help,h", "Display help message")
 		("version", "Print version")
@@ -890,7 +892,11 @@ int a_main(int argc, const char *argv[])
 					  << seq << std::endl
 					  << std::endl;
 
-		auto result = BlastP(fasta, seq, vm["blast-report-limit"].as<uint32_t>());
+		size_t threads = vm["threads"].as<size_t>();
+		if (threads == 0)
+			threads = std::thread::hardware_concurrency();
+
+		auto result = BlastP(fasta, seq, "BLOSUM62", 3, 10, true, true, 11, 1, vm["blast-report-limit"].as<uint32_t>(), threads);
 
 		if (cif::VERBOSE > 0)
 			std::cerr << "Found " << result.size() << " hits" << std::endl;

@@ -1,5 +1,7 @@
 Version 1.0.1
 - Added 3d-beacon info
+- threads option (single threaded is faster when multiple instances are running)
+- Added a link out to pdb or pdb-redo entries, template can be specified in config
 
 Version 1.0.0
 - Initial release
