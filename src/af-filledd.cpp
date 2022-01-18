@@ -270,7 +270,7 @@ void affd_html_controller::structures(const zh::request& request, const zh::scop
 	if (request.has_parameter("compound"))
 		compound = request.get_parameter("compound");
 
-	int identity = 0;
+	int identity = 70;
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
@@ -316,7 +316,7 @@ void affd_html_controller::structures_table(const zh::request& request, const zh
 	if (request.has_parameter("compound"))
 		compound = request.get_parameter("compound");
 
-	int identity = 0;
+	int identity = 70;
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
@@ -346,7 +346,7 @@ void affd_html_controller::compounds(const zh::request& request, const zh::scope
 
 	auto &ds = data_service::instance();
 
-	int identity = 0;
+	int identity = 70;
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
@@ -950,7 +950,7 @@ int main(int argc, char* const argv[])
 			if (vm.count("no-daemon"))
 				result = server.run_foreground(address, port);
 			else
-				result = server.start(address, port, 1, 1, user);
+				result = server.start(address, port, 4, 4, user);
 		}
 		else if (command == "stop")
 			result = server.stop();
