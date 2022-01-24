@@ -128,15 +128,9 @@ if(USE_RSRC)
 	mrc_write_header(${CMAKE_BINARY_DIR}/mrsrc.hpp)
 endif()
 
-set(CMAKE_THREAD_PREFER_PTHREAD)
-set(THREADS_PREFER_PTHREAD_FLAG)
-find_package(Threads REQUIRED)
-
-set(Boost_DETAILED_FAILURE_MSG ON)
-
 find_package(zeep 5.1.6 REQUIRED)
 find_package(cifpp REQUIRED)
-find_package(Boost COMPONENTS system date_time program_options regex iostreams)
+find_package(Boost COMPONENTS program_options)
 
 # The alphafill executable
 
@@ -154,7 +148,7 @@ target_include_directories(alphafill
 
 target_include_directories(alphafill PRIVATE ${CMAKE_BINARY_DIR})
 
-target_link_libraries(alphafill cifpp::cifpp ZLIB::ZLIB zeep::zeep ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(alphafill cifpp::cifpp zeep::zeep Boost::program_options)
 
 if(USE_RSRC)
 	mrc_target_resources(alphafill ${CIFPP_SHARE_DIR}/mmcif_pdbx_v50.dic)
@@ -164,9 +158,6 @@ endif()
 
 pkg_check_modules(PQ libpq REQUIRED)
 pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED)
-# pkg_check_modules(MAILIO mailio REQUIRED)
-# pkg_check_modules(SSL libssl)
-# pkg_check_modules(CRYPTO libcrypto)
 
 find_program(YARN yarn REQUIRED)
 
@@ -201,11 +192,9 @@ add_executable(af-filledd
 	${CMAKE_SOURCE_DIR}/src/data-service.cpp
 )
 
-target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp squeeze::squeeze ${CMAKE_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS} ${CMAKE_BINARY_DIR})
+target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS} ${CMAKE_BINARY_DIR})
 target_link_libraries(af-filledd
-	PRIVATE zeep::zeep cifpp::cifpp Boost::date_time Boost::program_options Boost::regex Boost::iostreams
-	${PQXX_LIBRARIES} ${PQ_LIBRARIES} ${MAILIO_LINK_LIBRARIES} ${SSL_LIBRARIES} ${CRYPTO_LIBRARIES} ${ZLIB_LIBRARIES} std::filesystem
-	${CMAKE_THREAD_LIBS_INIT})
+	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} ${ZLIB_LIBRARIES} std::filesystem Threads::Threads)
 
 add_dependencies(af-filledd webpack)
 
