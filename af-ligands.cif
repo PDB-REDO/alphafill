@@ -4126,7 +4126,7 @@ _ligand.name   "Citrate anion"
 data_FMI
 #
 _ligand.id               FMI
-_ligand.analogue_id      HEC
+_ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      HEA-class
 #
@@ -5216,6 +5216,20 @@ _ligand.id               ISW
 _ligand.analogue_id      HEC
 _ligand.priority         y
 _ligand.description      'HEA-class'
+#
+data_IUP
+#
+_ligand.id               IUP
+_ligand.analogue_id      URC
+_ligand.priority         y
+_ligand.description      "Uric acid derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1 O2     .   
+2 O3     .
 #
 loop_
 _modification.id
@@ -7997,6 +8011,13 @@ _ligand.id               UQ6
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      'UQ1-class'
+#
+data_URC
+#
+_ligand.id               URC
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "Uric acid" 
 #
 data_VWW
 #
