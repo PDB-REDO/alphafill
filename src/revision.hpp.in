@@ -1,5 +1,0 @@
-const char kRevision[] = R"(
-@PROJECT_NAME@-version: @PROJECT_VERSION@
-@BUILD_VERSION_STRING@
-Date: @BUILD_DATE_TIME@
-)";

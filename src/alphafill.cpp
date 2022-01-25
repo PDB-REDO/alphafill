@@ -39,78 +39,12 @@
 
 #include "blast.hpp"
 #include "queue.hpp"
+#include "revision.hpp"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 namespace ba = boost::algorithm;
-
-// --------------------------------------------------------------------
-
-namespace
-{
-std::string gVersionNr, gVersionDate;
-}
-
-void load_version_info()
-{
-	const std::regex
-		rxVersionNr(R"(build-(\d+)-g[0-9a-f]{7}(-dirty)?)"),
-		rxVersionDate(R"(Date: +(\d{4}-\d{2}-\d{2}).*)"),
-		rxVersionNr2(R"(alphafill-version: (\d+(?:\.\d+)+))");
-
-#include "revision.hpp"
-
-	struct membuf : public std::streambuf
-	{
-		membuf(char *data, size_t length) { this->setg(data, data, data + length); }
-	} buffer(const_cast<char *>(kRevision), sizeof(kRevision));
-
-	std::istream is(&buffer);
-
-	std::string line;
-
-	while (getline(is, line))
-	{
-		std::smatch m;
-
-		if (std::regex_match(line, m, rxVersionNr))
-		{
-			gVersionNr = m[1];
-			if (m[2].matched)
-				gVersionNr += '*';
-			continue;
-		}
-
-		if (std::regex_match(line, m, rxVersionDate))
-		{
-			gVersionDate = m[1];
-			continue;
-		}
-
-		// always the first, replace with more specific if followed by the other info
-		if (std::regex_match(line, m, rxVersionNr2))
-		{
-			gVersionNr = m[1];
-			continue;
-		}
-	}
-}
-
-std::string get_version_nr()
-{
-	return gVersionNr /* + '/' + cif::get_version_nr()*/;
-}
-
-std::string get_version_date()
-{
-	return gVersionDate;
-}
-
-std::string get_version_string()
-{
-	return gVersionNr + " " + gVersionDate;
-}
 
 // --------------------------------------------------------------------
 
@@ -745,7 +679,7 @@ int a_main(int argc, const char *argv[])
 
 	if (vm.count("version"))
 	{
-		std::cout << argv[0] << " version " << get_version_string() << std::endl;
+		write_version_string(std::cout, vm.count("verbose"));
 		exit(0);
 	}
 
@@ -876,7 +810,7 @@ int a_main(int argc, const char *argv[])
 		{"id", afID},
 		{"file", xyzin.string()},
 		{"date", to_iso_extended_string(now.date())},
-		{"alphafill_version", get_version_string()}};
+		{"alphafill_version", kVersionNumber}};
 
 	json &hits = result["hits"] = json::array();
 
@@ -1213,7 +1147,7 @@ int a_main(int argc, const char *argv[])
 
 	af_structure.cleanupEmptyCategories();
 
-	af_structure.datablock().add_software("alphafill", "model annotation", gVersionNr, gVersionDate);
+	af_structure.datablock().add_software("alphafill", "model annotation", kVersionNumber, kBuildDate);
 
 	if (vm.count("output"))
 	{
@@ -1261,8 +1195,6 @@ int main(int argc, const char *argv[])
 #if defined(DATA_DIR)
 		cif::addDataDirectory(DATA_DIR);
 #endif
-		load_version_info();
-
 		result = a_main(argc, argv);
 	}
 	catch (const std::exception &ex)
