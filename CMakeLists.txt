@@ -106,8 +106,6 @@ else()
 endif()
 
 if(USE_RSRC)
-	set(USE_RSRC 1)
-
 	message("Using resources compiled with ${MRC_EXECUTABLE}")
 	add_compile_definitions(USE_RSRC WEBAPP_USES_RESOURCES)
 
@@ -147,10 +145,6 @@ pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED)
 
 find_program(YARN yarn REQUIRED)
 
-pkg_check_modules(ZLIB zlib)
-
-find_program(YARN yarn REQUIRED)
-
 # yarn rules for javascripts
 
 set(webpack_input
@@ -178,9 +172,9 @@ add_executable(af-filledd
 	${CMAKE_SOURCE_DIR}/src/data-service.cpp
 )
 
-target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS} ${CMAKE_BINARY_DIR})
+target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 target_link_libraries(af-filledd
-	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} ${ZLIB_LIBRARIES} std::filesystem Threads::Threads)
+	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
 
 add_dependencies(af-filledd webpack)
 

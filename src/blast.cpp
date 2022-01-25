@@ -462,7 +462,7 @@ static bool GetEntropy(const std::string &inSequence, const Alphabet &inAlphabet
 	long downset = (inWindow + 1) / 2 - 1;
 	long upset = inWindow - downset;
 
-	if (inWindow <= inSequence.length())
+	if (static_cast<size_t>(inWindow) <= inSequence.length())
 	{
 		result = true;
 		outEntropy.clear();
