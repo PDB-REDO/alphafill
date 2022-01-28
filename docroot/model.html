@@ -110,21 +110,21 @@
 							</td>
 
 							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}"
-								z:classappend="${c.global-rmsd gt 8.56 ? 'unreliable' : c.global-rmsd gt 4.55 ? 'suspect' }">
+								z:classappend="${c.global-rmsd gt cutoff.global.unreliable ? 'unreliable' : c.global-rmsd gt cutoff.global.suspect ? 'suspect' }">
 								<span z:text="${#numbers.formatDecimal(c.global-rmsd, 1, 2)}"></span>
-								<span z:if="${c.global-rmsd gt 4.55 and c.global-rmsd le 8.56}" class="float-end"><abbr
+								<span z:if="${c.global-rmsd gt cutoff.global.suspect and c.global-rmsd le cutoff.global.unreliable}" class="float-end"><abbr
 										title="This transplant is considered suspect">?</abbr></span>
-								<span z:if="${c.global-rmsd gt 8.56}" class="float-end"><abbr
+								<span z:if="${c.global-rmsd gt cutoff.global.unreliable}" class="float-end"><abbr
 									title="This transplant is considered unreliable">?</abbr></span>
 								</td>
 
 							<td z:text="${c.asym_id}"></td>
 
-							<td z:classappend="${c.local-rmsd gt 2 ? 'unreliable' : c.local-rmsd gt 1.05 ? 'suspect' }">
+							<td z:classappend="${c.local-rmsd gt cutoff.local.unreliable ? 'unreliable' : c.local-rmsd gt cutoff.local.suspect ? 'suspect' }">
 								<span z:text="${#numbers.formatDecimal(c.local-rmsd, 1, 2)}"></span>
-								<span z:if="${c.local-rmsd gt 1.05 and c.local-rmsd le 2}" class="float-end"><abbr
+								<span z:if="${c.local-rmsd gt cutoff.local.suspect and c.local-rmsd le 2}" class="float-end"><abbr
 										title="This transplant is considered suspect">?</abbr></span>
-								<span z:if="${c.local-rmsd gt 2}" class="float-end"><abbr
+								<span z:if="${c.local-rmsd gt cutoff.local.unreliable}" class="float-end"><abbr
 									title="This transplant is considered unreliable">?</abbr></span>
 							</td>
 

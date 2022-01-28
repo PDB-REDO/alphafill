@@ -555,6 +555,18 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 		sub.put("title", e.what());
 	}
 
+	// TODO: These magic numbers should of course be configurable parameters
+	sub.put("cutoff", json{
+		{ "global", {
+			{ "unreliable", 8.67  },
+			{ "suspect", 3.64 }
+		}},
+		{ "local", {
+			{ "unreliable", 1.74 },
+			{ "suspect", 0.94 }
+		}}
+	});
+
 	get_server().get_template_processor().create_reply_from_template("model", sub, reply);
 }
 
