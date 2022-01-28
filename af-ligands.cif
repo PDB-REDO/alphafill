@@ -1779,6 +1779,21 @@ _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      "hydroxylated TPP,TDP-class"
 #
+data_8HX
+#
+_ligand.id               8HX
+_ligand.analogue_id      URC
+_ligand.priority         y
+_ligand.description      "Uric acid derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O8     O24   
+2  O6     O13
+3  O2     O11
+#
 data_8JD
 #
 _ligand.id               8JD
@@ -1837,6 +1852,23 @@ _modification.atom2
 49 CP  .
 50 C1M .
 #
+data_8NX
+#
+_ligand.id               8NX
+_ligand.analogue_id      URC
+_ligand.priority         y
+_ligand.description      "Uric acid derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  O11    .   
+2  O12    .
+3  N10    O24
+4  O6     O13
+5  O2     O11
+#
 data_8PA
 #
 _ligand.id               8PA
@@ -1871,6 +1903,21 @@ _modification.atom2
 21 C1H .
 22 C1G .
 23 C1I .
+#
+data_8TX
+#
+_ligand.id               8TX
+_ligand.analogue_id      URC
+_ligand.priority         y
+_ligand.description      "Uric acid derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  S8     O24   
+2  O6     O13
+3  O2     O11
 #
 data_8Z2
 #
@@ -2180,6 +2227,13 @@ _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      .
 _ligand.name   ATP
+#
+data_AZA
+#
+_ligand.id               AZA
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "8-azaxanthine"
 #
 data_B12
 #
@@ -4871,6 +4925,13 @@ _modification.atom2
 7  C7S .
 8  C8S .
 #
+data_GUN
+#
+_ligand.id               GUN
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      Guanine
+#
 data_GVX
 #
 _ligand.id               GVX
@@ -5862,6 +5923,22 @@ _ligand.id               MTV
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      'MGD-class'
+#
+data_MUA
+#
+_ligand.id               MUA
+_ligand.analogue_id      URC
+_ligand.priority         y
+_ligand.description      "Uric acid derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C10    .   
+2  O8     O24
+3  06     O13
+4  O2     O11
 #
 data_MYA
 #
@@ -8148,6 +8225,13 @@ _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      'TDP-class, intermediate state'
 #
+data_XAN
+#
+_ligand.id               XAN
+_ligand.analogue_id      .
+_ligand.priority         y
+_ligand.description      "Xanthine" 
+#
 data_XAT
 #
 _ligand.id               XAT
@@ -8162,6 +8246,31 @@ _ligand.id               XAX
 _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      'MGD-class'
+#
+data_XDS
+#
+_ligand.id               XDS
+_ligand.analogue_id      URC
+_ligand.priority         y
+_ligand.description      "Uric acid derivative" 
+#
+loop_
+_modification.id
+_modification.atom1
+_modification.atom2
+1  C      .   
+2  O1     .
+3  O2     .
+4  O      O24
+5  C1     C8
+6  N1     N7
+7  C2     C5
+8  C3     C6
+9  O3     O13
+10 N2     N1
+11 C4     C2
+12 O4     O11
+13 C5     C4
 #
 data_XP8
 #
