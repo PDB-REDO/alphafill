@@ -1152,6 +1152,10 @@ int a_main(int argc, const char *argv[])
 	if (vm.count("output"))
 	{
 		fs::path output = vm["output"].as<std::string>();
+
+		if (not fs::exists(output.parent_path()))
+			fs::create_directories(output.parent_path());
+
 		f.file().save(output);
 
 		// if (output.extension() == ".gz")
