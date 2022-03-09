@@ -1152,7 +1152,7 @@ int a_main(int argc, const char *argv[])
 	if (vm.count("output"))
 	{
 		fs::path output = vm["output"].as<std::string>();
-		f.file().save(output);
+		f.save(output);
 
 		// if (output.extension() == ".gz")
 		// 	output = output.stem();
@@ -1162,7 +1162,7 @@ int a_main(int argc, const char *argv[])
 		outfile << result;
 	}
 	else
-		f.file().save(std::cout);
+		f.save(std::cout);
 
 	return 0;
 }
