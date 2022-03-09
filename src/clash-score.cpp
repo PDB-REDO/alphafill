@@ -187,10 +187,10 @@ int a_main(int argc, const char *argv[])
 		exit(0);
 	}
 
-	if (vm.count("help"))
+	if (vm.count("help") or vm.count("xyzin") == 0)
 	{
 		std::cout << visible_options << std::endl;
-		exit(0);
+		exit(vm.count("help") ? 0 : 1);
 	}
 
 	if (vm.count("quiet"))

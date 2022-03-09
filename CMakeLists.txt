@@ -182,10 +182,6 @@ if(USE_RSRC)
 	mrc_target_resources(af-filledd ${CMAKE_SOURCE_DIR}/docroot/ ${CMAKE_SOURCE_DIR}/db-schema.sql)
 endif()
 
-install(TARGETS alphafill af-filledd
-    RUNTIME DESTINATION ${BIN_INSTALL_DIR}
-)
-
 # clash-score as a separate application
 
 add_executable(clash-score
@@ -195,4 +191,8 @@ add_executable(clash-score
 target_include_directories(clash-score PRIVATE zeep::zeep cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 target_link_libraries(clash-score
 	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
+
+install(TARGETS alphafill af-filledd clash-score
+    RUNTIME DESTINATION ${BIN_INSTALL_DIR}
+)
 
