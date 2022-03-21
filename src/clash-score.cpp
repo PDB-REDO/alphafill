@@ -98,7 +98,7 @@ json CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<
 		{
 			auto d = DistanceSquared(pa.pt, ra.pt);
 
-			if (d >= 2 * maxDistanceSq)
+			if (d >= maxDistanceSq)
 				continue;
 			
 			near = true;
