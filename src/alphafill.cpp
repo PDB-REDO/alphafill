@@ -46,6 +46,8 @@ namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 namespace ba = boost::algorithm;
 
+using json = zeep::json::element;
+
 // --------------------------------------------------------------------
 
 fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id)
@@ -524,9 +526,61 @@ struct CAtom
 	float radius;
 };
 
-std::tuple<size_t,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance)
+std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance)
 {
+	auto maxDistanceSq = maxDistance * maxDistance;
 
+	json distancePairs;
+
+	int n = 0, o = 0;
+	double sumOverlapSq = 0;
+
+	for (auto &pa : polyAtoms)
+	{
+		bool near = false;
+
+		for (auto &ra : resAtoms)
+		{
+			auto d = DistanceSquared(pa.pt, ra.pt);
+
+			if (d >= maxDistanceSq)
+				continue;
+			
+			near = true;
+
+			d = std::sqrt(d);
+
+			auto overlap = pa.radius + ra.radius - d;
+			if (overlap < 0)
+				overlap = 0;
+			
+			if (overlap > 0)
+			{
+				++n;
+				sumOverlapSq += overlap * overlap;
+			}
+			
+			json d_pair;
+			d_pair.push_back(d);
+			d_pair.push_back(overlap);
+
+			distancePairs.push_back(std::move(d_pair));
+		}
+
+		if (near)
+			++o;
+	}
+
+	return {
+		o,
+		{
+			{ "score", o ? sumOverlapSq / o : 0 },
+			{ "clash_count", n },
+			{ "poly_atom_count", o },
+			{ "ligand_atom_count", resAtoms.size() },
+			{ "distances", std::move(distancePairs) }
+		}
+	};
 }
 
 // --------------------------------------------------------------------
@@ -833,7 +887,7 @@ int a_main(int argc, const char *argv[])
 	// atoms for the clash score calculation
 	std::vector<CAtom> polyAtoms;
 
-	for (auto &res : af_structure.polies().front())
+	for (auto &res : af_structure.polymers().front())
 	{
 		for (auto &atom : res.atoms())
 			polyAtoms.emplace_back(atom);
@@ -848,8 +902,6 @@ int a_main(int argc, const char *argv[])
 
 	std::string afID;
 	cif::tie(afID) = db["entry"].front().get("id");
-
-	using json = zeep::json::element;
 
 	auto now = boost::posix_time::second_clock::universal_time();
 
@@ -1113,22 +1165,26 @@ int a_main(int argc, const char *argv[])
 						{
 							mmcif::AtomTypeTraits att(atom.type());
 
-							int formal_charge = atom.formalCharge();
+							int formal_charge = atom.charge();
 
-							if (not charge.has_value() and att.isMetal())
+							if (not formal_charge == 0 and att.isMetal())
 							{
 								auto compound = mmcif::CompoundFactory::instance().create(comp_id);
 								if (compound)
 									formal_charge = compound->formalCharge();
 							}
 
-							resAtoms.emplace_back(att.type(), Point{ x, y, z }, formal_charge);
+							resAtoms.emplace_back(att.type(), atom.location(), formal_charge);
 						}
 
-						auto &&[polyAtomCount, clashInfo] = CalculateClashInfo(polyAtoms, resAtoms, maxDistance);
+						auto &&[polyAtomCount, clashInfo] = CalculateClashScore(polyAtoms, resAtoms, maxDistance);
 
 						if (polyAtomCount == 0)
+						{
+							if (cif::VERBOSE > 0)
+								std::cerr << "Residue " << res << " skipped because there are no atoms nearby in the polymer" << std::endl;
 							continue;
+						}
 
 						auto entity_id = af_structure.createNonPolyEntity(comp_id);
 						auto asym_id = af_structure.createNonpoly(entity_id, res.atoms());
