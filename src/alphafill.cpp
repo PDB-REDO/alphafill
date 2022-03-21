@@ -498,6 +498,39 @@ bool isUniqueLigand(const mmcif::Structure &structure, float minDistance, const 
 
 // --------------------------------------------------------------------
 
+struct CAtom
+{
+	CAtom(const CAtom &) = default;
+	CAtom(CAtom &&) = default;
+
+	CAtom(mmcif::AtomType type, Point pt, int charge)
+		: type(type), pt(pt)
+	{
+		radius = charge == 0 ?
+			mmcif::AtomTypeTraits(type).radius(mmcif::RadiusType::VanderWaals) : 
+			mmcif::AtomTypeTraits(type).effective_ionic_radius(charge);
+
+		if (std::isnan(radius))
+			throw std::runtime_error("Unknown radius for atom " + mmcif::AtomTypeTraits(type).symbol() + " with charge " + std::to_string(charge));
+	}
+
+	CAtom(const mmcif::Atom &atom)
+		: CAtom(atom.type(), atom.location(), atom.charge())
+	{
+	}
+
+	mmcif::AtomType type;
+	Point pt;
+	float radius;
+};
+
+std::tuple<size_t,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance)
+{
+
+}
+
+// --------------------------------------------------------------------
+
 int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &output)
 {
 	std::cerr << "collecting files...";
@@ -627,6 +660,8 @@ int a_main(int argc, const char *argv[])
 		("min-separation-distance", po::value<float>()->default_value(3.5), "The centroids of two identical ligands should be at least this far apart to count as separate occurrences")
 		("blast-report-limit", po::value<uint32_t>()->default_value(250), "Number of blast hits to use")
 
+		("clash-distance-cutoff", po::value<float>()->default_value(4), "The max distance between polymer atoms and ligand atoms used in calculating clash scores")
+
 		("compounds", po::value<std::string>(), "Location of the components.cif file from CCD")
 		("components", po::value<std::string>(), "Location of the components.cif file from CCD, alias")
 		("extra-compounds", po::value<std::string>(), "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file")
@@ -736,6 +771,8 @@ int a_main(int argc, const char *argv[])
 
 	LigandsTable ligands(ligandsFile);
 
+	float maxDistance = vm["clash-distance-cutoff"].as<float>();
+
 	// --------------------------------------------------------------------
 	
 	if (vm.count("prepare-pdb-list"))
@@ -791,6 +828,16 @@ int a_main(int argc, const char *argv[])
 	fs::path xyzin = vm["xyzin"].as<std::string>();
 	mmcif::File f(xyzin);
 	mmcif::Structure af_structure(f, 1, mmcif::StructureOpenOptions::SkipHydrogen);
+
+	// --------------------------------------------------------------------
+	// atoms for the clash score calculation
+	std::vector<CAtom> polyAtoms;
+
+	for (auto &res : af_structure.polies().front())
+	{
+		for (auto &atom : res.atoms())
+			polyAtoms.emplace_back(atom);
+	}
 
 	// --------------------------------------------------------------------
 	// fetch the (single) chain
@@ -1058,14 +1105,42 @@ int a_main(int argc, const char *argv[])
 							continue;
 						}
 
+						// Calculate clash score for new ligand
+
+						std::vector<CAtom> resAtoms;
+
+						for (auto &atom : res.atoms())
+						{
+							mmcif::AtomTypeTraits att(atom.type());
+
+							int formal_charge = atom.formalCharge();
+
+							if (not charge.has_value() and att.isMetal())
+							{
+								auto compound = mmcif::CompoundFactory::instance().create(comp_id);
+								if (compound)
+									formal_charge = compound->formalCharge();
+							}
+
+							resAtoms.emplace_back(att.type(), Point{ x, y, z }, formal_charge);
+						}
+
+						auto &&[polyAtomCount, clashInfo] = CalculateClashInfo(polyAtoms, resAtoms, maxDistance);
+
+						if (polyAtomCount == 0)
+							continue;
+
 						auto entity_id = af_structure.createNonPolyEntity(comp_id);
 						auto asym_id = af_structure.createNonpoly(entity_id, res.atoms());
 
-						r_hsp["transplants"].push_back({{"compound_id", comp_id},
+						r_hsp["transplants"].push_back({
+							{"compound_id", comp_id},
 							{"entity_id", entity_id},
 							{"asym_id", asym_id},
 							{"rmsd", rmsd},
-							{"analogue_id", analogue}});
+							{"analogue_id", analogue},
+							{"clash", clashInfo}
+						});
 
 						// copy any struct_conn record that might be needed
 

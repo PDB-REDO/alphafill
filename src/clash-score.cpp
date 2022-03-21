@@ -89,6 +89,7 @@ json CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<
 	auto &dp = result["distance"];
 
 	int n = 0, o = 0;
+	double sumOverlapSq = 0;
 
 	for (auto &pa : polyAtoms)
 	{
@@ -110,7 +111,10 @@ json CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<
 				overlap = 0;
 			
 			if (overlap > 0)
+			{
 				++n;
+				sumOverlapSq += overlap * overlap;
+			}
 			
 			json d_pair;
 			d_pair.push_back(d);
@@ -123,6 +127,7 @@ json CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<
 			++o;
 	}
 
+	result["score"] = o ? sumOverlapSq / o : 0;
 	result["clash_count"] = n;
 	result["poly_atom_count"] = o;
 	result["ligand_atom_count"] = resAtoms.size();
