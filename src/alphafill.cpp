@@ -532,7 +532,7 @@ std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, co
 
 	json distancePairs;
 
-	int n = 0, o = 0;
+	int n = 0, m = 0;
 	double sumOverlapSq = 0;
 
 	for (auto &pa : polyAtoms)
@@ -568,15 +568,15 @@ std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, co
 		}
 
 		if (near)
-			++o;
+			++m;
 	}
 
 	return {
-		o,
+		m,
 		{
-			{ "score", o ? sumOverlapSq / o : 0 },
+			{ "score", m ? std::sqrt(sumOverlapSq / distancePairs.size()) : 0 },
 			{ "clash_count", n },
-			{ "poly_atom_count", o },
+			{ "poly_atom_count", m },
 			{ "ligand_atom_count", resAtoms.size() },
 			{ "distances", std::move(distancePairs) }
 		}
