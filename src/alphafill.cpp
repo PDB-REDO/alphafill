@@ -1167,7 +1167,7 @@ int a_main(int argc, const char *argv[])
 
 							int formal_charge = atom.charge();
 
-							if (not formal_charge == 0 and att.isMetal())
+							if (formal_charge == 0 and att.isMetal())
 							{
 								auto compound = mmcif::CompoundFactory::instance().create(comp_id);
 								if (compound)
