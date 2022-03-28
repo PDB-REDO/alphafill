@@ -1234,7 +1234,8 @@ int a_main(int argc, const char *argv[])
 
 								auto conn_type = conn["conn_type_id"].as<std::string>();
 
-								af_struct_conn.emplace({{"id", af_struct_conn.getUniqueID(conn_type)},
+								af_struct_conn.emplace({
+									{"id", af_struct_conn.getUniqueID(conn_type)},
 									{"conn_type_id", conn_type},
 									{"ptnr1_label_asym_id", asym_id},
 									{"ptnr1_label_comp_id", res.compoundID()},
