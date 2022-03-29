@@ -1,3 +1,8 @@
+Version 1.1.0
+- Added clash score
+- Added code to support regular PDB files along PDB-redo
+- Added much more ligands, covers over 95% of ligands in PDB
+
 Version 1.0.1
 - Added 3d-beacon info
 - threads option (single threaded is faster when multiple instances are running)
