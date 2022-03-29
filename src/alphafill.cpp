@@ -587,25 +587,50 @@ std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, co
 
 int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &output)
 {
-	std::cerr << "collecting files...";
+	std::cerr << "collecting files ";
 
 	std::vector<fs::path> files;
-	for (fs::recursive_directory_iterator iter(pdbDir); iter != fs::recursive_directory_iterator(); ++iter)
+
+	for (fs::directory_iterator iter(pdbDir); iter != fs::directory_iterator(); ++iter)
 	{
-		if (not iter->is_regular_file())
+		if (not iter->is_directory())
 			continue;
 		
-		fs::path file = iter->path();
-
-		if (file.parent_path().filename().string() == "obsolete" or file.parent_path().parent_path().filename().string() == "obsolete")
-			continue;
-
-		std::string name = file.filename().string();
-
-		if (not ba::ends_with(name, "_final.cif"))
+		if (iter->path().filename().string().length() != 2)
 			continue;
 		
-		files.push_back(file);
+		// Regular PDB layout
+		for (fs::directory_iterator fiter(iter->path()); fiter != fs::directory_iterator(); ++fiter)
+		{
+			if (not fiter->is_regular_file())
+				continue;
+
+			fs::path file = fiter->path();
+
+			std::string name = file.filename().string();
+			if (not ba::ends_with(name, ".cif.gz"))
+				continue;
+
+			files.push_back(file);
+
+			if (files.size() % 10000 == 0)
+				std::cerr << '.';
+		}
+
+		// PDB-REDO layout
+		for (fs::recursive_directory_iterator fiter(iter->path()); fiter != fs::recursive_directory_iterator(); ++fiter)
+		{
+			fs::path file = fiter->path();
+
+			std::string name = file.filename().string();
+			if (not ba::ends_with(name, "_final.cif"))
+				continue;
+
+			files.push_back(file);
+
+			if (files.size() % 10000 == 0)
+				std::cerr << '.';
+		}
 	}
 
 	std::cerr << " done!" << std::endl
