@@ -505,7 +505,14 @@ struct CAtom
 	CAtom(const CAtom &) = default;
 	CAtom(CAtom &&) = default;
 
-	CAtom(const std::string &compound, mmcif::AtomType type, Point pt, int charge)
+	CAtom(mmcif::AtomType type, Point pt)
+		: type(type), pt(pt)
+	{
+		const mmcif::AtomTypeTraits att(type);
+		radius = att.radius(mmcif::RadiusType::VanderWaals);
+	}
+
+	CAtom(mmcif::AtomType type, Point pt, int charge)
 		: type(type), pt(pt)
 	{
 		const mmcif::AtomTypeTraits att(type);
@@ -514,20 +521,12 @@ struct CAtom
 			att.radius(mmcif::RadiusType::VanderWaals) : 
 			att.effective_ionic_radius(charge);
 
-		if (std::isnan(radius) and att.isMetal())
-		{
-			auto comp = mmcif::CompoundFactory::instance().create(compound);
-			if (comp)
-				radius = att.effective_ionic_radius(comp->formalCharge());
-		}
-
 		if (std::isnan(radius))
-			std::cerr << "Unknown radius for atom " << mmcif::AtomTypeTraits(type).symbol() << " with charge " << charge << std::endl;
-	}
-
-	CAtom(const mmcif::Atom &atom)
-		: CAtom(atom.labelCompID(), atom.type(), atom.location(), atom.charge())
-	{
+		{
+			if (cif::VERBOSE > 0)
+				std::cerr << "Unknown radius for atom " << mmcif::AtomTypeTraits(type).symbol() << " with charge " << charge << std::endl;
+			radius = att.radius(mmcif::RadiusType::VanderWaals);
+		}
 	}
 
 	mmcif::AtomType type;
@@ -924,7 +923,7 @@ int a_main(int argc, const char *argv[])
 	for (auto &res : af_structure.polymers().front())
 	{
 		for (auto &atom : res.atoms())
-			polyAtoms.emplace_back(atom);
+			polyAtoms.emplace_back(atom.type(), atom.location());
 	}
 
 	// --------------------------------------------------------------------
@@ -1195,22 +1194,25 @@ int a_main(int argc, const char *argv[])
 
 						std::vector<CAtom> resAtoms;
 
-						for (auto &atom : res.atoms())
+						if (res.atoms().size() == 1)	// single atom, might be an ion with incorrect charge
 						{
+							auto atom = res.atoms().front();
 							mmcif::AtomTypeTraits att(atom.type());
+							auto &comp = res.compound();
 
-							int formal_charge = atom.charge();
-
-							if (formal_charge == 0 and att.isMetal())
-							{
-								auto compound = mmcif::CompoundFactory::instance().create(comp_id);
-								if (compound)
-									formal_charge = compound->formalCharge();
-							}
-
-							resAtoms.emplace_back(res.compoundID(), att.type(), atom.location(), formal_charge);
+							if (comp.atoms().size() == 1)
+								resAtoms.emplace_back(att.type(), atom.location(), atom.charge());
+							else
+								resAtoms.emplace_back(att.type(), atom.location());
 						}
-
+						else
+						{
+							for (auto &atom : res.atoms())
+							{
+								mmcif::AtomTypeTraits att(atom.type());
+								resAtoms.emplace_back(att.type(), atom.location());
+							}
+						}
 						auto &&[polyAtomCount, clashInfo] = CalculateClashScore(polyAtoms, resAtoms, maxDistance);
 
 						if (polyAtomCount == 0)
