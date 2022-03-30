@@ -505,19 +505,28 @@ struct CAtom
 	CAtom(const CAtom &) = default;
 	CAtom(CAtom &&) = default;
 
-	CAtom(mmcif::AtomType type, Point pt, int charge)
+	CAtom(const std::string &compound, mmcif::AtomType type, Point pt, int charge)
 		: type(type), pt(pt)
 	{
+		const mmcif::AtomTypeTraits att(type);
+
 		radius = charge == 0 ?
-			mmcif::AtomTypeTraits(type).radius(mmcif::RadiusType::VanderWaals) : 
-			mmcif::AtomTypeTraits(type).effective_ionic_radius(charge);
+			att.radius(mmcif::RadiusType::VanderWaals) : 
+			att.effective_ionic_radius(charge);
+
+		if (std::isnan(radius) and att.isMetal())
+		{
+			auto comp = mmcif::CompoundFactory::instance().create(compound);
+			if (comp)
+				radius = att.effective_ionic_radius(comp->formalCharge());
+		}
 
 		if (std::isnan(radius))
-			throw std::runtime_error("Unknown radius for atom " + mmcif::AtomTypeTraits(type).symbol() + " with charge " + std::to_string(charge));
+			std::cerr << "Unknown radius for atom " << mmcif::AtomTypeTraits(type).symbol() << " with charge " << charge << std::endl;
 	}
 
 	CAtom(const mmcif::Atom &atom)
-		: CAtom(atom.type(), atom.location(), atom.charge())
+		: CAtom(atom.labelCompID(), atom.type(), atom.location(), atom.charge())
 	{
 	}
 
@@ -1199,7 +1208,7 @@ int a_main(int argc, const char *argv[])
 									formal_charge = compound->formalCharge();
 							}
 
-							resAtoms.emplace_back(att.type(), atom.location(), formal_charge);
+							resAtoms.emplace_back(res.compoundID(), att.type(), atom.location(), formal_charge);
 						}
 
 						auto &&[polyAtomCount, clashInfo] = CalculateClashScore(polyAtoms, resAtoms, maxDistance);
