@@ -82,9 +82,8 @@
 							<th><abbr title="RMSD for the overall protein alignment based on Cα atoms">Global
 									RMSd</abbr></th>
 							<th><abbr title="The ID for the struct_asym created for this transplant">Asym</abbr></th>
-							<th><abbr
-									title="RMSD of the alignment of all backbone atoms within 6Å of the compound that was transplanted by AlphaFill">Local
-									RMSd</abbr></th>
+							<th><abbr title="RMSD of the alignment of all backbone atoms within 6Å of the compound that was transplanted by AlphaFill">Local RMSd</abbr></th>
+							<th><abbr title="RMSD of the van der Waals overlap between ligand and polymer atoms">Clash Score</abbr></th>
 							<th>
 								<div class="form-check">
 									<input class="form-check-input" checked="checked" type="checkbox" id="show-all" />
@@ -126,6 +125,14 @@
 										title="This transplant is considered suspect">?</abbr></span>
 								<span z:if="${c.local-rmsd gt cutoff.local.unreliable}" class="float-end"><abbr
 									title="This transplant is considered unreliable">?</abbr></span>
+							</td>
+
+							<td> <!--</td> z:classappend="${c.local-rmsd gt cutoff.local.unreliable ? 'unreliable' : c.local-rmsd gt cutoff.local.suspect ? 'suspect' }">-->
+								<span z:text="${#numbers.formatDecimal(c.clash-score, 1, 2)}"></span>
+								<!-- <span z:if="${c.clash-score gt cutoff.local.suspect and c.clash-score le 2}" class="float-end"><abbr
+										title="This transplant is considered suspect">?</abbr></span>
+								<span z:if="${c.clash-score gt cutoff.local.unreliable}" class="float-end"><abbr
+									title="This transplant is considered unreliable">?</abbr></span> -->
 							</td>
 
 							<td>

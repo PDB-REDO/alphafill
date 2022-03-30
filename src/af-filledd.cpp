@@ -372,6 +372,7 @@ struct transplant_info
 	std::string pdb_id;
 	double identity;
 	double gRMSd;
+	double clashScore;
 	std::string asym_id;
 	double lRMSd;
 	bool firstHit = false;
@@ -387,6 +388,7 @@ struct transplant_info
 		   & zeep::make_nvp("pdb_id", pdb_id)
 		   & zeep::make_nvp("identity", identity)
 		   & zeep::make_nvp("global-rmsd", gRMSd)
+		   & zeep::make_nvp("clash-score", clashScore)
 		   & zeep::make_nvp("asym_id", asym_id)
 		   & zeep::make_nvp("local-rmsd", lRMSd)
 		   & zeep::make_nvp("first-hit", firstHit)
@@ -501,6 +503,7 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 				hit["pdb_id"].as<std::string>() + '.' + hit["pdb_asym_id"].as<std::string>(),
 				hitIdentity,
 				hit["rmsd"].as<double>(),
+				hit["clash"]["score"].as<double>(),
 				transplant["asym_id"].as<std::string>(),
 				transplant["rmsd"].as<double>()
 			});
