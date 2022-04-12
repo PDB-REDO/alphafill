@@ -11,7 +11,7 @@
 
 	<script z:inline="javascript">
 		const AF_ID = /*[[${af_id}]]*/ null;
-		const IDENTITY = /*[[${identity}]]*/ 35;
+		const IDENTITY = /*[[${identity}]]*/ 25;
 	</script>
 
 	<script defer="defer" type="text/javascript" src="scripts/model.js"></script>
@@ -50,9 +50,13 @@
 
 				<div class="btn-group btn-group-sm" role="group" aria-label="Select identity cut-off buttons"
 					style="width: 100%;">
-					<input type="radio" class="btn-check" name="btnradio" id="btnradio-35" autocomplete="off" data-identity="35"
-						checked="checked" z:checked="${identity == null or identity == 35}" />
-					<label class="btn btn-outline-primary" for="btnradio-35">35% identity</label>
+					<input type="radio" class="btn-check" name="btnradio" id="btnradio-25" autocomplete="off" data-identity="25"
+						checked="checked" z:checked="${identity == null or identity == 25}" />
+					<label class="btn btn-outline-primary" for="btnradio-25">25% identity</label>
+
+					<input type="radio" class="btn-check" name="btnradio" id="btnradio-30" autocomplete="off" data-identity="30"
+						z:checked="${identity == 30}" />
+					<label class="btn btn-outline-primary" for="btnradio-30">30% identity</label>
 
 					<input type="radio" class="btn-check" name="btnradio" id="btnradio-40" autocomplete="off" data-identity="40"
 						z:checked="${identity == 40}" />
@@ -77,14 +81,13 @@
 							<th><abbr title="Name of the compound that was transplanted by AlphaFill">Compound</abbr>
 							</th>
 							<th><abbr
-									title="PDB-REDO identifier followed by chain that was used in the alignment">PDB-ID</abbr>
+									title="PDB-REDO identifier followed by chain that was used in the alignment">PDBID</abbr>
 							</th>
 							<th><abbr title="RMSD for the overall protein alignment based on Cα atoms">Global
 									RMSd</abbr></th>
 							<th><abbr title="The ID for the struct_asym created for this transplant">Asym</abbr></th>
-							<th><abbr
-									title="RMSD of the alignment of all backbone atoms within 6Å of the compound that was transplanted by AlphaFill">Local
-									RMSd</abbr></th>
+							<th><abbr title="RMSD of the alignment of all backbone atoms within 6Å of the compound that was transplanted by AlphaFill">Local RMSd</abbr></th>
+							<th><abbr title="RMSD of the van der Waals overlap between ligand and polymer atoms">Clash RMSd</abbr></th>
 							<th>
 								<div class="form-check">
 									<input class="form-check-input" checked="checked" type="checkbox" id="show-all" />

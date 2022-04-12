@@ -7,7 +7,7 @@
 	<link rel="stylesheet" type="text/css" href="css/molstar.css" />
 
 	<script z:inline="javascript">
-		const IDENTITY = /*[[${identity}]]*/ 35;
+		const IDENTITY = /*[[${identity}]]*/ 25;
 		const STRUCTURE_COUNT = /*[[${structure-count}]]*/ 0;
 		const PAGE_SIZE = /*[[${page-size}]]*/ 10;
 		let page = /*[[${page}]]*/ 1;
@@ -32,9 +32,13 @@
 
 		<div class="btn-group btn-group-sm mt-3" role="group" aria-label="Select identity cut-off buttons"
 			style="width: 100%;">
-			<input type="radio" class="btn-check" name="btnradio" id="btnradio-35" autocomplete="off" data-identity="35"
-				checked="checked" z:checked="${identity == 35}" />
-			<label class="btn btn-outline-primary" for="btnradio-35">35% identity</label>
+			<input type="radio" class="btn-check" name="btnradio" id="btnradio-25" autocomplete="off" data-identity="25"
+				checked="checked" z:checked="${identity == 25}" />
+			<label class="btn btn-outline-primary" for="btnradio-25">25% identity</label>
+
+			<input type="radio" class="btn-check" name="btnradio" id="btnradio-30" autocomplete="off" data-identity="30"
+				z:checked="${identity == 30}" />
+			<label class="btn btn-outline-primary" for="btnradio-30">30% identity</label>
 
 			<input type="radio" class="btn-check" name="btnradio" id="btnradio-40" autocomplete="off" data-identity="40"
 				z:checked="${identity == 40}" />

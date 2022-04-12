@@ -1133,17 +1133,14 @@ int a_main(int argc, const char *argv[])
 						{"alignment_length", hsp.length()},
 						{"rmsd", rmsd}};
 
-					for (auto &np : pdb_structure.nonPolymers())
+					for (auto &res : pdb_structure.nonPolymers())
 					{
-						auto comp_id = np.compoundID();
+						auto comp_id = res.compoundID();
 
 						Ligand ligand = ligands[comp_id];
 
 						if (not ligand)
 							continue;
-
-						// fetch the non poly atoms as cif::Rows
-						auto &res = pdb_structure.getResidue(np.asymID(), comp_id);
 
 						// Find the atoms nearby in the AF chain for this residue
 						auto &&[pdb_near_r, af_near_r] = selectAtomsNearResidue(
@@ -1288,7 +1285,7 @@ int a_main(int argc, const char *argv[])
 						ligand.modify(af_structure, asym_id);
 
 						if (cif::VERBOSE > 0)
-							std::cerr << "Created asym " << asym_id << " for " << np << std::endl;
+							std::cerr << "Created asym " << asym_id << " for " << res << std::endl;
 					}
 
 					if (not r_hsp["transplants"].empty())
