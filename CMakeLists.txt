@@ -168,6 +168,7 @@ add_custom_target(webpack DEPENDS ${webpack_output})
 
 add_executable(af-filledd
 	${CMAKE_SOURCE_DIR}/src/af-filledd.cpp
+	${CMAKE_SOURCE_DIR}/src/utilities.cpp
 	${CMAKE_SOURCE_DIR}/src/db-connection.cpp
 	${CMAKE_SOURCE_DIR}/src/data-service.cpp
 )
@@ -182,17 +183,16 @@ if(USE_RSRC)
 	mrc_target_resources(af-filledd ${CMAKE_SOURCE_DIR}/docroot/ ${CMAKE_SOURCE_DIR}/db-schema.sql)
 endif()
 
-# clash-score as a separate application
-
-add_executable(clash-score
-	${CMAKE_SOURCE_DIR}/src/clash-score.cpp
+add_executable(validate-fill
+	${CMAKE_SOURCE_DIR}/src/validate-fill.cpp
+	${CMAKE_SOURCE_DIR}/src/utilities.cpp
 )
 
-target_include_directories(clash-score PRIVATE zeep::zeep cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
-target_link_libraries(clash-score
+target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
+target_link_libraries(validate-fill
 	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
 
-install(TARGETS alphafill af-filledd clash-score
+install(TARGETS alphafill af-filledd
     RUNTIME DESTINATION ${BIN_INSTALL_DIR}
 )
 

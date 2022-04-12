@@ -45,6 +45,7 @@
 
 #include "db-connection.hpp"
 #include "data-service.hpp"
+#include "utilities.hpp"
 
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
@@ -60,73 +61,6 @@ const uint32_t
 	kPageSize = 20,
 	kMinIdentity = kIdentities.back(),
 	kMaxIdentity = kIdentities.front();
-
-// --------------------------------------------------------------------
-
-class file_locator
-{
-  public:
-	static void init(const fs::path &db_dir,
-		const std::string &structure_name_pattern, const std::string &metadata_name_pattern)
-	{
-		s_instance.reset(new file_locator(db_dir, structure_name_pattern, metadata_name_pattern));
-	}
-
-	static fs::path get_structure_file(const std::string &id)
-	{
-		return s_instance->get_file(id, s_instance->m_structure_name_pattern);
-	}
-
-	static fs::path get_metdata_file(const std::string &id)
-	{
-		return s_instance->get_file(id, s_instance->m_metadata_name_pattern);
-	}
-
-  private:
-
-	static std::unique_ptr<file_locator> s_instance;
-
-	file_locator(const file_locator&) = delete;
-	file_locator& operator=(const file_locator&) = delete;
-
-	file_locator(const fs::path &db_dir,
-		const std::string &structure_name_pattern, const std::string &metadata_name_pattern)
-		: m_db_dir(db_dir)
-		, m_structure_name_pattern(structure_name_pattern)
-		, m_metadata_name_pattern(metadata_name_pattern)
-	{
-	}
-
-	fs::path get_file(const std::string &id, std::string pattern)
-	{
-		std::string::size_type i;
-
-		while ((i = pattern.find("${db-dir}")) != std::string::npos)
-			pattern.replace(i, strlen("${db-dir}"), m_db_dir);
-
-		std::regex rx(R"(\$\{id:(\d+):(\d+)\})");
-		std::smatch m;
-
-		while (std::regex_search(pattern, m, rx))
-		{
-			int start = stoi(m[1]);
-			int length = stoi(m[2]);
-
-			pattern.replace(m[0].first, m[0].second, id.substr(start, length));
-		}
-
-		while ((i = pattern.find("${id}")) != std::string::npos)
-			pattern.replace(i, strlen("${id}"), id);
-		
-		return pattern;
-	}
-
-	const fs::path m_db_dir;
-	const std::string m_structure_name_pattern;
-	const std::string m_metadata_name_pattern;
-};
-
-std::unique_ptr<file_locator> file_locator::s_instance;
 
 // --------------------------------------------------------------------
 // Register an object to handle #af.link('pdb-id') calls from the template
@@ -378,6 +312,7 @@ struct transplant_info
 	double identity;
 	double gRMSd;
 	std::string asym_id;
+	double clashScore;
 	double lRMSd;
 	bool firstHit = false;
 	bool firstTransplant = false;
@@ -394,6 +329,7 @@ struct transplant_info
 		   & zeep::make_nvp("global-rmsd", gRMSd)
 		   & zeep::make_nvp("asym_id", asym_id)
 		   & zeep::make_nvp("local-rmsd", lRMSd)
+		   & zeep::make_nvp("clash-score", clashScore)
 		   & zeep::make_nvp("first-hit", firstHit)
 		   & zeep::make_nvp("first-transplant", firstTransplant)
 		   & zeep::make_nvp("hit-count", hitCount)
@@ -507,6 +443,7 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 				hitIdentity,
 				hit["rmsd"].as<double>(),
 				transplant["asym_id"].as<std::string>(),
+				transplant["clash"]["score"].as<double>(),
 				transplant["rmsd"].as<double>()
 			});
 		}
@@ -826,6 +763,7 @@ int main(int argc, char* const argv[])
 			("address",		po::value<std::string>(),	"Address to listen to")
 			("port",		po::value<unsigned short>(),"Port to listen to")
 			("user",		po::value<std::string>(),	"User to run as")
+			("context",		po::value<std::string>(),	"Reverse proxy context")
 			("db-dir",		po::value<std::string>(),	"Directory containing the af-filled data")
 			("db-link-template",
 							po::value<std::string>(),	"Template for links to pdb(-redo) entry")
@@ -834,7 +772,7 @@ int main(int argc, char* const argv[])
 			("db-user",		po::value<std::string>(),	"AF DB owner")
 			("db-password",	po::value<std::string>(),	"AF DB password")
 			("db-host",		po::value<std::string>(),	"AF DB host")
-			("db-port",		po::value<std::string>(),	"AF DB 5432")
+			("db-port",		po::value<std::string>(),	"AF DB port")
 
 			("structure-name-pattern",	po::value<std::string>(),	"Pattern for locating structure files")
 			("metadata-name-pattern",	po::value<std::string>(),	"Pattern for locating metadata files")
@@ -930,6 +868,9 @@ int main(int argc, char* const argv[])
 			// sc->add_rule("/", {});
 
 			auto s = new zeep::http::server(/*sc*/);
+
+			if (vm.count("context"))
+				s->set_context_name(vm["context"].as<std::string>());
 
 			s->add_error_handler(new db_error_handler());
 			s->add_error_handler(new missing_entry_error_handler());
