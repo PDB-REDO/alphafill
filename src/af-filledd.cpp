@@ -54,7 +54,12 @@ namespace zh = zeep::http;
 
 #define PACKAGE_NAME "af-filledd"
 
-const uint32_t kPageSize = 20;
+const std::array<uint32_t,6> kIdentities{ 70, 60, 50, 40, 30, 25 };
+
+const uint32_t
+	kPageSize = 20,
+	kMinIdentity = kIdentities.back(),
+	kMaxIdentity = kIdentities.front();
 
 // --------------------------------------------------------------------
 
@@ -270,12 +275,12 @@ void affd_html_controller::structures(const zh::request& request, const zh::scop
 	if (request.has_parameter("compound"))
 		compound = request.get_parameter("compound");
 
-	int identity = 70;
+	int identity = kMaxIdentity;
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
-	if (identity < 35)
-		identity = 35;
+	if (identity < kMinIdentity)
+		identity = kMinIdentity;
 	if (identity > 100)
 		identity = 100;
 
@@ -316,12 +321,12 @@ void affd_html_controller::structures_table(const zh::request& request, const zh
 	if (request.has_parameter("compound"))
 		compound = request.get_parameter("compound");
 
-	int identity = 70;
+	int identity = kMaxIdentity;
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
-	if (identity < 35)
-		identity = 35;
+	if (identity < kMinIdentity)
+		identity = kMinIdentity;
 	if (identity > 100)
 		identity = 100;
 
@@ -346,12 +351,12 @@ void affd_html_controller::compounds(const zh::request& request, const zh::scope
 
 	auto &ds = data_service::instance();
 
-	int identity = 70;
+	int identity = kMaxIdentity;
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
-	if (identity < 35)
-		identity = 35;
+	if (identity < kMinIdentity)
+		identity = kMinIdentity;
 	if (identity > 100)
 		identity = 100;
 
@@ -457,15 +462,15 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 	if (request.has_parameter("identity"))
 	{
 		identity = std::stoi(request.get_parameter("identity"));
-		if (identity < 35)
-			identity = 35;
+		if (identity < kMinIdentity)
+			identity = kMinIdentity;
 		if (identity > 100)
 			identity = 100;
 	}
 	else	// see article, take highest identity that results in transplants
 	{
-		identity = 35;
-		for (int i : { 70, 60, 50, 40 })
+		identity = kMinIdentity;
+		for (int i : kIdentities)
 		{
 			for (auto &hit : data["hits"])
 			{
@@ -476,7 +481,7 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 				break;
 			}
 
-			if (identity > 35)
+			if (identity > kMinIdentity)
 				break;
 		}
 	}
