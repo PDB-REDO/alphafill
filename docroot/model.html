@@ -132,6 +132,14 @@
 							</td>
 
 							<td>
+								<span z:text="${#numbers.formatDecimal(c.clash-score, 1, 2)}"></span>
+								<!-- <span z:if="${c.local-rmsd gt cutoff.local.suspect and c.local-rmsd le 2}" class="float-end"><abbr
+										title="This transplant is considered suspect">?</abbr></span>
+								<span z:if="${c.local-rmsd gt cutoff.local.unreliable}" class="float-end"><abbr
+									title="This transplant is considered unreliable">?</abbr></span> -->
+							</td>
+
+							<td>
 								<div class="form-check">
 									<input class="form-check-input" type="checkbox" checked="checked"
 										z:data-asym-id="${c.asym_id}" />

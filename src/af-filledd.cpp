@@ -56,7 +56,8 @@ namespace zh = zeep::http;
 #define PACKAGE_NAME "af-filledd"
 
 const uint32_t
-	kPageSize = 20;
+	kPageSize = 20,
+	kMinIdentity = 25;
 
 // --------------------------------------------------------------------
 // Register an object to handle #af.link('pdb-id') calls from the template
@@ -209,8 +210,8 @@ void affd_html_controller::structures(const zh::request& request, const zh::scop
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
-	if (identity < 35)
-		identity = 35;
+	if (identity < kMinIdentity)
+		identity = kMinIdentity;
 	if (identity > 100)
 		identity = 100;
 
@@ -255,8 +256,8 @@ void affd_html_controller::structures_table(const zh::request& request, const zh
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
-	if (identity < 35)
-		identity = 35;
+	if (identity < kMinIdentity)
+		identity = kMinIdentity;
 	if (identity > 100)
 		identity = 100;
 
@@ -285,8 +286,8 @@ void affd_html_controller::compounds(const zh::request& request, const zh::scope
 	if (request.has_parameter("identity"))
 		identity = std::stoi(request.get_parameter("identity"));
 	
-	if (identity < 35)
-		identity = 35;
+	if (identity < kMinIdentity)
+		identity = kMinIdentity;
 	if (identity > 100)
 		identity = 100;
 
@@ -308,8 +309,8 @@ struct transplant_info
 	double identity;
 	double gRMSd;
 	std::string asym_id;
-	double lRMSd;
 	double clashScore;
+	double lRMSd;
 	bool firstHit = false;
 	bool firstTransplant = false;
 	int hitCount = 1;
@@ -394,14 +395,14 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 	if (request.has_parameter("identity"))
 	{
 		identity = std::stoi(request.get_parameter("identity"));
-		if (identity < 35)
-			identity = 35;
+		if (identity < kMinIdentity)
+			identity = kMinIdentity;
 		if (identity > 100)
 			identity = 100;
 	}
 	else	// see article, take highest identity that results in transplants
 	{
-		identity = 35;
+		identity = kMinIdentity;
 		for (int i : { 70, 60, 50, 40 })
 		{
 			for (auto &hit : data["hits"])
@@ -413,7 +414,7 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 				break;
 			}
 
-			if (identity > 35)
+			if (identity > kMinIdentity)
 				break;
 		}
 	}
@@ -438,8 +439,8 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 				hit["pdb_id"].as<std::string>() + '.' + hit["pdb_asym_id"].as<std::string>(),
 				hitIdentity,
 				hit["rmsd"].as<double>(),
-				transplant["clash"]["score"].as<double>(),
 				transplant["asym_id"].as<std::string>(),
+				transplant["clash"]["score"].as<double>(),
 				transplant["rmsd"].as<double>()
 			});
 		}
