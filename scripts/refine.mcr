@@ -22,6 +22,7 @@
 #Initialise
 OnError Exit
 Console off
+Processors 8
 
 #Check the YASARA version
 if (Dynamics)==0
