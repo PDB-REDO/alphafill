@@ -192,7 +192,7 @@ target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${CMAKE
 target_link_libraries(validate-fill
 	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
 
-install(TARGETS alphafill af-filledd
+install(TARGETS alphafill af-filledd validate-fill
     RUNTIME DESTINATION ${BIN_INSTALL_DIR}
 )
 
