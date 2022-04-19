@@ -288,19 +288,6 @@ class LigandsTable
 using mmcif::Point;
 using mmcif::Quaternion;
 
-// std::vector<Point> getCAlphaForChain(cif::Datablock &db, const std::string &asym_id)
-// {
-// 	using namespace cif::literals;
-
-// 	std::vector<Point> result;
-
-// 	auto &atoms = db["atom_site"];
-// 	for (const auto &[x, y, z] : atoms.find<float, float, float>("auth_asym_id"_key == asym_id and "label_atom_id"_key == "CA", "Cartn_x", "Cartn_y", "Cartn_z"))
-// 		result.emplace_back(x, y, z);
-
-// 	return result;
-// }
-
 bool validateHit(mmcif::Structure &structure, const BlastHit &hit)
 {
 	using namespace cif::literals;
@@ -320,16 +307,6 @@ std::vector<mmcif::Residue *> getResiduesForChain(mmcif::Structure &structure, c
 		for (auto &res : poly)
 			result.emplace_back(&res);
 	}
-
-	return result;
-}
-
-std::vector<Point> getCAlphaForChain(const std::vector<mmcif::Residue *> &residues)
-{
-	std::vector<Point> result;
-
-	for (auto res : residues)
-		result.push_back(res->atomByID("CA").location());
 
 	return result;
 }
@@ -1270,7 +1247,7 @@ int a_main(int argc, const char *argv[])
 									{"ptnr2_label_atom_id", a_a.labelAtomID()},
 									{"ptnr1_auth_asym_id", asym_id},
 									{"ptnr1_auth_comp_id", res.compoundID()},
-									{"ptnr1_auth_seq_id", "."},
+									{"ptnr1_auth_seq_id", "1"},
 									{"ptnr1_auth_atom_id", atom.authAtomID()},
 									{"ptnr2_auth_asym_id", a_a.labelAsymID()},
 									{"ptnr2_auth_comp_id", a_a.labelCompID()},
