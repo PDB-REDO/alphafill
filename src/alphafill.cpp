@@ -38,6 +38,7 @@
 #include <zeep/json/element.hpp>
 
 #include "blast.hpp"
+#include "ligands.hpp"
 #include "queue.hpp"
 #include "revision.hpp"
 
@@ -212,79 +213,6 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 
 // --------------------------------------------------------------------
 
-class Ligand
-{
-  public:
-	Ligand(cif::Datablock *db)
-		: mDb(db)
-		, mLigand(db ? db->get("ligand") : nullptr)
-		, mModifications(db ? db->get("modification") : nullptr)
-	{
-	}
-
-	Ligand(const Ligand &) noexcept = default;
-
-	explicit operator bool() const
-	{
-		return mDb != nullptr and mLigand != nullptr and mLigand->front()["priority"].as<std::string>() != "n";
-	}
-
-	void modify(mmcif::Structure &structure, const std::string &asymID) const;
-
-	std::string analogueID() const
-	{
-		return mLigand->front()["analogue_id"].as<std::string>();
-	}
-
-	std::string description() const
-	{
-		return mLigand->front()["description"].as<std::string>();
-	}
-
-  private:
-	cif::Datablock *mDb;
-	cif::Category *mLigand, *mModifications;
-};
-
-void Ligand::modify(mmcif::Structure &structure, const std::string &asymID) const
-{
-	assert(mLigand);
-	auto analogue = mLigand->front()["analogue_id"].as<std::string>();
-	if (not analogue.empty())
-	{
-		auto &res = structure.getResidue(asymID);
-
-		std::vector<std::tuple<std::string, std::string>> remap;
-
-		if (mModifications != nullptr)
-		{
-			for (const auto &[a1, a2] : mModifications->rows<std::string, std::string>("atom1", "atom2"))
-				remap.emplace_back(a1, a2);
-		}
-
-		structure.changeResidue(res, analogue, remap);
-	}
-}
-
-class LigandsTable
-{
-  public:
-	LigandsTable(const fs::path &file)
-		: mCifFile(file)
-	{
-	}
-
-	Ligand operator[](std::string_view id) const
-	{
-		return {mCifFile.get(id)};
-	}
-
-  private:
-	cif::File mCifFile;
-};
-
-// --------------------------------------------------------------------
-
 using mmcif::Point;
 using mmcif::Quaternion;
 
@@ -390,9 +318,11 @@ double Align(const mmcif::Structure &a, mmcif::Structure &b,
 std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 	const std::vector<mmcif::Residue *> &pdb, const std::vector<size_t> &pdb_ix,
 	const std::vector<mmcif::Residue *> &af, const std::vector<size_t> &af_ix,
-	const std::vector<mmcif::Atom> &residue, float maxDistance)
+	const std::vector<mmcif::Atom> &residue, float maxDistance, const Ligand &ligand)
 {
 	std::vector<Point> ra, rb;
+
+	float maxDistanceSq = maxDistance * maxDistance;
 
 	assert(pdb_ix.size() == af_ix.size());
 
@@ -410,11 +340,14 @@ std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 
 			for (auto &b : residue)
 			{
-				if (Distance(atom, b) <= maxDistance)
-				{
-					nearby = true;
-					break;
-				}
+				if (ligand.drops(b.labelAtomID()))
+					continue;
+
+				if (DistanceSquared(atom, b) > maxDistanceSq)
+					continue;
+
+				nearby = true;
+				break;
 			}
 
 			if (nearby)
@@ -449,6 +382,8 @@ bool isUniqueLigand(const mmcif::Structure &structure, float minDistance, const 
 {
 	bool result = true;
 
+	auto minDistanceSq = minDistance * minDistance;
+
 	std::vector<mmcif::Point> pa;
 
 	for (auto &a : lig.atoms())
@@ -465,7 +400,7 @@ bool isUniqueLigand(const mmcif::Structure &structure, float minDistance, const 
 			pb.push_back(a.location());
 		auto cb = mmcif::Centroid(pb);
 
-		if (Distance(ca, cb) < minDistance)
+		if (DistanceSquared(ca, cb) < minDistanceSq)
 		{
 			result = false;
 			break;
@@ -761,7 +696,7 @@ int a_main(int argc, const char *argv[])
 	{
 		std::ifstream cfgFile(configFile);
 		if (cfgFile.is_open())
-			po::store(po::parse_config_file(cfgFile, visible_options), vm);
+			po::store(po::parse_config_file(cfgFile, visible_options, true), vm);
 	}
 
 	po::notify(vm);
@@ -1122,7 +1057,7 @@ int a_main(int argc, const char *argv[])
 						// Find the atoms nearby in the AF chain for this residue
 						auto &&[pdb_near_r, af_near_r] = selectAtomsNearResidue(
 							pdb_res, pdb_ix_trimmed,
-							af_res, af_ix_trimmed, res.atoms(), maxLigandBackboneDistance);
+							af_res, af_ix_trimmed, res.atoms(), maxLigandBackboneDistance, ligand);
 
 						if (pdb_near_r.size() == 0)
 						{
@@ -1162,6 +1097,9 @@ int a_main(int argc, const char *argv[])
 
 						for (auto &atom : res.atoms())
 						{
+							if (ligand.drops(atom.labelAtomID()))
+								continue;
+
 							mmcif::AtomTypeTraits att(atom.type());
 
 							int formal_charge = atom.charge();
@@ -1192,6 +1130,11 @@ int a_main(int argc, const char *argv[])
 							{"compound_id", comp_id},
 							{"entity_id", entity_id},
 							{"asym_id", asym_id},
+							{"pdb_asym_id", res.asymID()},
+							{"pdb_seq_num", res.seqID()},
+							{"pdb_auth_asym_id", res.authAsymID()},
+							{"pdb_auth_seq_id", res.authSeqID()},
+							{"pdb_auth_ins_code", res.authInsCode()},
 							{"rmsd", rmsd},
 							{"analogue_id", analogue},
 							{"clash", clashInfo}

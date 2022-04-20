@@ -120,6 +120,7 @@ find_package(Boost COMPONENTS program_options)
 
 add_executable(alphafill
 	${PROJECT_SOURCE_DIR}/src/blast.cpp
+	${PROJECT_SOURCE_DIR}/src/ligands.cpp
 	${PROJECT_SOURCE_DIR}/src/matrix.cpp
 	${PROJECT_SOURCE_DIR}/src/alphafill.cpp)
 
@@ -127,7 +128,7 @@ target_include_directories(alphafill
 	PUBLIC
 	cifpp::cifpp
 	zeep::zeep
-	${CMAKE_SOURCE_DIR}/include
+	${PROJECT_SOURCE_DIR}/include
 	${cifpp_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 target_include_directories(alphafill PRIVATE ${CMAKE_BINARY_DIR})
@@ -148,47 +149,48 @@ find_program(YARN yarn REQUIRED)
 # yarn rules for javascripts
 
 set(webpack_input
-	${CMAKE_SOURCE_DIR}/webapp/index.js
-	${CMAKE_SOURCE_DIR}/webapp/model.js
-	${CMAKE_SOURCE_DIR}/webapp/lists.js
-	${CMAKE_SOURCE_DIR}/webapp/molstar.tsx
-	${CMAKE_SOURCE_DIR}/scss/pdb-redo-bootstrap.scss
+	${PROJECT_SOURCE_DIR}/webapp/index.js
+	${PROJECT_SOURCE_DIR}/webapp/model.js
+	${PROJECT_SOURCE_DIR}/webapp/lists.js
+	${PROJECT_SOURCE_DIR}/webapp/molstar.tsx
+	${PROJECT_SOURCE_DIR}/scss/pdb-redo-bootstrap.scss
 )
 
-set(webpack_output ${CMAKE_SOURCE_DIR}/docroot/scripts/index.js)
+set(webpack_output ${PROJECT_SOURCE_DIR}/docroot/scripts/index.js)
 
 add_custom_command(
 	OUTPUT ${webpack_output}
 	BYPRODUCTS 
 	DEPENDS ${webpack_input}
 	COMMAND ${YARN} run $<IF:$<CONFIG:Debug>,build,build-production>
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+	WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 add_custom_target(webpack DEPENDS ${webpack_output})
 
 add_executable(af-filledd
-	${CMAKE_SOURCE_DIR}/src/af-filledd.cpp
-	${CMAKE_SOURCE_DIR}/src/utilities.cpp
-	${CMAKE_SOURCE_DIR}/src/db-connection.cpp
-	${CMAKE_SOURCE_DIR}/src/data-service.cpp
+	${PROJECT_SOURCE_DIR}/src/af-filledd.cpp
+	${PROJECT_SOURCE_DIR}/src/utilities.cpp
+	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
+	${PROJECT_SOURCE_DIR}/src/data-service.cpp
 )
 
-target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
+target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 target_link_libraries(af-filledd
 	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
 
 add_dependencies(af-filledd webpack)
 
 if(USE_RSRC)
-	mrc_target_resources(af-filledd ${CMAKE_SOURCE_DIR}/docroot/ ${CMAKE_SOURCE_DIR}/db-schema.sql)
+	mrc_target_resources(af-filledd ${PROJECT_SOURCE_DIR}/docroot/ ${PROJECT_SOURCE_DIR}/db-schema.sql)
 endif()
 
 add_executable(validate-fill
-	${CMAKE_SOURCE_DIR}/src/validate-fill.cpp
-	${CMAKE_SOURCE_DIR}/src/utilities.cpp
+	${PROJECT_SOURCE_DIR}/src/ligands.cpp
+	${PROJECT_SOURCE_DIR}/src/validate-fill.cpp
+	${PROJECT_SOURCE_DIR}/src/utilities.cpp
 )
 
-target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
+target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 target_link_libraries(validate-fill
 	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
 

@@ -7537,7 +7537,7 @@ _modification.atom2
 46 CP2 C3P
 47 CP1 C2P
 48 S   S1P
-49 CM1 .
+49 CA1 .
 50 OA1 .
 51 CA2 .
 52 CA3 .
