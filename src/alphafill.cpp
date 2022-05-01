@@ -378,9 +378,14 @@ std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 
 // --------------------------------------------------------------------
 
-bool isUniqueLigand(const mmcif::Structure &structure, float minDistance, const mmcif::Residue &lig, std::string_view id)
+enum class UniqueType
 {
-	bool result = true;
+	Seen, Unique, MoreAtoms
+};
+
+std::tuple<UniqueType,std::string> isUniqueLigand(const mmcif::Structure &structure, float minDistance, const mmcif::Residue &lig, std::string_view id)
+{
+	std::tuple<UniqueType,std::string> result{ UniqueType::Unique, "" };
 
 	auto minDistanceSq = minDistance * minDistance;
 
@@ -402,7 +407,11 @@ bool isUniqueLigand(const mmcif::Structure &structure, float minDistance, const 
 
 		if (DistanceSquared(ca, cb) < minDistanceSq)
 		{
-			result = false;
+			if (lig.unique_atoms().size() > np.unique_atoms().size())
+				result = { UniqueType::MoreAtoms, np.asymID() };
+			else
+				result = { UniqueType::Seen, np.asymID() };
+
 			break;
 		}
 	}
@@ -417,8 +426,8 @@ struct CAtom
 	CAtom(const CAtom &) = default;
 	CAtom(CAtom &&) = default;
 
-	CAtom(mmcif::AtomType type, Point pt, int charge)
-		: type(type), pt(pt)
+	CAtom(mmcif::AtomType type, Point pt, int charge, int seqID, const std::string &id)
+		: type(type), pt(pt), seqID(seqID), id(id)
 	{
 		radius = charge == 0 ?
 			mmcif::AtomTypeTraits(type).radius(mmcif::RadiusType::VanderWaals) : 
@@ -429,13 +438,15 @@ struct CAtom
 	}
 
 	CAtom(const mmcif::Atom &atom)
-		: CAtom(atom.type(), atom.location(), atom.charge())
+		: CAtom(atom.type(), atom.location(), atom.charge(), atom.labelSeqID(), atom.labelAtomID())
 	{
 	}
 
 	mmcif::AtomType type;
 	Point pt;
 	float radius;
+	int seqID;
+	std::string id;
 };
 
 std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance)
@@ -472,11 +483,19 @@ std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, co
 				sumOverlapSq += overlap * overlap;
 			}
 			
-			json d_pair;
-			d_pair.push_back(d);
-			d_pair.push_back(overlap);
-
-			distancePairs.push_back(std::move(d_pair));
+			json d_info{
+				{ "distance", d },
+				{ "VdW_overlap", overlap },
+				{
+					"poly_atom", {
+						{ "seq_id", pa.seqID },
+						{ "id", pa.id }
+					}
+				}
+			};
+			if (resAtoms.size() > 1)
+				d_info["res_atom_id"] = ra.id;
+			distancePairs.push_back(std::move(d_info));
 		}
 
 		if (near)
@@ -673,6 +692,9 @@ int a_main(int argc, const char *argv[])
 		("debug,d", po::value<int>(), "Debug level (for even more verbose output)")
 		("validate-fasta", "Validate the FastA file (check if all sequence therein are the same as in the corresponding PDB files)")
 		("prepare-pdb-list", "Generate a list with PDB ID's that contain any of the ligands")
+
+		("test-pdb-id", po::value<std::string>(), "Test with single PDB ID")
+
 		("test", "Run test code");
 
 	po::options_description cmdline_options;
@@ -770,7 +792,9 @@ int a_main(int argc, const char *argv[])
 		return GeneratePDBList(vm["pdb-dir"].as<std::string>(), ligands, vm.count("output") ? vm["output"].as<std::string>() : "");
 
 	cif::iset pdbIDsContainingLigands;
-	if (vm.count("pdb-id-list"))
+	if (vm.count("test-pdb-id"))
+		pdbIDsContainingLigands.emplace(vm["test-pdb-id"].as<std::string>());
+	else if (vm.count("pdb-id-list"))
 	{
 		std::ifstream file(vm["pdb-id-list"].as<std::string>());
 
@@ -1084,11 +1108,31 @@ int a_main(int argc, const char *argv[])
 							analogue = comp_id;
 
 						// check to see if the ligand is unique enough
-						if (not isUniqueLigand(af_structure, minSeparationDistance, res, analogue))
+						const auto &[unique, replace_id] = isUniqueLigand(af_structure, minSeparationDistance, res, analogue);
+
+						switch (unique)
 						{
-							if (cif::VERBOSE > 0)
-								std::cerr << "Residue " << res << " is not unique enough" << std::endl;
-							continue;
+							case UniqueType::Seen:
+							{
+								if (cif::VERBOSE > 0)
+									std::cerr << "Residue " << res << " is not unique enough" << std::endl;
+								continue;
+							}
+
+							case UniqueType::MoreAtoms:
+							{
+								if (cif::VERBOSE > 0)
+								{
+									auto &rep_res = af_structure.getResidue(replace_id);
+									std::cerr << "Residue " << res << " has more atoms than the first transplant " << rep_res << std::endl;
+
+									af_structure.removeResidue(rep_res);
+								}
+								break;
+							}
+
+							case UniqueType::Unique:
+								break;
 						}
 
 						// Calculate clash score for new ligand
@@ -1109,9 +1153,17 @@ int a_main(int argc, const char *argv[])
 								auto compound = mmcif::CompoundFactory::instance().create(comp_id);
 								if (compound)
 									formal_charge = compound->formalCharge();
+								
+								if (formal_charge == 0)	// happens e.g. in HEM
+								{
+									compound = mmcif::CompoundFactory::instance().create(att.symbol());
+									if (not compound or compound->formalCharge() == 0)
+										throw std::runtime_error("Could not find the charge for " + att.symbol() + " in " + res.compoundID());
+									formal_charge = compound->formalCharge();
+								}
 							}
 
-							resAtoms.emplace_back(att.type(), atom.location(), formal_charge);
+							resAtoms.emplace_back(att.type(), atom.location(), formal_charge, atom.labelSeqID(), atom.labelAtomID());
 						}
 
 						auto &&[polyAtomCount, clashInfo] = CalculateClashScore(polyAtoms, resAtoms, maxDistance);
@@ -1128,17 +1180,20 @@ int a_main(int argc, const char *argv[])
 
 						r_hsp["transplants"].push_back({
 							{"compound_id", comp_id},
-							{"entity_id", entity_id},
+							// {"entity_id", entity_id},
 							{"asym_id", asym_id},
 							{"pdb_asym_id", res.asymID()},
-							{"pdb_seq_num", res.seqID()},
 							{"pdb_auth_asym_id", res.authAsymID()},
 							{"pdb_auth_seq_id", res.authSeqID()},
-							{"pdb_auth_ins_code", res.authInsCode()},
 							{"rmsd", rmsd},
 							{"analogue_id", analogue},
 							{"clash", clashInfo}
 						});
+
+						if (not res.authInsCode().empty())
+							r_hsp["transplants"].back().emplace("pdb_auth_ins_code", res.authInsCode());
+						else
+							r_hsp["transplants"].back().emplace("pdb_auth_ins_code", nullptr);
 
 						// copy any struct_conn record that might be needed
 
@@ -1214,7 +1269,7 @@ int a_main(int argc, const char *argv[])
 			}
 			catch (const std::exception &e)
 			{
-				std::cerr << e.what() << '\n';
+				std::throw_with_nested(std::runtime_error("Error when processing " + pdb_id + " for " + afID));
 			}
 		}
 	}

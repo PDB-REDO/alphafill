@@ -847,8 +847,7 @@ int a_main(int argc, const char *argv[])
 						<< std::setprecision(5) << rmsd2 << '\t'
 						<< std::setprecision(5) << rmsd3 << '\t'
 						<< pA.size() << '\t'
-						<< lA.size() << '\t'
-						<< std::endl;
+						<< lA.size() << std::endl;
 			}
 			catch (const std::exception &ex)
 			{
@@ -858,16 +857,15 @@ int a_main(int argc, const char *argv[])
 
 				std::cout << afID << '\t'
 						<< pdbID << '\t'
-						<< transplant["compound_id"].as<std::string>() << '/' << transplant["analogue_id"].as<std::string>() << '\t'
-						<< "?" << '\t'
-						<< "?" << '\t'
-						<< "?" << '\t'
-						<< "?" << '\t'
-						<< "?" << '\t'
-						<< "?" << '\t'
-						<< "?" << '\t'
-						<< "?" << '\t'
-						<< std::endl;
+						<< '"' << transplant["compound_id"].as<std::string>() << '/' << transplant["analogue_id"].as<std::string>() << '"' << '\t'
+						<< "\"?\"" << '\t'
+						<< 0 << '\t'
+						<< "\"?\"" << '\t'
+						<< 0 << '\t'
+						<< 0 << '\t'
+						<< 0 << '\t'
+						<< 0 << '\t'
+						<< 0 << std::endl;
 			}
 		}
 	}

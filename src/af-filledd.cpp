@@ -57,7 +57,7 @@ namespace zh = zeep::http;
 
 const std::array<uint32_t,6> kIdentities{ 70, 60, 50, 40, 30, 25 };
 
-const uint32_t
+const int
 	kPageSize = 20,
 	kMinIdentity = kIdentities.back(),
 	kMaxIdentity = kIdentities.front();
