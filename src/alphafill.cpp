@@ -429,12 +429,14 @@ struct CAtom
 	CAtom(mmcif::AtomType type, Point pt, int charge, int seqID, const std::string &id)
 		: type(type), pt(pt), seqID(seqID), id(id)
 	{
+		const mmcif::AtomTypeTraits att(type);
+
 		radius = charge == 0 ?
-			mmcif::AtomTypeTraits(type).radius(mmcif::RadiusType::VanderWaals) : 
-			mmcif::AtomTypeTraits(type).effective_ionic_radius(charge);
+			att.radius(mmcif::RadiusType::VanderWaals) : 
+			att.effective_ionic_radius(charge);
 
 		if (std::isnan(radius))
-			throw std::runtime_error("Unknown radius for atom " + mmcif::AtomTypeTraits(type).symbol() + " with charge " + std::to_string(charge));
+			throw std::runtime_error("Unknown radius for atom " + att.symbol() + " with charge " + std::to_string(charge));
 	}
 
 	CAtom(const mmcif::Atom &atom)
@@ -665,7 +667,7 @@ int a_main(int argc, const char *argv[])
 		("ligands", po::value<std::string>()->default_value("af-ligands.cif"), "File in CIF format describing the ligands and their modifications")
 
 		("max-ligand-to-backbone-distance", po::value<float>()->default_value(6), "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure")
-		("min-hsp-identity", po::value<float>()->default_value(0.35), "The minimal identity for a high scoring pair (note, value between 0 and 1)")
+		("min-hsp-identity", po::value<float>()->default_value(0.25), "The minimal identity for a high scoring pair (note, value between 0 and 1)")
 		("min-alignment-length", po::value<int>()->default_value(85), "The minimal length of an alignment")
 		("min-separation-distance", po::value<float>()->default_value(3.5), "The centroids of two identical ligands should be at least this far apart to count as separate occurrences")
 		("blast-report-limit", po::value<uint32_t>()->default_value(250), "Number of blast hits to use")
