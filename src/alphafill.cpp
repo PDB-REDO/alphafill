@@ -431,9 +431,14 @@ struct CAtom
 	{
 		const mmcif::AtomTypeTraits att(type);
 
-		radius = charge == 0 ?
-			att.radius(mmcif::RadiusType::VanderWaals) : 
-			att.effective_ionic_radius(charge);
+		if (charge == 0)
+		{
+			radius = att.radius(mmcif::RadiusType::VanderWaals);
+			if (std::isnan(radius))
+				radius = att.radius();
+		}
+		else
+			radius = att.effective_ionic_radius(charge);
 
 		if (std::isnan(radius))
 			throw std::runtime_error("Unknown radius for atom " + att.symbol() + " with charge " + std::to_string(charge));
@@ -1150,22 +1155,27 @@ int a_main(int argc, const char *argv[])
 
 							int formal_charge = atom.charge();
 
-							if (formal_charge == 0 and att.isMetal())
+							if (formal_charge == 0 and att.isMetal() and res.atoms().size() == 1)
 							{
 								auto compound = mmcif::CompoundFactory::instance().create(comp_id);
 								if (compound)
 									formal_charge = compound->formalCharge();
-								
-								if (formal_charge == 0)	// happens e.g. in HEM
-								{
-									compound = mmcif::CompoundFactory::instance().create(att.symbol());
-									if (not compound or compound->formalCharge() == 0)
-										throw std::runtime_error("Could not find the charge for " + att.symbol() + " in " + res.compoundID());
-									formal_charge = compound->formalCharge();
-								}
 							}
 
-							resAtoms.emplace_back(att.type(), atom.location(), formal_charge, atom.labelSeqID(), atom.labelAtomID());
+							try
+							{
+								resAtoms.emplace_back(att.type(), atom.location(), formal_charge, atom.labelSeqID(), atom.labelAtomID());
+							}
+							catch (const std::exception &ex)
+							{
+								auto compound = mmcif::CompoundFactory::instance().create(att.symbol());
+								if (compound)
+									formal_charge = compound->formalCharge();
+								else
+									formal_charge = 0;
+
+								resAtoms.emplace_back(att.type(), atom.location(), formal_charge, atom.labelSeqID(), atom.labelAtomID());
+							}
 						}
 
 						auto &&[polyAtomCount, clashInfo] = CalculateClashScore(polyAtoms, resAtoms, maxDistance);
