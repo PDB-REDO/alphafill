@@ -22887,7 +22887,6 @@ _ligand.analogue_id      .
 _ligand.priority         y
 _ligand.description      'TP7_class'
 #
-<<<<<<< HEAD
 data_TYD
 #
 _ligand.id               TYD
@@ -23006,64 +23005,6 @@ _ligand.id               U5P
 _ligand.analogue_id      .
 _ligand.priority         .
 _ligand.description      "URIDINE-5'-MONOPHOSPHATE"
-=======
-loop_
-_modification.id
-_modification.atom1
-_modification.atom2
-1  C6  C6A
-2  N6  N6A
-3  N1  N1A
-4  C2  C2A
-5  N3  N3A
-6  C4  C4A
-7  C5  C5A
-8  N9  N9A
-9  C8  C8A
-10 N7  N7A 
-11 "C1'" C1B
-12 "C2'" C2B
-13 "O2'" O2B
-14 "C3'" C3B
-15 "O3'" O3B
-16 P3  P3B
-17 O31 O9A
-18 O32 O7A
-19 O33 O8A
-20 "C4'" C4B
-21 "O4'" O4B
-22 "C5'" C5B
-23 "O5'" O5B
-24 P1  P1A
-25 O12 O2A
-26 O11 O1A
-27 O6  O3A
-28 P2  P2A
-29 O22 O4A
-30 O21 O5A
-31 O7  O6A
-32 CP9 CCP
-33 CP8 CBP
-34 CPB CDP
-35 CPA CEP
-36 CP7 CAP
-37 OP3 OAP
-38 CP6 C9P
-39 OP2 O9P
-40 NP2 N8P
-41 CP5 C7P
-42 CP4 C6P
-43 CP3 C5P
-44 OP1 O5P
-45 NP1 N4P
-46 CP2 C3P
-47 CP1 C2P
-48 S   S1P
-49 CA1 .
-50 OA1 .
-51 CA2 .
-52 CA3 .
->>>>>>> develop
 #
 data_U5Y
 #
