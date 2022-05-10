@@ -12,7 +12,7 @@ oprofile_data/
 list-of-pdb-ids.txt
 validate/counts.*
 validate/identicals.*
-
 validate/validate-report.txt
 validate/validation-report.tsv
 validate/validate-fill-report.txt
+long-af-seq-ids.txt
