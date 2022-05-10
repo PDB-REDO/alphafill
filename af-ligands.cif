@@ -3955,12 +3955,12 @@ _modification.atom2
 10 N23    N9
 11 C18    "C1'"   
 12 C19    "C2'"   
-13 O20    "02'"
+13 O20    "O2'"
 14 C21    "C3'"   
 15 O22    "O3'" 
 16 O17    "O4'"
 17 C16    "C4'"   
-18 C15    "S5'"
+18 C15    "C5'"
 19 C7     SD   
 20 C8     CG
 21 C9     CB
@@ -4472,7 +4472,7 @@ _modification.atom2
 27 O3A O23
 28 P2A P24
 29 O5A O26
-30 O4A O24
+30 O4A O25
 31 O6A O27
 32 C12 C28
 33 C13 C30
@@ -10411,7 +10411,7 @@ loop_
 _modification.id
 _modification.atom1
 _modification.atom2
-1  C01 M2
+1  C01 CM2
 2  C02 "C2'"
 3  N03 "N1'"
 4  N34 "N3'"
