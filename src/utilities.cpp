@@ -24,6 +24,170 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+
+#include <cif++/Cif++.hpp>
+#include <cif++/CifUtils.hpp>
+#include <cif++/Compound.hpp>
+
+#include "revision.hpp"
 #include "utilities.hpp"
 
+namespace fs = std::filesystem;
+namespace po = boost::program_options;
+
+// --------------------------------------------------------------------
+
 std::unique_ptr<file_locator> file_locator::s_instance;
+
+// --------------------------------------------------------------------
+
+po::variables_map load_options(int argc, char *const argv[],
+	po::options_description &visible_options,
+	po::options_description &hidden_options, po::positional_options_description &positional_options,
+	const char *config_file_name)
+{
+	visible_options.add_options()
+		("db-dir", po::value<std::string>(), "Directory containing the af-filled data")
+		("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")
+
+		("ligands", po::value<std::string>()->default_value("af-ligands.cif"), "File in CIF format describing the ligands and their modifications")
+
+		("compounds", po::value<std::string>(), "Location of the components.cif file from CCD")
+		("components", po::value<std::string>(), "Location of the components.cif file from CCD, alias")
+		("extra-compounds", po::value<std::string>(), "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file")
+		("mmcif-dictionary", po::value<std::string>(), "Path to the mmcif_pdbx.dic file to use instead of default")
+
+		("structure-name-pattern", po::value<std::string>(), "Pattern for locating structure files")
+		("metadata-name-pattern", po::value<std::string>(), "Pattern for locating metadata files")
+
+		("config", po::value<std::string>(), "Config file")
+
+		("help,h", "Display help message")
+		("version", "Print version")
+		("verbose,v", "Verbose output")
+		("quiet", "Do not produce warnings");
+
+	hidden_options.add_options()
+		("debug,d", po::value<int>(), "Debug level (for even more verbose output)");
+
+	po::options_description cmdline_options;
+	cmdline_options.add(visible_options).add(hidden_options);
+
+	po::variables_map vm;
+	po::store(po::command_line_parser(argc, argv)
+				  .options(cmdline_options)
+				  .positional(positional_options)
+				  .run(),
+		vm);
+
+	fs::path configFile = config_file_name;
+	if (vm.count("config"))
+		configFile = vm["config"].as<std::string>();
+
+	if (not fs::exists(configFile) and getenv("HOME") != nullptr)
+		configFile = fs::path(getenv("HOME")) / ".config" / configFile;
+
+	if (fs::exists(configFile))
+	{
+		std::ifstream cfgFile(configFile);
+		if (cfgFile.is_open())
+			po::store(po::parse_config_file(cfgFile, visible_options, true), vm);
+	}
+
+	po::notify(vm);
+
+	// --------------------------------------------------------------------
+
+	if (vm.count("version"))
+	{
+		write_version_string(std::cout, vm.count("verbose"));
+		exit(0);
+	}
+
+	if (vm.count("help"))
+	{
+		std::cout << visible_options << std::endl;
+		exit(0);
+	}
+
+	if (vm.count("quiet"))
+		cif::VERBOSE = -1;
+
+	if (vm.count("verbose"))
+		cif::VERBOSE = 1;
+
+	if (vm.count("debug"))
+		cif::VERBOSE = vm["debug"].as<int>();
+
+	if (vm.count("db-dir") == 0)
+	{
+		std::cout << "AlphaFill data directory not specified" << std::endl;
+		exit(1);
+	}
+
+	if (vm.count("pdb-dir") == 0)
+	{
+		std::cout << "PDB directory not specified" << std::endl;
+		exit(1);
+	}
+
+	// --------------------------------------------------------------------
+	// Load extra CCD definitions, if any
+
+	if (vm.count("compounds"))
+		cif::addFileResource("components.cif", vm["compounds"].as<std::string>());
+	else if (vm.count("components"))
+		cif::addFileResource("components.cif", vm["components"].as<std::string>());
+
+	if (vm.count("extra-compounds"))
+		mmcif::CompoundFactory::instance().pushDictionary(vm["extra-compounds"].as<std::string>());
+
+	// And perhaps a private mmcif_pdbx dictionary
+
+	if (vm.count("mmcif-dictionary"))
+		cif::addFileResource("mmcif_pdbx_v50.dic", vm["mmcif-dictionary"].as<std::string>());
+
+	return vm;
+}
+
+// --------------------------------------------------------------------
+
+// recursively print exception whats:
+void print_what(const std::exception &e)
+{
+	std::cerr << e.what() << std::endl;
+	try
+	{
+		std::rethrow_if_nested(e);
+	}
+	catch (const std::exception &nested)
+	{
+		std::cerr << " >> ";
+		print_what(nested);
+	}
+}
+
+// --------------------------------------------------------------------
+
+int main(int argc, char *const argv[])
+{
+	int result = 0;
+
+	try
+	{
+#if defined(DATA_DIR)
+		cif::addDataDirectory(DATA_DIR);
+#endif
+		result = a_main(argc, argv);
+	}
+	catch (const std::exception &ex)
+	{
+		print_what(ex);
+		exit(1);
+	}
+
+	return result;
+}

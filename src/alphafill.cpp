@@ -41,6 +41,7 @@
 #include "ligands.hpp"
 #include "queue.hpp"
 #include "revision.hpp"
+#include "utilities.hpp"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -658,7 +659,7 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 
 // --------------------------------------------------------------------
 
-int a_main(int argc, const char *argv[])
+int a_main(int argc, char *const argv[])
 {
 	using namespace std::literals;
 	using namespace cif::literals;
@@ -667,9 +668,7 @@ int a_main(int argc, const char *argv[])
 
 	visible_options.add_options()
 		("pdb-fasta", po::value<std::string>(), "The FastA file containing the PDB sequences")
-		("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")
 		("pdb-id-list", po::value<std::string>(), "Optional file containing the list of PDB ID's that have any of the transplantable ligands")
-		("ligands", po::value<std::string>()->default_value("af-ligands.cif"), "File in CIF format describing the ligands and their modifications")
 
 		("max-ligand-to-backbone-distance", po::value<float>()->default_value(6), "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure")
 		("min-hsp-identity", po::value<float>()->default_value(0.25), "The minimal identity for a high scoring pair (note, value between 0 and 1)")
@@ -679,24 +678,13 @@ int a_main(int argc, const char *argv[])
 
 		("clash-distance-cutoff", po::value<float>()->default_value(4), "The max distance between polymer atoms and ligand atoms used in calculating clash scores")
 
-		("compounds", po::value<std::string>(), "Location of the components.cif file from CCD")
-		("components", po::value<std::string>(), "Location of the components.cif file from CCD, alias")
-		("extra-compounds", po::value<std::string>(), "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file")
-		("mmcif-dictionary", po::value<std::string>(), "Path to the mmcif_pdbx.dic file to use instead of default")
-
-		("threads,t", po::value<size_t>()->default_value(1), "Number of threads to use, zero means all available cores")
-
-		("config", po::value<std::string>(), "Config file")
-		("help,h", "Display help message")
-		("version", "Print version")
-		("verbose,v", "Verbose output")
-		("quiet", "Do not produce warnings");
+		("threads,t", po::value<size_t>()->default_value(1), "Number of threads to use, zero means all available cores");
 
 	po::options_description hidden_options("hidden options");
 	hidden_options.add_options()
 		("xyzin,i", po::value<std::string>(), "coordinates file")
 		("output,o", po::value<std::string>(), "Output to this file")
-		("debug,d", po::value<int>(), "Debug level (for even more verbose output)")
+
 		("validate-fasta", "Validate the FastA file (check if all sequence therein are the same as in the corresponding PDB files)")
 		("prepare-pdb-list", "Generate a list with PDB ID's that contain any of the ligands")
 
@@ -704,54 +692,13 @@ int a_main(int argc, const char *argv[])
 
 		("test", "Run test code");
 
-	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
-
 	po::positional_options_description p;
 	p.add("xyzin", 1);
 	p.add("output", 1);
 
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-
-	fs::path configFile = "alphafill.conf";
-	if (vm.count("config"))
-		configFile = vm["config"].as<std::string>();
-
-	if (not fs::exists(configFile) and getenv("HOME") != nullptr)
-		configFile = fs::path(getenv("HOME")) / ".config" / configFile;
-
-	if (fs::exists(configFile))
-	{
-		std::ifstream cfgFile(configFile);
-		if (cfgFile.is_open())
-			po::store(po::parse_config_file(cfgFile, visible_options, true), vm);
-	}
-
-	po::notify(vm);
+	po::variables_map vm = load_options(argc, argv, visible_options, hidden_options, p, "alphafill.conf");
 
 	// --------------------------------------------------------------------
-
-	if (vm.count("version"))
-	{
-		write_version_string(std::cout, vm.count("verbose"));
-		exit(0);
-	}
-
-	if (vm.count("help"))
-	{
-		std::cout << visible_options << std::endl;
-		exit(0);
-	}
-
-	if (vm.count("quiet"))
-		cif::VERBOSE = -1;
-
-	if (vm.count("verbose"))
-		cif::VERBOSE = 1;
-
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
 
 	if (vm.count("pdb-fasta") == 0)
 	{
@@ -825,20 +772,6 @@ int a_main(int argc, const char *argv[])
 	}
 
 	// --------------------------------------------------------------------
-	// Load extra CCD definitions, if any
-
-	if (vm.count("compounds"))
-		cif::addFileResource("components.cif", vm["compounds"].as<std::string>());
-	else if (vm.count("components"))
-		cif::addFileResource("components.cif", vm["components"].as<std::string>());
-
-	if (vm.count("extra-compounds"))
-		mmcif::CompoundFactory::instance().pushDictionary(vm["extra-compounds"].as<std::string>());
-
-	// And perhaps a private mmcif_pdbx dictionary
-
-	if (vm.count("mmcif-dictionary"))
-		cif::addFileResource("mmcif_pdbx_v50.dic", vm["mmcif-dictionary"].as<std::string>());
 
 	float minHspIdentity = vm["min-hsp-identity"].as<float>();
 	size_t minAlignmentLength = vm["min-alignment-length"].as<int>();
@@ -1310,43 +1243,4 @@ int a_main(int argc, const char *argv[])
 		f.save(std::cout);
 
 	return 0;
-}
-
-// --------------------------------------------------------------------
-
-// recursively print exception whats:
-void print_what(const std::exception &e)
-{
-	std::cerr << e.what() << std::endl;
-	try
-	{
-		std::rethrow_if_nested(e);
-	}
-	catch (const std::exception &nested)
-	{
-		std::cerr << " >> ";
-		print_what(nested);
-	}
-}
-
-// --------------------------------------------------------------------
-
-int main(int argc, const char *argv[])
-{
-	int result = 0;
-
-	try
-	{
-#if defined(DATA_DIR)
-		cif::addDataDirectory(DATA_DIR);
-#endif
-		result = a_main(argc, argv);
-	}
-	catch (const std::exception &ex)
-	{
-		print_what(ex);
-		exit(1);
-	}
-
-	return result;
 }

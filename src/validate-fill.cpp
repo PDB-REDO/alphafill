@@ -570,7 +570,7 @@ std::tuple<std::vector<mmcif::Monomer *>, std::vector<mmcif::Monomer *>> AlignAn
 
 // --------------------------------------------------------------------
 
-int a_main(int argc, const char *argv[])
+int a_main(int argc, char *const argv[])
 {
 	using namespace std::literals;
 	using namespace cif::literals;
@@ -578,84 +578,21 @@ int a_main(int argc, const char *argv[])
 	po::options_description visible_options(argv[0] + " [options] input-file [output-file]"s);
 
 	visible_options.add_options()
-		("db-dir", po::value<std::string>(), "Directory containing the af-filled data")
-		("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")
-
-		("ligands", po::value<std::string>()->default_value("af-ligands.cif"), "File in CIF format describing the ligands and their modifications")
-
-		("structure-name-pattern", po::value<std::string>(), "Pattern for locating structure files")
-		("metadata-name-pattern", po::value<std::string>(), "Pattern for locating metadata files")
-
 		("af-id", po::value<std::string>(), "AlphaFold ID")
 		("pdb-id", po::value<std::string>(), "ID of the PDB file")
 
 		("max-ligand-to-polymer-atom-distance,d", po::value<float>()->default_value(6),
-			"The max distance to use to find neighbouring polymer atoms for the ligand in the AF structure")
-
-		// ("threads,t", po::value<size_t>()->default_value(1), "Number of threads to use, zero means all available cores")
-
-		("config", po::value<std::string>(), "Config file")
-		("help,h", "Display help message")
-		("version", "Print version")
-		("verbose,v", "Verbose output")
-		("quiet", "Do not produce warnings");
+			"The max distance to use to find neighbouring polymer atoms for the ligand in the AF structure");
 
 	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()
-		("debug,d", po::value<int>(), "Debug level (for even more verbose output)");
-
-	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
 
 	po::positional_options_description p;
 	p.add("af-id", 1);
 	p.add("pdb-id", 1);
 
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv)
-				  .options(cmdline_options)
-				  .positional(p)
-				  .run(),
-		vm);
-
-	fs::path configFile = "alphafill.conf";
-	if (vm.count("config"))
-		configFile = vm["config"].as<std::string>();
-
-	if (not fs::exists(configFile) and getenv("HOME") != nullptr)
-		configFile = fs::path(getenv("HOME")) / ".config" / configFile;
-
-	if (fs::exists(configFile))
-	{
-		std::ifstream cfgFile(configFile);
-		if (cfgFile.is_open())
-			po::store(po::parse_config_file(cfgFile, visible_options, true), vm);
-	}
-
-	po::notify(vm);
+	po::variables_map vm = load_options(argc, argv, visible_options, hidden_options, p, "alphafill.conf");
 
 	// --------------------------------------------------------------------
-
-	if (vm.count("version"))
-	{
-		write_version_string(std::cout, vm.count("verbose"));
-		exit(0);
-	}
-
-	if (vm.count("help"))
-	{
-		std::cout << visible_options << std::endl;
-		exit(0);
-	}
-
-	if (vm.count("quiet"))
-		cif::VERBOSE = -1;
-
-	if (vm.count("verbose"))
-		cif::VERBOSE = 1;
-
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
 
 	if (vm.count("db-dir") == 0)
 	{
@@ -875,43 +812,4 @@ int a_main(int argc, const char *argv[])
 	}
 
 	return 0;
-}
-
-// --------------------------------------------------------------------
-
-// recursively print exception whats:
-void print_what(const std::exception &e)
-{
-	std::cerr << e.what() << std::endl;
-	try
-	{
-		std::rethrow_if_nested(e);
-	}
-	catch (const std::exception &nested)
-	{
-		std::cerr << " >> ";
-		print_what(nested);
-	}
-}
-
-// --------------------------------------------------------------------
-
-int main(int argc, const char *argv[])
-{
-	int result = 0;
-
-	try
-	{
-#if defined(DATA_DIR)
-		cif::addDataDirectory(DATA_DIR);
-#endif
-		result = a_main(argc, argv);
-	}
-	catch (const std::exception &ex)
-	{
-		print_what(ex);
-		exit(1);
-	}
-
-	return result;
 }

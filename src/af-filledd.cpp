@@ -741,191 +741,143 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string id)
 
 // --------------------------------------------------------------------
 
-int main(int argc, char* const argv[])
+int a_main(int argc, char* const argv[])
 {
 	using namespace std::literals;
 
 	int result = 0;
 
-	try
+	po::options_description visible(argv[0] + " <command> [options]"s);
+	visible.add_options()
+		("command",		po::value<std::string>(),	"Command, one of start, stop, status or reload")
+		("no-daemon,F",								"Do not fork a background process")
+		
+		("address",		po::value<std::string>(),	"Address to listen to")
+		("port",		po::value<unsigned short>(),"Port to listen to")
+		("user",		po::value<std::string>(),	"User to run as")
+		("context",		po::value<std::string>(),	"Reverse proxy context")
+		("db-link-template",
+						po::value<std::string>(),	"Template for links to pdb(-redo) entry")
+
+		("db-dbname",	po::value<std::string>(),	"AF DB name")
+		("db-user",		po::value<std::string>(),	"AF DB owner")
+		("db-password",	po::value<std::string>(),	"AF DB password")
+		("db-host",		po::value<std::string>(),	"AF DB host")
+		("db-port",		po::value<std::string>(),	"AF DB port")
+		;
+
+	po::options_description hidden("hidden options");
+	hidden.add_options()
+		("rebuild-db",								"Rebuild the af-filled-db");
+
+	po::positional_options_description p;
+	p.add("command", 1);
+
+	po::variables_map vm = load_options(argc, argv, visible, hidden, p, "alphafill.conf");
+
+	fs::path dbDir = vm["db-dir"].as<std::string>();
+
+	if (not fs::exists(dbDir))
+		throw std::runtime_error("db-dir does not exist"); 
+	
+	if (not (vm.count("structure-name-pattern") and vm.count("metadata-name-pattern")))
+		throw std::runtime_error("name patterns not specified"); 
+
+	file_locator::init(dbDir, vm["structure-name-pattern"].as<std::string>(), vm["metadata-name-pattern"].as<std::string>());
+
+	std::vector<std::string> vConn;
+	std::string db_user;
+	for (std::string opt: { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
 	{
-		po::options_description visible("vvrd options");
-		visible.add_options()
-			("command",		po::value<std::string>(),	"Command, one of start, stop, status or reload")
-			("no-daemon,F",								"Do not fork a background process")
-			("config",		po::value<std::string>(),	"Name of config file to use, default is " PACKAGE_NAME ".conf located in current of home directory")
-			("help,h",									"Show help message")
-			;
-
-
-		po::options_description config("config-file options");
-		config.add_options()
-			("address",		po::value<std::string>(),	"Address to listen to")
-			("port",		po::value<unsigned short>(),"Port to listen to")
-			("user",		po::value<std::string>(),	"User to run as")
-			("context",		po::value<std::string>(),	"Reverse proxy context")
-			("db-dir",		po::value<std::string>(),	"Directory containing the af-filled data")
-			("db-link-template",
-							po::value<std::string>(),	"Template for links to pdb(-redo) entry")
-
-			("db-dbname",	po::value<std::string>(),	"AF DB name")
-			("db-user",		po::value<std::string>(),	"AF DB owner")
-			("db-password",	po::value<std::string>(),	"AF DB password")
-			("db-host",		po::value<std::string>(),	"AF DB host")
-			("db-port",		po::value<std::string>(),	"AF DB port")
-
-			("structure-name-pattern",	po::value<std::string>(),	"Pattern for locating structure files")
-			("metadata-name-pattern",	po::value<std::string>(),	"Pattern for locating metadata files")
-			;
-
-		po::options_description hidden("hidden options");
-		hidden.add_options()
-			("rebuild-db",								"Rebuild the af-filled-db")
-			("debug,d", po::value<int>(),				"Debug level (for even more verbose output)");
-
-		po::options_description cmdline_options;
-		cmdline_options.add(visible).add(config).add(hidden);
-
-		po::positional_options_description p;
-		p.add("command", 1);
-
-		po::variables_map vm;
-		po::store(po::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-
-		fs::path configFile = PACKAGE_NAME ".conf";
-		if (not fs::exists(configFile) and getenv("HOME") != nullptr)
-			configFile = fs::path(getenv("HOME")) / ".config" / PACKAGE_NAME ".conf";
+		if (vm.count(opt) == 0)
+			continue;
 		
-		if (vm.count("config") != 0)
-		{
-			configFile = vm["config"].as<std::string>();
-			if (not fs::exists(configFile))
-				throw std::runtime_error("Specified config file does not seem to exist");
-		}
-		
-		if (fs::exists(configFile))
-		{
-			po::options_description config_options ;
-			config_options.add(config).add(hidden);
+		vConn.push_back(opt.substr(3) + "=" + vm[opt].as<std::string>());
 
-			std::ifstream cfgFile(configFile);
-			if (cfgFile.is_open())
-				po::store(po::parse_config_file(cfgFile, config_options), vm);
-		}
-		
-		po::notify(vm);
+		if (opt == "db-user")
+			db_user = vm[opt].as<std::string>();
+	}
 
-		fs::path dbDir = vm["db-dir"].as<std::string>();
+	db_connection::init(ba::join(vConn, " "));
 
-		if (not fs::exists(dbDir))
-			throw std::runtime_error("db-dir does not exist"); 
-		
-		if (not (vm.count("structure-name-pattern") and vm.count("metadata-name-pattern")))
-			throw std::runtime_error("name patterns not specified"); 
+	// --------------------------------------------------------------------
+	
+	if (vm.count("rebuild-db"))
+		return data_service::rebuild(db_user, dbDir);
 
-		file_locator::init(dbDir, vm["structure-name-pattern"].as<std::string>(), vm["metadata-name-pattern"].as<std::string>());
+	if (vm.count("command") == 0)
+	{
+		std::cout << "No command specified, use of of start, stop, status or reload" << std::endl;
+		exit(1);
+	}
 
-		std::vector<std::string> vConn;
-		std::string db_user;
-		for (std::string opt: { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
-		{
-			if (vm.count(opt) == 0)
-				continue;
-			
-			vConn.push_back(opt.substr(3) + "=" + vm[opt].as<std::string>());
+	// --------------------------------------------------------------------
 
-			if (opt == "db-user")
-				db_user = vm[opt].as<std::string>();
-		}
+	if (vm.count("db-link-template"))
+		s_af_object.set_template(vm["db-link-template"].as<std::string>());
 
-		db_connection::init(ba::join(vConn, " "));
+	std::string command = vm["command"].as<std::string>();
+	
+	zh::daemon server([&]()
+	{
+		// auto sc = new zh::security_context(secret, ibs_user_service::instance());
+		// sc->add_rule("/admin", { "ADMIN" });
+		// sc->add_rule("/admin/**", { "ADMIN" });
+		// sc->add_rule("/media,/media/**", { "ADMIN", "EDITOR" });
+		// sc->add_rule("/", {});
 
-		// --------------------------------------------------------------------
-		
-		if (vm.count("rebuild-db"))
-			return data_service::rebuild(db_user, dbDir);
+		auto s = new zeep::http::server(/*sc*/);
 
-		if (vm.count("help") or vm.count("command") == 0)
-		{
-			std::cerr << visible << std::endl
-					<< config << std::endl;
-			exit(vm.count("help") ? 0 : 1);
-		}
+		if (vm.count("context"))
+			s->set_context_name(vm["context"].as<std::string>());
 
-		// --------------------------------------------------------------------
-
-		if (vm.count("db-link-template"))
-			s_af_object.set_template(vm["db-link-template"].as<std::string>());
-
-		std::string command = vm["command"].as<std::string>();
-		
-		zh::daemon server([&]()
-		{
-			// auto sc = new zh::security_context(secret, ibs_user_service::instance());
-			// sc->add_rule("/admin", { "ADMIN" });
-			// sc->add_rule("/admin/**", { "ADMIN" });
-			// sc->add_rule("/media,/media/**", { "ADMIN", "EDITOR" });
-			// sc->add_rule("/", {});
-
-			auto s = new zeep::http::server(/*sc*/);
-
-			if (vm.count("context"))
-				s->set_context_name(vm["context"].as<std::string>());
-
-			s->add_error_handler(new db_error_handler());
-			s->add_error_handler(new missing_entry_error_handler());
+		s->add_error_handler(new db_error_handler());
+		s->add_error_handler(new missing_entry_error_handler());
 
 #ifndef NDEBUG
-			s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
+		s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
 #else
-			s->set_template_processor(new zeep::http::rsrc_based_html_template_processor());
+		s->set_template_processor(new zeep::http::rsrc_based_html_template_processor());
 #endif
-			// s->add_controller(new zh::login_controller());
-			// s->add_controller(new user_admin_rest_controller());
+		// s->add_controller(new zh::login_controller());
+		// s->add_controller(new user_admin_rest_controller());
 
-			s->add_controller(new affd_html_controller());
-			s->add_controller(new affd_rest_controller());
+		s->add_controller(new affd_html_controller());
+		s->add_controller(new affd_rest_controller());
 
-			return s;
-		}, PACKAGE_NAME);
+		return s;
+	}, PACKAGE_NAME);
 
-		if (command == "start")
-		{
-			std::string address = "127.0.0.1";
-			if (vm.count("address"))
-				address = vm["address"].as<std::string>();
-
-			unsigned short port = 10342;
-			if (vm.count("port"))
-				port = vm["port"].as<unsigned short>();
-			
-			std::string user = "www-data";
-			if (vm.count("user"))
-				user = vm["user"].as<std::string>();
-			
-			std::cout << "starting server at http://" << address << ':' << port << '/' << std::endl;
-
-			if (vm.count("no-daemon"))
-				result = server.run_foreground(address, port);
-			else
-				result = server.start(address, port, 4, 4, user);
-		}
-		else if (command == "stop")
-			result = server.stop();
-		else if (command == "status")
-			result = server.status();
-		else if (command == "reload")
-			result = server.reload();
-		else
-		{
-			std::cerr << "Invalid command" << std::endl;
-			result = 1;
-		}
-	}
-	catch (const std::exception& ex)
+	if (command == "start")
 	{
-		std::cerr << "exception:" << std::endl
-			 << ex.what() << std::endl;
+		std::string address = "127.0.0.1";
+		if (vm.count("address"))
+			address = vm["address"].as<std::string>();
+
+		unsigned short port = 10342;
+		if (vm.count("port"))
+			port = vm["port"].as<unsigned short>();
+		
+		std::string user = "www-data";
+		if (vm.count("user"))
+			user = vm["user"].as<std::string>();
+		
+		std::cout << "starting server at http://" << address << ':' << port << '/' << std::endl;
+
+		if (vm.count("no-daemon"))
+			result = server.run_foreground(address, port);
+		else
+			result = server.start(address, port, 4, 4, user);
+	}
+	else if (command == "stop")
+		result = server.stop();
+	else if (command == "status")
+		result = server.status();
+	else if (command == "reload")
+		result = server.reload();
+	else
+	{
+		std::cerr << "Invalid command" << std::endl;
 		result = 1;
 	}
 

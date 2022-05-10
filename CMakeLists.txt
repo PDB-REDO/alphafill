@@ -25,7 +25,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # set the project name
-project(alphafill VERSION 1.1.0 LANGUAGES CXX)
+project(alphafill VERSION 1.2.0 LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -122,7 +122,8 @@ add_executable(alphafill
 	${PROJECT_SOURCE_DIR}/src/blast.cpp
 	${PROJECT_SOURCE_DIR}/src/ligands.cpp
 	${PROJECT_SOURCE_DIR}/src/matrix.cpp
-	${PROJECT_SOURCE_DIR}/src/alphafill.cpp)
+	${PROJECT_SOURCE_DIR}/src/alphafill.cpp
+	${PROJECT_SOURCE_DIR}/src/utilities.cpp)
 
 target_include_directories(alphafill
 	PUBLIC
@@ -194,7 +195,16 @@ target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${PROJE
 target_link_libraries(validate-fill
 	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
 
-install(TARGETS alphafill af-filledd validate-fill
+add_executable(merge-af
+	${PROJECT_SOURCE_DIR}/src/merge-af.cpp
+	${PROJECT_SOURCE_DIR}/src/utilities.cpp
+)
+
+target_include_directories(merge-af PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
+target_link_libraries(merge-af
+	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
+	
+install(TARGETS alphafill af-filledd validate-fill merge-af
     RUNTIME DESTINATION ${BIN_INSTALL_DIR}
 )
 

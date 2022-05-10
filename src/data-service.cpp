@@ -82,7 +82,7 @@ std::vector<structure> data_service::get_structures(float min_identity, uint32_t
 {
 	pqxx::work tx(db_connection::instance());
 
-	const std::regex rx("AF-(.+?)-F1");
+	const std::regex rx(R"(AF-(.+?-F\d+))");
 
 	std::vector<structure> structures;
 	for (auto const& [structure_id, hit_count, transplant_count, distinct]:
