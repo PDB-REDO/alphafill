@@ -64,7 +64,7 @@ class file_locator
 		return s_instance->get_file(id, chunk_nr, s_instance->m_metadata_name_pattern);
 	}
 
-	std::vector<std::filesystem::path> chunks(const std::string &id);
+	static std::vector<std::filesystem::path> get_all_structure_files(const std::string &id);
 
   private:
 	static std::unique_ptr<file_locator> s_instance;

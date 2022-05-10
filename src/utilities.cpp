@@ -42,6 +42,24 @@ namespace po = boost::program_options;
 
 std::unique_ptr<file_locator> file_locator::s_instance;
 
+std::vector<std::filesystem::path> file_locator::get_all_structure_files(const std::string &id)
+{
+	std::vector<fs::path> result;
+
+	int i = 1;
+	for (;;)
+	{
+		fs::path chunk = s_instance->get_structure_file(id, i);
+		if (not fs::exists(chunk))
+			break;
+		
+		result.emplace_back(std::move(chunk));
+		++i;
+	}
+	
+	return result;
+}
+
 // --------------------------------------------------------------------
 
 po::variables_map load_options(int argc, char *const argv[],
@@ -50,6 +68,7 @@ po::variables_map load_options(int argc, char *const argv[],
 	const char *config_file_name)
 {
 	visible_options.add_options()
+		("af-dir", po::value<std::string>(), "Directory containing the alphafold data")
 		("db-dir", po::value<std::string>(), "Directory containing the af-filled data")
 		("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")
 

@@ -374,16 +374,21 @@ void affd_html_controller::model(const zh::request& request, const zh::scope& sc
 		throw missing_entry_error("<missing-id>");
 
 	std::string afId = request.get_parameter("id");
+	int chunkNr = 1;
 
-	std::regex rx(R"((?:AF-)?(.+?)(?:-F1(?:-model_v1)?)?)");
+	std::regex rx(R"((?:AF-)?(.+?)(?:-F(\d+)(?:-model_v1)?)?)");
 	std::smatch m;
 	if (std::regex_match(afId, m, rx))
+	{
 		afId = m[1];
+		chunkNr = std::stoi(m[2]);
+	}
 
 	sub.put("af_id", afId);
+	sub.put("chunk", chunkNr);
 
-	fs::path jsonFile = file_locator::get_metdata_file(afId);
-	fs::path cifFile = file_locator::get_structure_file(afId);
+	fs::path jsonFile = file_locator::get_metdata_file(afId, chunkNr);
+	fs::path cifFile = file_locator::get_structure_file(afId, chunkNr);
 
 	if (not fs::exists(jsonFile) /*or not fs::exists(cifFile)*/)
 		throw missing_entry_error(afId);
@@ -546,8 +551,8 @@ class affd_rest_controller : public zh::rest_controller
 		map_get_request("aff/{id}/stripped/{asymlist}/{identity}", &affd_rest_controller::get_aff_structure_stripped, "id", "asymlist", "identity");
 	}
 
-	zh::reply get_aff_structure(const std::string &id);
-	zeep::json::element get_aff_structure_json(const std::string &id);
+	zh::reply get_aff_structure(std::string id);
+	zeep::json::element get_aff_structure_json(std::string id);
 	zeep::json::element get_aff_3d_beacon(std::string id);
 
 	zh::reply get_aff_structure_stripped_def(const std::string &id, const std::string &asyms)
@@ -555,14 +560,24 @@ class affd_rest_controller : public zh::rest_controller
 		return get_aff_structure_stripped(id, asyms, 0);
 	}
 
-	zh::reply get_aff_structure_stripped(const std::string &id, const std::string &asyms, int identity);
+	zh::reply get_aff_structure_stripped(std::string id, const std::string &asyms, int identity);
 };
 
-zh::reply affd_rest_controller::get_aff_structure(const std::string &id)
+zh::reply affd_rest_controller::get_aff_structure(std::string id)
 {
 	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
 
-	fs::path file = file_locator::get_structure_file(id);
+	int chunkNr = 1;
+
+	std::regex rx(R"((?:AF-)?(.+?)(?:-F(\d+)(?:-model_v1)?)?)");
+	std::smatch m;
+	if (std::regex_match(id, m, rx))
+	{
+		id = m[1];
+		chunkNr = std::stoi(m[2]);
+	}
+
+	fs::path file = file_locator::get_structure_file(id, chunkNr);
 
 	if (not fs::exists(file))
 		return zeep::http::reply(zeep::http::not_found, { 1, 1 });
@@ -593,13 +608,23 @@ zh::reply affd_rest_controller::get_aff_structure(const std::string &id)
 	return rep;
 }
 
-zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &id, const std::string &asyms, int identity)
+zh::reply affd_rest_controller::get_aff_structure_stripped(std::string id, const std::string &asyms, int identity)
 {
 	using namespace cif::literals;
 
 	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
 
-	fs::path file = file_locator::get_structure_file(id);
+	int chunkNr = 1;
+
+	std::regex rx(R"((?:AF-)?(.+?)(?:-F(\d+)(?:-model_v1)?)?)");
+	std::smatch m;
+	if (std::regex_match(id, m, rx))
+	{
+		id = m[1];
+		chunkNr = std::stoi(m[2]);
+	}
+
+	fs::path file = file_locator::get_structure_file(id, chunkNr);
 
 	if (not fs::exists(file))
 		return zeep::http::reply(zeep::http::not_found, { 1, 1 });
@@ -672,9 +697,19 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &id
 	return rep;
 }
 
-zeep::json::element affd_rest_controller::get_aff_structure_json(const std::string &id)
+zeep::json::element affd_rest_controller::get_aff_structure_json(std::string id)
 {
-	fs::path file = file_locator::get_metdata_file(id);
+	int chunkNr = 1;
+
+	std::regex rx(R"((?:AF-)?(.+?)(?:-F(\d+)(?:-model_v1)?)?)");
+	std::smatch m;
+	if (std::regex_match(id, m, rx))
+	{
+		id = m[1];
+		chunkNr = std::stoi(m[2]);
+	}
+
+	fs::path file = file_locator::get_metdata_file(id, chunkNr);
 
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
@@ -692,7 +727,17 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string id)
 	if (ba::ends_with(id, ".json"))
 		id.erase(id.begin() + id.length() - 5, id.end());
 
-	fs::path file = file_locator::get_structure_file(id);
+	int chunkNr = 1;
+
+	std::regex rx(R"((?:AF-)?(.+?)(?:-F(\d+)(?:-model_v1)?)?)");
+	std::smatch m;
+	if (std::regex_match(id, m, rx))
+	{
+		id = m[1];
+		chunkNr = std::stoi(m[2]);
+	}
+
+	fs::path file = file_locator::get_structure_file(id, chunkNr);
 
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
