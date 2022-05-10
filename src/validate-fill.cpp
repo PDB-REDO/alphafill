@@ -815,7 +815,11 @@ int a_main(int argc, const char *argv[])
 				Align(afStructure, pdbStructure, caA, caP);
 
 				auto &afRes = afStructure.getResidue(asymID);
-				auto &pdbRes = guessResidueForLigand(afStructure, asymID, pdbStructure, ligand);
+				// auto &pdbRes = guessResidueForLigand(afStructure, asymID, pdbStructure, ligand);
+				auto &pdbRes = pdbStructure.getResidue(transplant["pdb_asym_id"].as<std::string>());
+
+				if (afRes.compoundID() != pdbRes.compoundID())
+					throw std::runtime_error("Compound ID's do not match: " + afRes.compoundID() + " != " + pdbRes.compoundID());
 
 				// collect atoms around ligand
 
