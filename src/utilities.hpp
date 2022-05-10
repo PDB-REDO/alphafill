@@ -54,15 +54,17 @@ class file_locator
 		s_instance.reset(new file_locator(db_dir, structure_name_pattern, metadata_name_pattern));
 	}
 
-	static std::filesystem::path get_structure_file(const std::string &id)
+	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr = 1)
 	{
-		return s_instance->get_file(id, s_instance->m_structure_name_pattern);
+		return s_instance->get_file(id, chunk_nr, s_instance->m_structure_name_pattern);
 	}
 
-	static std::filesystem::path get_metdata_file(const std::string &id)
+	static std::filesystem::path get_metdata_file(const std::string &id, int chunk_nr = 1)
 	{
-		return s_instance->get_file(id, s_instance->m_metadata_name_pattern);
+		return s_instance->get_file(id, chunk_nr, s_instance->m_metadata_name_pattern);
 	}
+
+	std::vector<std::filesystem::path> chunks(const std::string &id);
 
   private:
 	static std::unique_ptr<file_locator> s_instance;
@@ -78,7 +80,7 @@ class file_locator
 	{
 	}
 
-	std::filesystem::path get_file(const std::string &id, std::string pattern)
+	std::filesystem::path get_file(const std::string &id, int chunk_nr, std::string pattern)
 	{
 		std::string::size_type i;
 
@@ -98,6 +100,9 @@ class file_locator
 
 		while ((i = pattern.find("${id}")) != std::string::npos)
 			pattern.replace(i, strlen("${id}"), id);
+
+		while ((i = pattern.find("${chunk}")) != std::string::npos)
+			pattern.replace(i, strlen("${chunk}"), std::to_string(chunk_nr));
 
 		return pattern;
 	}
