@@ -5,12 +5,12 @@
 <html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
 
 <head z:replace="~{head :: head(~{::title}, ~{::link}, ~{::script})}">
-	<title z:text="|AlphaFold Filled - Model ${chunk gt 1 ? af_id + '-F' + chunk : af_id}|"></title>
+	<title z:text="|AlphaFold Filled - Model ${chunked ? af_id + '-F' + chunk : af_id}|"></title>
 
 	<link rel="stylesheet" type="text/css" href="css/molstar.css" />
 
 	<script z:inline="javascript">
-		const AF_ID = /*[[${chunk gt 1 ? af_id + '-F' + chunk : af_id}]]*/ null;
+		const AF_ID = /*[[${chunked ? af_id + '-F' + chunk : af_id}]]*/ null;
 		const CHUNKED = /*[[${chunked}]]*/ false;
 		const IDENTITY = /*[[${identity}]]*/ 25;
 	</script>
@@ -23,7 +23,7 @@
 	<header z:replace="header::top('model')"></header>
 
 	<div class="container site-content">
-		<h2 z:text="|${af_id}${chunk?'-F'+chunk}|"></h2>
+		<h2 z:text="|${chunked ? af_id + '-F' + chunk : af_id}|"></h2>
 		<h5 z:text="${title}"></h5>
 		<div z:if="${chunked}" class="alert alert-info" role="alert">
 			This is a chunked model.

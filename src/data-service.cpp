@@ -58,7 +58,8 @@ std::tuple<std::string,int> parse_af_id(std::string af_id)
 	if (std::regex_match(af_id, m, kAF_ID_Rx))
 	{
 		af_id = m[1];
-		chunkNr = std::stoi(m[2]);
+		if (m[2].matched)
+			chunkNr = std::stoi(m[2]);
 	}
 
 	return { af_id, chunkNr };
