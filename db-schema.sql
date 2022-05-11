@@ -5,6 +5,7 @@ drop table if exists af_transplant cascade;
 create table af_structure (
 	id serial primary key,
     name varchar not null,
+	chunked boolean default false,
 	af_version varchar not null,
     created timestamp with time zone not null,
 	af_file varchar not null

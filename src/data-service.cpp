@@ -28,6 +28,7 @@
 
 #include <fstream>
 #include <thread>
+#include <regex>
 
 #include <boost/algorithm/string.hpp>
 
@@ -39,10 +40,29 @@
 
 #include "data-service.hpp"
 #include "db-connection.hpp"
+#include "utilities.hpp"
 #include "queue.hpp"
 
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
+
+// --------------------------------------------------------------------
+
+std::regex kAF_ID_Rx(R"((?:AF-)?(.+?)(?:-F(\d+)(?:-model_v1)?)?)");
+
+std::tuple<std::string,int> parse_af_id(std::string af_id)
+{
+	int chunkNr = 1;
+
+	std::smatch m;
+	if (std::regex_match(af_id, m, kAF_ID_Rx))
+	{
+		af_id = m[1];
+		chunkNr = std::stoi(m[2]);
+	}
+
+	return { af_id, chunkNr };
+}
 
 // --------------------------------------------------------------------
 
@@ -85,26 +105,27 @@ std::vector<structure> data_service::get_structures(float min_identity, uint32_t
 	const std::regex rx(R"(AF-(.+?-F\d+))");
 
 	std::vector<structure> structures;
-	for (auto const& [structure_id, hit_count, transplant_count, distinct]:
-		tx.stream<std::string,uint32_t, uint32_t, uint32_t>(
+	for (auto const& [structure_id, chunked, hit_count, transplant_count, distinct]:
+		tx.stream<std::string,bool,uint32_t, uint32_t, uint32_t>(
 		R"(select s.name as name,
-				count(distinct h.id) as hit_count,
-				count(distinct t.id) as transplant_count,
-				count(distinct t.analogue_id) as distinct
-			from af_structure s
-			join af_pdb_hit h on s.id = h.af_id
-			join af_transplant t on t.hit_id = h.id
+				  s.chunked,
+				  count(distinct h.id) as hit_count,
+				  count(distinct t.id) as transplant_count,
+				  count(distinct t.analogue_id) as distinct
+			 from af_structure s
+			 join af_pdb_hit h on s.id = h.af_id
+			 join af_transplant t on t.hit_id = h.id
 			where h.identity >= )" + std::to_string(min_identity) + R"(
-			group by s.name
+			group by s.name, s.chunked
 			order by hit_count desc, s.name asc
-			offset )" + std::to_string(page * pageSize) + R"( rows
-			fetch first )" + std::to_string(pageSize) + R"( rows only)"))
+		   offset )" + std::to_string(page * pageSize) + R"( rows
+		    fetch first )" + std::to_string(pageSize) + R"( rows only)"))
 	{
-		std::smatch m;
-		if (std::regex_match(structure_id, m, rx))
-			structures.emplace_back(structure{ m[1], hit_count, transplant_count, distinct });
+		const auto &[id, chunk] = parse_af_id(structure_id);
+		if (chunked)
+			structures.emplace_back(structure{ id + "-F" + std::to_string(chunk), hit_count, transplant_count, distinct });
 		else
-			structures.emplace_back(structure{ structure_id, hit_count, transplant_count, distinct });
+			structures.emplace_back(structure{ id, hit_count, transplant_count, distinct });
 	}
 
 	tx.commit();
@@ -116,12 +137,11 @@ std::vector<structure> data_service::get_structures_for_compound(float min_ident
 {
 	pqxx::work tx(db_connection::instance());
 
-	const std::regex rx("AF-(.+?)-F1");
-
 	std::vector<structure> structures;
-	for (auto const& [structure_id, hit_count, transplant_count, distinct]:
-		tx.stream<std::string,uint32_t, uint32_t, uint32_t>(
+	for (auto const& [structure_id, chunked, hit_count, transplant_count, distinct]:
+		tx.stream<std::string,bool,uint32_t, uint32_t, uint32_t>(
 		R"(select s.name,
+				  s.chunked,
 		          count(distinct h.id) as hit_count,
 				  count(distinct t.id) as transplant_count,
 				  count(distinct t.analogue_id) as dist_transplant_count
@@ -131,16 +151,16 @@ std::vector<structure> data_service::get_structures_for_compound(float min_ident
 			where (t.analogue_id = )" + tx.quote(compound) + R"(
 			   or t.compound_id = )" + tx.quote(compound) + R"()
 			  and h.identity >= )" + std::to_string(min_identity) + R"(
-			group by s.name
+			group by s.name, s.chunked
 			order by hit_count desc
-			offset )" + std::to_string(page * pageSize) + R"( rows
+		   offset )" + std::to_string(page * pageSize) + R"( rows
 			fetch first )" + std::to_string(pageSize) + R"( rows only)"))
 	{
-		std::smatch m;
-		if (std::regex_match(structure_id, m, rx))
-			structures.emplace_back(structure{ m[1], hit_count, transplant_count, distinct });
+		const auto &[id, chunk] = parse_af_id(structure_id);
+		if (chunked)
+			structures.emplace_back(structure{ id + "-F" + std::to_string(chunk), hit_count, transplant_count, distinct });
 		else
-			structures.emplace_back(structure{ structure_id, hit_count, transplant_count, distinct });
+			structures.emplace_back(structure{ id, hit_count, transplant_count, distinct });
 	}
 
 	tx.commit();
@@ -154,10 +174,10 @@ uint32_t data_service::count_structures(float min_identity) const
 
 	auto r = tx.exec1(R"(
 		  select count(distinct s.id)
-			from af_structure s
-			right join af_pdb_hit h on s.id = h.af_id
-			right join af_transplant t on t.hit_id = h.id
-			where h.identity >= )" + std::to_string(min_identity)
+		    from af_structure s
+		   right join af_pdb_hit h on s.id = h.af_id
+		   right join af_transplant t on t.hit_id = h.id
+		   where h.identity >= )" + std::to_string(min_identity)
 	);
 
 	tx.commit();
@@ -171,11 +191,11 @@ uint32_t data_service::count_structures(float min_identity, const std::string &c
 
 	auto r = tx.exec1(R"(
 		  select count(distinct s.id)
-			from af_structure s
-			right join af_pdb_hit h on s.id = h.af_id
-			right join af_transplant t on t.hit_id = h.id
-			where h.identity >= )" + std::to_string(min_identity) + R"(
-			  and (t.compound_id = )" + tx.quote(compound) + " or t.analogue_id = " + tx.quote(compound) + ")"
+		    from af_structure s
+		   right join af_pdb_hit h on s.id = h.af_id
+		   right join af_transplant t on t.hit_id = h.id
+		   where h.identity >= )" + std::to_string(min_identity) + R"(
+			 and (t.compound_id = )" + tx.quote(compound) + " or t.analogue_id = " + tx.quote(compound) + ")"
 	);
 
 	tx.commit();
@@ -199,9 +219,13 @@ void process(blocking_queue<json> &q, cif::Progress &p)
 
 		p.message(id);
 
+		const auto &[uniprot_id, chunk] = parse_af_id(id);
+		bool chunked = fs::exists(file_locator::get_metdata_file(uniprot_id, 2));
+
 		pqxx::transaction tx1(db_connection::instance());
-		auto r = tx1.exec1(R"(INSERT INTO af_structure (name, af_version, created, af_file) VALUES()" +
+		auto r = tx1.exec1(R"(INSERT INTO af_structure (name, chunked, af_version, created, af_file) VALUES()" +
 			tx1.quote(id) + "," +
+			tx1.quote(chunked) + "," +
 			tx1.quote(data["alphafill_version"].as<std::string>()) + "," +
 			tx1.quote(data["date"].as<std::string>()) + "," +
 			tx1.quote(data["file"].as<std::string>()) +

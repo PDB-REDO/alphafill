@@ -30,6 +30,15 @@
 
 #include <zeep/nvp.hpp>
 
+// --------------------------------------------------------------------
+
+/// \brief Return the UniprotID and chunk number for an AlphaFold ID.
+///
+/// Split an id in the form of AF-UNIPROTID-F<CHUNKNR>
+std::tuple<std::string,int> parse_af_id(std::string af_id);
+
+// --------------------------------------------------------------------
+
 struct compound
 {
 	std::string id;
