@@ -639,6 +639,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 
 	auto &struct_asym = db["struct_asym"];
 	auto &atom_site = db["atom_site"];
+	auto &struct_conn = db["struct_conn"];
 
 	std::set<std::string> existingAsyms;
 	for (const auto &[asymID] : struct_asym.rows<std::string>("id"))
@@ -651,6 +652,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 	{
 		struct_asym.erase("id"_key == asymID);
 		atom_site.erase("label_asym_id"_key == asymID);
+		struct_conn.erase("ptnr1_label_asym_id"_key == asymID or "ptnr2_label_asym_id"_key == asymID);
 	}
 
 	io::filtering_stream<io::output> out;
