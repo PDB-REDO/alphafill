@@ -189,6 +189,8 @@ add_executable(validate-fill
 	${PROJECT_SOURCE_DIR}/src/ligands.cpp
 	${PROJECT_SOURCE_DIR}/src/validate-fill.cpp
 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
+	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
+	${PROJECT_SOURCE_DIR}/src/data-service.cpp
 )
 
 target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})

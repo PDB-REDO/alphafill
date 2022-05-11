@@ -54,12 +54,12 @@ class file_locator
 		s_instance.reset(new file_locator(db_dir, structure_name_pattern, metadata_name_pattern));
 	}
 
-	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr = 1)
+	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr)
 	{
 		return s_instance->get_file(id, chunk_nr, s_instance->m_structure_name_pattern);
 	}
 
-	static std::filesystem::path get_metdata_file(const std::string &id, int chunk_nr = 1)
+	static std::filesystem::path get_metdata_file(const std::string &id, int chunk_nr)
 	{
 		return s_instance->get_file(id, chunk_nr, s_instance->m_metadata_name_pattern);
 	}

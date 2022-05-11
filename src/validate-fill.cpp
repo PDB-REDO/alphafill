@@ -41,6 +41,7 @@
 
 #include "revision.hpp"
 #include "utilities.hpp"
+#include "data-service.hpp"
 #include "ligands.hpp"
 
 namespace po = boost::program_options;
@@ -643,15 +644,16 @@ int a_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	auto afID = vm["af-id"].as<std::string>();
-	mmcif::File afFile(file_locator::get_structure_file(afID));
+	const auto &[afID, chunk] = parse_af_id(vm["af-id"].as<std::string>());
+
+	mmcif::File afFile(file_locator::get_structure_file(afID, chunk));
 	mmcif::Structure afStructure(afFile);
 
 	auto pdbID = vm["pdb-id"].as<std::string>();
 	mmcif::File pdbFile(pdbFileForID(pdbDir, pdbID));
 	mmcif::Structure pdbStructure(pdbFile);
 
-	std::ifstream metadata(file_locator::get_metdata_file(afID));
+	std::ifstream metadata(file_locator::get_metdata_file(afID, chunk));
 
 	json info;
 	zeep::json::parse_json(metadata, info);

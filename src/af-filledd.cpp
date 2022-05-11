@@ -611,7 +611,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 	{
 		using json = zeep::json::element;
 
-		fs::path jsonFile = file_locator::get_metdata_file(id);
+		fs::path jsonFile = file_locator::get_metdata_file(id, chunkNr);
 
 		if (not fs::exists(jsonFile) /*or not fs::exists(cifFile)*/)
 			throw zeep::http::not_found;
@@ -623,7 +623,8 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 
 		for (auto &hit : data["hits"])
 		{
-			if (hit["identity"].as<float>() >= identity * 0.01f)
+			float hi = hit["identity"].as<float>();
+			if (hi >= identity * 0.01f)
 				continue;
 
 			for (auto &transplant : hit["transplants"])
