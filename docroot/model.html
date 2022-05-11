@@ -29,8 +29,7 @@
 			This is a chunked model with the following chunks: 
 
 			<span z:each="l,i : ${chunks}">
-				<a class="alert-link" z:text="${i.count}" z:href="|./model?id=${l}|"></a>
-				<span z:if="${not i.last}">, </span>
+				<a class="alert-link" z:text="${i.count}" z:href="|./model?id=${l}|"></a><span z:if="${not i.last}">, </span>
 			</span>
 		</div>
 
