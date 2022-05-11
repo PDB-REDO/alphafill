@@ -33,4 +33,5 @@
 void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms, float identity, std::ostream &os);
 
 /// \brief Using the stripped mmCIF for \a af_id write out an optimized version calculated by Yasara
-void optimizeWithYasara(const std::string &af_id, std::set<std::string> requestedAsyms, float identity, std::ostream &os);
+void optimizeWithYasara(const std::string &yasara,
+	const std::string &af_id, std::set<std::string> requestedAsyms, float identity, std::ostream &os);

@@ -25,7 +25,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # set the project name
-project(alphafill VERSION 1.2.0 LANGUAGES CXX)
+project(alphafill VERSION 1.2.0 LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -168,12 +168,27 @@ add_custom_command(
 
 add_custom_target(webpack DEPENDS ${webpack_output})
 
+find_file(HAVE_DIRENT_H dirent.h)
+find_file(HAVE_FCNTL_H fcntl.h)
+check_function_exists(dirfd HAVE_DIRFD)
+find_file(HAVE_PROC_PID '/proc/self/fd/0')
+check_function_exists(sysconf HAVE_SYSCONF)
+
 add_executable(af-filledd
+	${PROJECT_SOURCE_DIR}/src/bsd-closefrom.c
 	${PROJECT_SOURCE_DIR}/src/af-filledd.cpp
 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
 	${PROJECT_SOURCE_DIR}/src/structure.cpp
+)
+
+target_compile_definitions(af-filledd PUBLIC
+	HAVE_DIRENT_H=${HAVE_DIRENT_H}
+	HAVE_FCNTL_H=${HAVE_FCNTL_H}
+	HAVE_DIRFD=${HAVE_DIRFD}
+	HAVE_PROC_PID=${HAVE_PROC_PID}
+	HAVE_SYSCONF=${HAVE_SYSCONF}
 )
 
 target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})

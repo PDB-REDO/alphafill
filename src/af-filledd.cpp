@@ -645,7 +645,7 @@ zh::reply affd_rest_controller::get_aff_structure_optimized(const std::string &a
 	std::unique_ptr<std::iostream> s(new std::stringstream);
 	out.push(*s.get());
 
-	optimizeWithYasara(af_id, requestedAsyms, identity, out);
+	optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsyms, identity, out);
 
 	rep.set_content(s.release(), "text/plain");
 	// rep.set_header("content-disposition", "attachement; filename = \"AF-" + id + "-F1-model_v1.cif\"");
