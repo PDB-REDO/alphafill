@@ -367,7 +367,21 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 
 	sub.put("af_id", afId);
 	sub.put("chunk", chunkNr);
-	sub.put("chunked", chunkNr > 1 or fs::exists(file_locator::get_metdata_file(afId, 2)));
+
+	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metdata_file(afId, 2));
+
+	sub.put("chunked", chunked);
+
+	if (chunked)
+	{
+		auto allChunks = file_locator::get_all_structure_files(afId);
+		json chunks;
+
+		for (size_t i = 0; i < allChunks.size(); ++i)
+			chunks.emplace_back(afId + "-F" + std::to_string(i + 1));
+		
+		sub.put("chunks", chunks);
+	}
 
 	fs::path jsonFile = file_locator::get_metdata_file(afId, chunkNr);
 	fs::path cifFile = file_locator::get_structure_file(afId, chunkNr);
