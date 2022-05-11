@@ -45,6 +45,7 @@
 
 #include "data-service.hpp"
 #include "db-connection.hpp"
+#include "structure.hpp"
 #include "utilities.hpp"
 
 namespace ba = boost::algorithm;
@@ -539,6 +540,9 @@ class affd_rest_controller : public zh::rest_controller
 
 		map_get_request("aff/{id}/stripped/{asymlist}", &affd_rest_controller::get_aff_structure_stripped_def, "id", "asymlist");
 		map_get_request("aff/{id}/stripped/{asymlist}/{identity}", &affd_rest_controller::get_aff_structure_stripped, "id", "asymlist", "identity");
+
+		map_get_request("aff/{id}/optimized/{asymlist}", &affd_rest_controller::get_aff_structure_optimized_def, "id", "asymlist");
+		map_get_request("aff/{id}/optimized/{asymlist}/{identity}", &affd_rest_controller::get_aff_structure_optimized, "id", "asymlist", "identity");
 	}
 
 	zh::reply get_aff_structure(const std::string &af_id);
@@ -551,6 +555,13 @@ class affd_rest_controller : public zh::rest_controller
 	}
 
 	zh::reply get_aff_structure_stripped(const std::string &af_id, const std::string &asyms, int identity);
+
+	zh::reply get_aff_structure_optimized_def(const std::string &id, const std::string &asyms)
+	{
+		return get_aff_structure_optimized(id, asyms, 0);
+	}
+
+	zh::reply get_aff_structure_optimized(const std::string &af_id, const std::string &asyms, int identity);
 };
 
 zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
@@ -592,68 +603,10 @@ zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
 
 zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af_id, const std::string &asyms, int identity)
 {
-	using namespace cif::literals;
-
 	zeep::http::reply rep(zeep::http::ok, {1, 1});
-
-	const auto &[id, chunkNr] = parse_af_id(af_id);
-
-	fs::path file = file_locator::get_structure_file(id, chunkNr);
-
-	if (not fs::exists(file))
-		return zeep::http::reply(zeep::http::not_found, {1, 1});
 
 	std::set<std::string> requestedAsyms;
 	ba::split(requestedAsyms, asyms, ba::is_any_of(","));
-
-	// optionally remove asyms whose blast origin's identity is too low
-	if (identity > 0)
-	{
-		using json = zeep::json::element;
-
-		fs::path jsonFile = file_locator::get_metdata_file(id, chunkNr);
-
-		if (not fs::exists(jsonFile) /*or not fs::exists(cifFile)*/)
-			throw zeep::http::not_found;
-
-		json data;
-
-		std::ifstream is(jsonFile);
-		parse_json(is, data);
-
-		for (auto &hit : data["hits"])
-		{
-			float hi = hit["identity"].as<float>();
-			if (hi >= identity * 0.01f)
-				continue;
-
-			for (auto &transplant : hit["transplants"])
-				requestedAsyms.erase(transplant["asym_id"].as<std::string>());
-		}
-	}
-
-	cif::File cif(file);
-	auto &db = cif.firstDatablock();
-
-	cif.loadDictionary("mmcif_pdbx_v50");
-
-	auto &struct_asym = db["struct_asym"];
-	auto &atom_site = db["atom_site"];
-	auto &struct_conn = db["struct_conn"];
-
-	std::set<std::string> existingAsyms;
-	for (const auto &[asymID] : struct_asym.rows<std::string>("id"))
-		existingAsyms.insert(asymID);
-
-	std::vector<std::string> toBeRemoved;
-	std::set_difference(existingAsyms.begin(), existingAsyms.end(), requestedAsyms.begin(), requestedAsyms.end(), std::back_insert_iterator(toBeRemoved));
-
-	for (auto &asymID : toBeRemoved)
-	{
-		struct_asym.erase("id"_key == asymID);
-		atom_site.erase("label_asym_id"_key == asymID);
-		struct_conn.erase("ptnr1_label_asym_id"_key == asymID or "ptnr2_label_asym_id"_key == asymID);
-	}
 
 	io::filtering_stream<io::output> out;
 
@@ -666,7 +619,33 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 	std::unique_ptr<std::iostream> s(new std::stringstream);
 	out.push(*s.get());
 
-	cif.save(out);
+	stripCifFile(af_id, requestedAsyms, identity, out);
+
+	rep.set_content(s.release(), "text/plain");
+	// rep.set_header("content-disposition", "attachement; filename = \"AF-" + id + "-F1-model_v1.cif\"");
+
+	return rep;
+}
+
+zh::reply affd_rest_controller::get_aff_structure_optimized(const std::string &af_id, const std::string &asyms, int identity)
+{
+	zeep::http::reply rep(zeep::http::ok, {1, 1});
+
+	std::set<std::string> requestedAsyms;
+	ba::split(requestedAsyms, asyms, ba::is_any_of(","));
+
+	io::filtering_stream<io::output> out;
+
+	if (get_header("accept-encoding").find("gzip") != std::string::npos)
+	{
+		out.push(io::gzip_compressor());
+		rep.set_header("content-encoding", "gzip");
+	}
+
+	std::unique_ptr<std::iostream> s(new std::stringstream);
+	out.push(*s.get());
+
+	optimizeWithYasara(af_id, requestedAsyms, identity, out);
 
 	rep.set_content(s.release(), "text/plain");
 	// rep.set_header("content-disposition", "attachement; filename = \"AF-" + id + "-F1-model_v1.cif\"");

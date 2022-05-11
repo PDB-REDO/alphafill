@@ -173,6 +173,7 @@ add_executable(af-filledd
 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
+	${PROJECT_SOURCE_DIR}/src/structure.cpp
 )
 
 target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
@@ -182,7 +183,11 @@ target_link_libraries(af-filledd
 add_dependencies(af-filledd webpack)
 
 if(USE_RSRC)
-	mrc_target_resources(af-filledd ${PROJECT_SOURCE_DIR}/docroot/ ${PROJECT_SOURCE_DIR}/db-schema.sql)
+	mrc_target_resources(af-filledd
+		${PROJECT_SOURCE_DIR}/docroot/
+		${PROJECT_SOURCE_DIR}/db-schema.sql
+		${PROJECT_SOURCE_DIR}/scripts/refine.mcr
+	)
 endif()
 
 add_executable(validate-fill
