@@ -42,6 +42,20 @@ namespace po = boost::program_options;
 
 std::unique_ptr<file_locator> file_locator::s_instance;
 
+void file_locator::init(boost::program_options::variables_map &vm)
+{
+	fs::path dbDir = vm["db-dir"].as<std::string>();
+	if (not fs::is_directory(dbDir))
+		throw std::runtime_error("AlphfaFill data directory does not exist");
+
+	fs::path pdbDir = vm["pdb-dir"].as<std::string>();
+	if (not fs::is_directory(pdbDir))
+		throw std::runtime_error("PDB directory does not exist");
+
+	s_instance.reset(new file_locator(dbDir, pdbDir, vm["structure-name-pattern"].as<std::string>(),
+		vm["pdb-name-pattern"].as<std::string>(), vm["metadata-name-pattern"].as<std::string>()));
+}
+
 std::vector<std::filesystem::path> file_locator::get_all_structure_files(const std::string &id)
 {
 	std::vector<fs::path> result;

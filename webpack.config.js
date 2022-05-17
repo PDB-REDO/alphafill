@@ -17,6 +17,7 @@ module.exports = (env) => {
 			'molstar': SCRIPTS + "molstar.tsx",
 			'index': SCRIPTS + "index.js",
 			'model': SCRIPTS + "model.js",
+			'optimized': SCRIPTS + "optimized.js",
 			'lists': SCRIPTS + "lists.js",
 		},
 

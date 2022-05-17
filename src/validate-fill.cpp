@@ -609,15 +609,7 @@ int a_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	fs::path dbDir = vm["db-dir"].as<std::string>();
-	if (not fs::is_directory(dbDir))
-		throw std::runtime_error("AlphfaFill data directory does not exist");
-
-	fs::path pdbDir = vm["pdb-dir"].as<std::string>();
-	if (not fs::is_directory(pdbDir))
-		throw std::runtime_error("PDB directory does not exist");
-
-	file_locator::init(dbDir, vm["structure-name-pattern"].as<std::string>(), vm["metadata-name-pattern"].as<std::string>());
+	file_locator::init(vm);
 
 	// --------------------------------------------------------------------
 
@@ -650,7 +642,7 @@ int a_main(int argc, char *const argv[])
 	mmcif::Structure afStructure(afFile);
 
 	auto pdbID = vm["pdb-id"].as<std::string>();
-	mmcif::File pdbFile(pdbFileForID(pdbDir, pdbID));
+	mmcif::File pdbFile(file_locator::get_pdb_file(pdbID));
 	mmcif::Structure pdbStructure(pdbFile);
 
 	std::ifstream metadata(file_locator::get_metdata_file(afID, chunk));

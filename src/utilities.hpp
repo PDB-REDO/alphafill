@@ -48,20 +48,21 @@ boost::program_options::variables_map load_options(
 class file_locator
 {
   public:
-	static void init(const std::filesystem::path &db_dir,
-		const std::string &structure_name_pattern, const std::string &metadata_name_pattern)
-	{
-		s_instance.reset(new file_locator(db_dir, structure_name_pattern, metadata_name_pattern));
-	}
+	static void init(boost::program_options::variables_map &vm);
 
 	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr)
 	{
-		return s_instance->get_file(id, chunk_nr, s_instance->m_structure_name_pattern);
+		return s_instance->get_structure_file_1(id, chunk_nr);
+	}
+
+	static std::filesystem::path get_pdb_file(const std::string &id)
+	{
+		return s_instance->get_pdb_file_1(id);
 	}
 
 	static std::filesystem::path get_metdata_file(const std::string &id, int chunk_nr)
 	{
-		return s_instance->get_file(id, chunk_nr, s_instance->m_metadata_name_pattern);
+		return s_instance->get_metdata_file_1(id, chunk_nr);
 	}
 
 	static std::vector<std::filesystem::path> get_all_structure_files(const std::string &id);
@@ -72,20 +73,52 @@ class file_locator
 	file_locator(const file_locator &) = delete;
 	file_locator &operator=(const file_locator &) = delete;
 
-	file_locator(const std::filesystem::path &db_dir,
-		const std::string &structure_name_pattern, const std::string &metadata_name_pattern)
+	file_locator(const std::filesystem::path &db_dir, const std::filesystem::path &pdb_dir,
+		const std::string &structure_name_pattern, const std::string &pdb_name_pattern, const std::string &metadata_name_pattern)
 		: m_db_dir(db_dir)
+		, m_pdb_dir(pdb_dir)
 		, m_structure_name_pattern(structure_name_pattern)
+		, m_pdb_name_pattern(pdb_name_pattern)
 		, m_metadata_name_pattern(metadata_name_pattern)
 	{
 	}
 
-	std::filesystem::path get_file(const std::string &id, int chunk_nr, std::string pattern)
+	std::filesystem::path get_structure_file_1(const std::string &id, int chunk_nr)
+	{
+		std::string s = get_file(id, chunk_nr, m_structure_name_pattern);
+
+		std::string::size_type i;
+		while ((i = s.find("${db-dir}")) != std::string::npos)
+			s.replace(i, strlen("${db-dir}"), m_db_dir);
+		
+		return s;
+	}
+
+	std::filesystem::path get_metdata_file_1(const std::string &id, int chunk_nr)
+	{
+		std::string s = get_file(id, chunk_nr, m_metadata_name_pattern);
+
+		std::string::size_type i;
+		while ((i = s.find("${db-dir}")) != std::string::npos)
+			s.replace(i, strlen("${db-dir}"), m_db_dir);
+		
+		return s;
+	}
+
+	std::filesystem::path get_pdb_file_1(const std::string &id)
+	{
+		std::string s = get_file(id, 0, m_pdb_name_pattern);
+
+		std::string::size_type i;
+		while ((i = s.find("${pdb-dir}")) != std::string::npos)
+			s.replace(i, strlen("${pdb-dir}"), m_pdb_dir);
+		
+		return s;
+	}
+
+	std::string get_file(const std::string &id, int chunk_nr, std::string pattern)
 	{
 		std::string::size_type i;
-
-		while ((i = pattern.find("${db-dir}")) != std::string::npos)
-			pattern.replace(i, strlen("${db-dir}"), m_db_dir);
 
 		std::regex rx(R"(\$\{id:(\d+):(\d+)\})");
 		std::smatch m;
@@ -107,7 +140,8 @@ class file_locator
 		return pattern;
 	}
 
-	const std::filesystem::path m_db_dir;
+	const std::filesystem::path m_db_dir, m_pdb_dir;
 	const std::string m_structure_name_pattern;
+	const std::string m_pdb_name_pattern;
 	const std::string m_metadata_name_pattern;
 };

@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
- * Copyright (c) 2021 Maarten L. Hekkelman, NKI-AVL
- * 
+ *
+ * Copyright (c) 2021 NKI/AVL, Netherlands Cancer Institute
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,15 +26,6 @@
 
 #pragma once
 
-#include <set>
-#include <ostream>
+#include "cif++/Cif++.hpp"
 
-/// \brief Remove all asymmetric units from the mmCIF file for \a af_id except for the ones in \a requestedAsyms
-void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms, float identity, std::ostream &os);
-
-/// \brief Using the stripped mmCIF for \a af_id write out an optimized version calculated by Yasara
-void optimizeWithYasara(const std::string &yasara,
-	const std::string &af_id, std::set<std::string> requestedAsyms, float identity, std::ostream &os);
-
-/// \brief Merge the yasara output in \a yasara_out into an mmCIF structure \a input writing the result to \a os
-void mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem::path &yasara_out, std::ostream &os);
+std::tuple<float,float,float> validateCif(const cif::Datablock &db, zeep::json::element &info);

@@ -189,11 +189,7 @@ int a_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	fs::path afDir = vm["af-dir"].as<std::string>();
-	if (not fs::is_directory(afDir))
-		throw std::runtime_error("AlphfaFill data directory does not exist");
-
-	file_locator::init(afDir, vm["structure-name-pattern"].as<std::string>(), vm["metadata-name-pattern"].as<std::string>());
+	file_locator::init(vm);
 
 	// --------------------------------------------------------------------
 

@@ -152,6 +152,7 @@ find_program(YARN yarn REQUIRED)
 set(webpack_input
 	${PROJECT_SOURCE_DIR}/webapp/index.js
 	${PROJECT_SOURCE_DIR}/webapp/model.js
+	${PROJECT_SOURCE_DIR}/webapp/optimized.js
 	${PROJECT_SOURCE_DIR}/webapp/lists.js
 	${PROJECT_SOURCE_DIR}/webapp/molstar.tsx
 	${PROJECT_SOURCE_DIR}/scss/pdb-redo-bootstrap.scss
@@ -181,6 +182,7 @@ add_executable(af-filledd
 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
 	${PROJECT_SOURCE_DIR}/src/structure.cpp
+	${PROJECT_SOURCE_DIR}/src/validate.cpp
 )
 
 target_compile_definitions(af-filledd PUBLIC

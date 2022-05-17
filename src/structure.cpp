@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2021 Maarten L. Hekkelman, NKI-AVL
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,16 +24,16 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/time.h>
 #include <fcntl.h>
-#include <string.h>
-#include <regex>
-#include <future>
 #include <fstream>
+#include <future>
+#include <regex>
+#include <string.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <sys/uio.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include <atomic>
 #include <filesystem>
@@ -43,15 +43,16 @@
 #include <cif++/CifUtils.hpp>
 // #include <cif++/Compound.hpp>
 
-#include <zeep/json/parser.hpp>
 #include <zeep/http/reply.hpp>
+#include <zeep/json/parser.hpp>
 
 #include "mrsrc.hpp"
 
 #include "bsd-closefrom.h"
 
-#include "utilities.hpp"
 #include "data-service.hpp"
+#include "utilities.hpp"
+#include "structure.hpp"
 
 namespace fs = std::filesystem;
 namespace po = boost::program_options;
@@ -374,20 +375,50 @@ std::vector<Insertion> runBowtieInt(const std::filesystem::path& bowtie,
 }
 #endif
 
+void mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem::path &yasara_out, std::ostream &os)
+{
+	using namespace cif::literals;
+
+	cif::File fin(input);
+	cif::File yin(yasara_out);
+
+	auto &db_i = fin.front();
+	auto &db_y = yin.front();
+
+	auto &as_i = db_i["atom_site"];
+	auto &as_y = db_y["atom_site"];
+
+	for (auto r : as_i)
+	{
+		const auto &[asym_id, seq_id, atom_id, auth_seq_id] = r.get<std::string,int,std::string,int>({"label_asym_id", "label_seq_id", "label_atom_id", "auth_seq_id"});
+
+		const auto &[x, y, z] = as_y.find1<float,float,float>(
+			asym_id == "A" ?
+				"label_asym_id"_key == asym_id and "label_seq_id"_key == seq_id and "label_atom_id"_key == atom_id :
+				"label_asym_id"_key == asym_id and "auth_seq_id"_key == auth_seq_id and "label_atom_id"_key == atom_id,
+			"Cartn_x", "Cartn_y", "Cartn_z");
+
+		r["Cartn_x"] = x;
+		r["Cartn_y"] = y;
+		r["Cartn_z"] = z;
+	}
+
+	fin.save(os);
+}
+
 void optimizeWithYasara(const std::string &yasara, const std::string &af_id, std::set<std::string> requestedAsyms, float identity, std::ostream &os)
 {
 	using namespace std::literals;
 
 	static std::atomic<int> sYasaraRunNr = 1;
 
+	int my_pid = getpid();
+
+	fs::path tmpdir = fs::temp_directory_path() / "alphafill" / (std::to_string(my_pid) + "." + std::to_string(sYasaraRunNr++));
+	fs::create_directories(tmpdir);
+
 	try
 	{
-		int my_pid = getpid();
-
-		fs::path tmpdir = fs::temp_directory_path() / "alphafill" / (std::to_string(my_pid) + "." + std::to_string(sYasaraRunNr++));
-
-		fs::create_directories(tmpdir);
-
 		std::ofstream input(tmpdir / "input.cif");
 		stripCifFile(af_id, requestedAsyms, identity, input);
 		input.close();
@@ -403,14 +434,13 @@ void optimizeWithYasara(const std::string &yasara, const std::string &af_id, std
 		std::string modelin = ("modelin='" + (tmpdir / "input.cif").string() + "'");
 		std::string modelout = ("modelout='" + (tmpdir / "output.cif").string() + "'");
 
-		std::vector<const char*> args = {
+		std::vector<const char *> args = {
 			yasara.c_str(),
 			"-txt",
 			script_s.c_str(),
 			modelin.c_str(),
 			modelout.c_str(),
-			nullptr
-		};
+			nullptr};
 
 		if (not fs::exists(args.front()))
 			throw std::runtime_error("The executable '"s + args.front() + "' does not seem to exist");
@@ -418,8 +448,12 @@ void optimizeWithYasara(const std::string &yasara, const std::string &af_id, std
 		// ready to roll
 		int ifd[2], ofd[2], err;
 
-		err = pipe2(ifd, O_CLOEXEC); if (err < 0) throw std::runtime_error("Pipe error: "s + strerror(errno));
-		err = pipe2(ofd, O_CLOEXEC); if (err < 0) throw std::runtime_error("Pipe error: "s + strerror(errno));
+		err = pipe2(ifd, O_CLOEXEC);
+		if (err < 0)
+			throw std::runtime_error("Pipe error: "s + strerror(errno));
+		err = pipe2(ofd, O_CLOEXEC);
+		if (err < 0)
+			throw std::runtime_error("Pipe error: "s + strerror(errno));
 
 		// open log file for appending
 		int efd = open((tmpdir / "yasara.log").c_str(), O_CREAT | O_APPEND | O_RDWR, 0644);
@@ -428,9 +462,9 @@ void optimizeWithYasara(const std::string &yasara, const std::string &af_id, std
 
 		int pid = fork();
 
-		if (pid == 0)    // the child
+		if (pid == 0) // the child
 		{
-			setpgid(0, 0);        // detach from the process group, create new
+			setpgid(0, 0); // detach from the process group, create new
 
 			dup2(ifd[0], STDIN_FILENO);
 			close(ifd[0]);
@@ -445,8 +479,8 @@ void optimizeWithYasara(const std::string &yasara, const std::string &af_id, std
 
 			closefrom(STDERR_FILENO + 1);
 
-			const char* env[] = { nullptr };
-			(void)execve(args.front(), const_cast<char* const*>(&args[0]), const_cast<char* const*>(env));
+			const char *env[] = {nullptr};
+			(void)execve(args.front(), const_cast<char *const *>(&args[0]), const_cast<char *const *>(env));
 			exit(-1);
 		}
 
@@ -474,12 +508,12 @@ void optimizeWithYasara(const std::string &yasara, const std::string &af_id, std
 		{
 			int r = read(ofd[0], buffer, sizeof(buffer));
 
-			if (r <= 0)	// keep it simple
+			if (r <= 0) // keep it simple
 				break;
 
 			write(efd, buffer, r);
 
-			for (char* s = buffer; s < buffer + r; ++s)
+			for (char *s = buffer; s < buffer + r; ++s)
 			{
 				char ch = *s;
 				if (ch != '\n')
@@ -487,10 +521,10 @@ void optimizeWithYasara(const std::string &yasara, const std::string &af_id, std
 					line += ch;
 					continue;
 				}
-				
+
 				if (line.substr(0, 11) == " - ERROR - ")
 					break;
-				
+
 				if (line.substr(0, 4) == "DONE")
 				{
 					done = true;
@@ -517,9 +551,14 @@ void optimizeWithYasara(const std::string &yasara, const std::string &af_id, std
 		if (status != 0)
 			throw std::runtime_error("Error executing yasara, result is " + std::to_string(status));
 
+		mergeYasaraOutput(tmpdir / "input.cif", tmpdir / "output.cif", os);
+
+		fs::remove_all(tmpdir);
 	}
-	catch(const std::exception& e)
+	catch (const std::exception &e)
 	{
-		std::cerr << e.what() << '\n';
+		std::cerr << e.what() << std::endl;
+
+		throw;
 	}
 }

@@ -1,0 +1,143 @@
+<!DOCTYPE html SYSTEM "about:legacy-compat" [
+<!ENTITY mdash "&#8212;">
+]>
+
+<html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
+
+<head z:replace="~{head :: head(~{::title}, ~{::link}, ~{::script})}">
+	<title z:text="|AlphaFold Filled - Optimized model ${chunked ? af_id + '-F' + chunk : af_id}|"></title>
+
+	<link rel="stylesheet" type="text/css" href="css/molstar.css" />
+
+	<script z:inline="javascript">
+		const AF_ID = /*[[${chunked ? af_id + '-F' + chunk : af_id}]]*/ null;
+		const ASYM_ID = /*[[${asym_id}]]*/ null;
+		const CHUNKED = /*[[${chunked}]]*/ false;
+	</script>
+
+	<script defer="defer" type="text/javascript" src="scripts/optimized.js"></script>
+</head>
+
+<body class="site">
+
+	<header z:replace="header::top('model')"></header>
+
+	<div class="container site-content">
+		<h2 z:text="|${chunked ? af_id + '-F' + chunk : af_id}|"></h2>
+		<h5 z:text="|Ligand ${asym_id} optimized with Yasara|"></h5>
+		<div z:if="${chunked}" class="alert alert-info" role="alert">
+			This is a chunked model with the following chunks: 
+
+			<span z:each="l,i : ${chunks}">
+				<a class="alert-link" z:text="${i.count}" z:href="|./model?id=${l}|"></a><span z:if="${not i.last}">, </span>
+			</span>
+		</div>
+
+		<!-- <table class="table table-sm mt-4">
+			<tr>
+				<td>Structure file</td>
+				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}|"
+						z:text="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}|"></a></td>
+			</tr>
+			<tr>
+				<td>Metadata</td>
+				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}/json|"
+						z:text="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}/json|"></a></td>
+			</tr>
+			<tr>
+				<td>Original AlphaFold model</td>
+				<td><a z:href="|https://alphafold.ebi.ac.uk/entry/${af_id}|"
+						z:text="|https://alphafold.ebi.ac.uk/entry/${af_id}|" target="_BLANK"></a></td>
+			</tr>
+		</table> -->
+
+		<div id="load-alert" class="alert alert-info">Running yasara, please wait...</div>
+		<div id="error-alert" class="alert alert-danger" style="display: none">Failed to create optimized model</div>
+
+		<div id="model" class="invisible row mt-5">
+			<div class="col" id="app"></div>
+
+			<div class="col">
+
+				<table class="mt-4 table table-sm table-hover" id="transplant-table-by-compound">
+					<thead>
+						<tr>
+							<th><abbr title="Name of the compound that was transplanted by AlphaFill">Compound</abbr>
+							</th>
+							<th><abbr
+									title="PDB-REDO identifier followed by chain that was used in the alignment">PDBID</abbr>
+							</th>
+							<th><abbr title="RMSD for the overall protein alignment based on Cα atoms">Global
+									RMSd</abbr></th>
+							<th><abbr title="The ID for the struct_asym created for this transplant">Asym</abbr></th>
+							<th><abbr title="RMSD of the alignment of all backbone atoms within 6Å of the compound that was transplanted by AlphaFill">Local RMSd</abbr></th>
+							<th><abbr title="RMSD of the van der Waals overlap between ligand and polymer atoms">Clash RMSd</abbr></th>
+							<th>
+								<div class="form-check">
+									<input class="form-check-input" checked="checked" type="checkbox" id="show-all" />
+									<label class="form-check-label" for="show-all">Show</label>
+								</div>
+							</th>
+						</tr>
+					</thead>
+
+					<tbody>
+						<tr z:each="c,i: ${by_compound}" class="transplanted-row"
+							role="button" z:data-asym-id="${c.asym_id}">
+
+							<td z:if="${c.first-hit and c.first-transplant}" z:rowspan="${c.hit-count}"
+								z:text="${c.analogue_id == c.compound_id ? c.compound_id : |${c.compound_id} -&gt; ${c.analogue_id}|}">
+							</td>
+
+							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}" z:with="link=${#af.link(${c.pdb_id})}">
+								<z:block z:switch="${link}">
+									<span z:case="null" z:text="${c.pdb_id}"></span>
+									<a z:case="*" z:href="${link}" z:text="${c.pdb_id}"></a>
+								</z:block>
+							</td>
+
+							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}"
+								z:classappend="${c.global-rmsd gt cutoff.global.unreliable ? 'unreliable' : c.global-rmsd gt cutoff.global.suspect ? 'suspect' }">
+								<span z:text="${#numbers.formatDecimal(c.global-rmsd, 1, 2)}"></span>
+								<span z:if="${c.global-rmsd gt cutoff.global.suspect and c.global-rmsd le cutoff.global.unreliable}" class="float-end"><abbr
+										title="This transplant is considered suspect">?</abbr></span>
+								<span z:if="${c.global-rmsd gt cutoff.global.unreliable}" class="float-end"><abbr
+									title="This transplant is considered unreliable">?</abbr></span>
+								</td>
+
+							<td z:text="${c.asym_id}"></td>
+
+							<td z:classappend="${c.local-rmsd gt cutoff.local.unreliable ? 'unreliable' : c.local-rmsd gt cutoff.local.suspect ? 'suspect' }">
+								<span z:text="${#numbers.formatDecimal(c.local-rmsd, 1, 2)}"></span>
+								<span z:if="${c.local-rmsd gt cutoff.local.suspect and c.local-rmsd le 2}" class="float-end"><abbr
+										title="This transplant is considered suspect">?</abbr></span>
+								<span z:if="${c.local-rmsd gt cutoff.local.unreliable}" class="float-end"><abbr
+									title="This transplant is considered unreliable">?</abbr></span>
+							</td>
+
+							<td>
+								<span z:text="${#numbers.formatDecimal(c.clash-score, 1, 2)}"></span>
+								<!-- <span z:if="${c.local-rmsd gt cutoff.local.suspect and c.local-rmsd le 2}" class="float-end"><abbr
+										title="This transplant is considered suspect">?</abbr></span>
+								<span z:if="${c.local-rmsd gt cutoff.local.unreliable}" class="float-end"><abbr
+									title="This transplant is considered unreliable">?</abbr></span> -->
+							</td>
+
+							<td>
+								<div class="form-check">
+									<input class="form-check-input" type="checkbox" checked="checked"
+										z:data-asym-id="${c.asym_id}" />
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<footer z:replace="~{footer::content}"></footer>
+
+</body>
+
+</html>

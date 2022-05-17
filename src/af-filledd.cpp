@@ -163,6 +163,7 @@ class affd_html_controller : public zh::html_controller
 	{
 		mount("{,index,index.html}", &affd_html_controller::welcome);
 		mount("model", &affd_html_controller::model);
+		mount("optimized", &affd_html_controller::optimized);
 		mount("structures", &affd_html_controller::structures);
 		mount("compounds", &affd_html_controller::compounds);
 		mount("about", &affd_html_controller::about);
@@ -176,6 +177,7 @@ class affd_html_controller : public zh::html_controller
 
 	void welcome(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void model(const zh::request &request, const zh::scope &scope, zh::reply &reply);
+	void optimized(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void structures(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void compounds(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void about(const zh::request &request, const zh::scope &scope, zh::reply &reply);
@@ -499,13 +501,51 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 	}
 
 	// TODO: These magic numbers should of course be configurable parameters
+	// 11.43, 3.04 voor global, en 3.10 en 0.92 voor local
 	sub.put("cutoff", json{
-						  {"global", {{"unreliable", 8.67},
-										 {"suspect", 3.64}}},
-						  {"local", {{"unreliable", 1.74},
-										{"suspect", 0.94}}}});
+		{"global", {{"unreliable", 11.43}, {"suspect", 3.04}}},
+		{"local", {{"unreliable", 3.10}, {"suspect", 0.92}}}
+	});
 
 	get_server().get_template_processor().create_reply_from_template("model", sub, reply);
+}
+
+void affd_html_controller::optimized(const zh::request &request, const zh::scope &scope, zh::reply &reply)
+{
+	using json = zeep::json::element;
+
+	zh::scope sub(scope);
+
+	if (not request.has_parameter("id"))
+		throw missing_entry_error("<missing-id>");
+
+	if (not request.has_parameter("asym"))
+		throw missing_entry_error("<missing-asym>");
+
+	std::string asymID = request.get_parameter("asym");
+
+	const auto &[afId, chunkNr] = parse_af_id(request.get_parameter("id"));
+
+	sub.put("af_id", afId);
+	sub.put("chunk", chunkNr);
+	sub.put("asym_id", asymID);
+
+	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metdata_file(afId, 2));
+
+	sub.put("chunked", chunked);
+
+	if (chunked)
+	{
+		auto allChunks = file_locator::get_all_structure_files(afId);
+		json chunks;
+
+		for (size_t i = 0; i < allChunks.size(); ++i)
+			chunks.emplace_back(afId + "-F" + std::to_string(i + 1));
+		
+		sub.put("chunks", chunks);
+	}
+
+	get_server().get_template_processor().create_reply_from_template("optimized", sub, reply);
 }
 
 void affd_html_controller::about(const zh::request &request, const zh::scope &scope, zh::reply &reply)
@@ -757,13 +797,7 @@ int a_main(int argc, char *const argv[])
 
 	fs::path dbDir = vm["db-dir"].as<std::string>();
 
-	if (not fs::exists(dbDir))
-		throw std::runtime_error("db-dir does not exist");
-
-	if (not(vm.count("structure-name-pattern") and vm.count("metadata-name-pattern")))
-		throw std::runtime_error("name patterns not specified");
-
-	file_locator::init(dbDir, vm["structure-name-pattern"].as<std::string>(), vm["metadata-name-pattern"].as<std::string>());
+	file_locator::init(vm);
 
 	std::vector<std::string> vConn;
 	std::string db_user;

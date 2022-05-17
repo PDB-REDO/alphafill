@@ -29,6 +29,24 @@ export class Viewer {
 		});
 	}
 
+	loadStructureFromString(model: string) {
+		return this.plugin.dataTransaction(async () => {
+			await this.plugin.clear();
+
+			const data = await this.plugin.builders.data.rawData({ data: model }, { state: { isGhost: true } });
+			const trajectory = await this.plugin.builders.structure.parseTrajectory(data, 'mmcif');
+	
+			await this.plugin.builders.structure.hierarchy.applyPreset(trajectory, 'default', {
+				structure: {
+					name: 'model',
+					params: { }
+				},
+				showUnitcell: false,
+				representationPreset: 'auto'
+			});
+        });
+	}
+
 	loadStructureFromUrl(url: string) {
 		return this.plugin.dataTransaction(async () => {
 			await this.plugin.clear();
