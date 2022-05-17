@@ -29,12 +29,6 @@ window.addEventListener('load', () => {
 				maximumFractionDigits: 2,
 				});
 
-			document.getElementById("combined-original").textContent = formatter.format(+result.lev.before.combined);
-			document.getElementById("combined-optimized").textContent = formatter.format(+result.lev.after.combined);
-			document.getElementById("protein-original").textContent = formatter.format(+result.lev.before.protein);
-			document.getElementById("protein-optimized").textContent = formatter.format(+result.lev.after.protein);
-			document.getElementById("ligand-original").textContent = formatter.format(+result.lev.before.ligand);
-			document.getElementById("ligand-optimized").textContent = formatter.format(+result.lev.after.ligand);
 			document.getElementById("clash-original").textContent = formatter.format(+result.clash.before);
 			document.getElementById("clash-optimized").textContent = formatter.format(+result.clash.after);
 
