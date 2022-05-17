@@ -19,8 +19,6 @@ window.addEventListener('load', () => {
 			if (typeof result.error == 'string')
 				throw result.error;
 
-			model = result.model;
-
 			viewer.loadStructureFromString(result.model)
 				.then(() => {
 					viewer.selectAsym(ASYM_ID);
