@@ -78,6 +78,16 @@ class Ligand
 class LigandsTable
 {
   public:
+	static void init(const std::filesystem::path &file)
+	{
+		sInstance.reset(new LigandsTable(file));
+	}
+
+	static LigandsTable &instance()
+	{
+		return *sInstance;
+	}
+
 	LigandsTable(const std::filesystem::path &file)
 		: mCifFile(file)
 	{
@@ -90,4 +100,5 @@ class LigandsTable
 
   private:
 	cif::File mCifFile;
+	static std::unique_ptr<LigandsTable> sInstance;
 };

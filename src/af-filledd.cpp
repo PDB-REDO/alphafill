@@ -45,6 +45,7 @@
 
 #include "data-service.hpp"
 #include "db-connection.hpp"
+#include "ligands.hpp"
 #include "structure.hpp"
 #include "utilities.hpp"
 
@@ -581,8 +582,8 @@ class affd_rest_controller : public zh::rest_controller
 		map_get_request("aff/{id}/stripped/{asymlist}", &affd_rest_controller::get_aff_structure_stripped_def, "id", "asymlist");
 		map_get_request("aff/{id}/stripped/{asymlist}/{identity}", &affd_rest_controller::get_aff_structure_stripped, "id", "asymlist", "identity");
 
-		map_get_request("aff/{id}/optimized/{asymlist}", &affd_rest_controller::get_aff_structure_optimized_def, "id", "asymlist");
-		map_get_request("aff/{id}/optimized/{asymlist}/{identity}", &affd_rest_controller::get_aff_structure_optimized, "id", "asymlist", "identity");
+		map_get_request("aff/{id}/optimized/{asymlist}", &affd_rest_controller::get_aff_structure_optimized, "id", "asymlist");
+		map_get_request("aff/{id}/optimized-with-stats/{asymlist}", &affd_rest_controller::get_aff_structure_optimized_with_stats, "id", "asymlist");
 	}
 
 	zh::reply get_aff_structure(const std::string &af_id);
@@ -596,12 +597,8 @@ class affd_rest_controller : public zh::rest_controller
 
 	zh::reply get_aff_structure_stripped(const std::string &af_id, const std::string &asyms, int identity);
 
-	zh::reply get_aff_structure_optimized_def(const std::string &id, const std::string &asyms)
-	{
-		return get_aff_structure_optimized(id, asyms, 0);
-	}
-
-	zh::reply get_aff_structure_optimized(const std::string &af_id, const std::string &asyms, int identity);
+	zh::reply get_aff_structure_optimized(const std::string &af_id, const std::string &asyms);
+	zh::reply get_aff_structure_optimized_with_stats(const std::string &af_id, const std::string &asyms);
 };
 
 zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
@@ -648,6 +645,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 	std::set<std::string> requestedAsyms;
 	ba::split(requestedAsyms, asyms, ba::is_any_of(","));
 
+	std::unique_ptr<std::iostream> s(new std::stringstream);
 	io::filtering_stream<io::output> out;
 
 	if (get_header("accept-encoding").find("gzip") != std::string::npos)
@@ -656,7 +654,6 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 		rep.set_header("content-encoding", "gzip");
 	}
 
-	std::unique_ptr<std::iostream> s(new std::stringstream);
 	out.push(*s.get());
 
 	stripCifFile(af_id, requestedAsyms, identity, out);
@@ -667,13 +664,14 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 	return rep;
 }
 
-zh::reply affd_rest_controller::get_aff_structure_optimized(const std::string &af_id, const std::string &asyms, int identity)
+zh::reply affd_rest_controller::get_aff_structure_optimized(const std::string &af_id, const std::string &asyms)
 {
 	zeep::http::reply rep(zeep::http::ok, {1, 1});
 
 	std::set<std::string> requestedAsyms;
 	ba::split(requestedAsyms, asyms, ba::is_any_of(","));
 
+	std::unique_ptr<std::iostream> s(new std::stringstream);
 	io::filtering_stream<io::output> out;
 
 	if (get_header("accept-encoding").find("gzip") != std::string::npos)
@@ -682,13 +680,42 @@ zh::reply affd_rest_controller::get_aff_structure_optimized(const std::string &a
 		rep.set_header("content-encoding", "gzip");
 	}
 
-	std::unique_ptr<std::iostream> s(new std::stringstream);
 	out.push(*s.get());
 
-	optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsyms, identity, out);
+	optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsyms, out);
 
 	rep.set_content(s.release(), "text/plain");
-	// rep.set_header("content-disposition", "attachement; filename = \"AF-" + id + "-F1-model_v1.cif\"");
+
+	return rep;
+}
+
+zh::reply affd_rest_controller::get_aff_structure_optimized_with_stats(const std::string &af_id, const std::string &asyms)
+{
+	zeep::http::reply rep(zeep::http::ok, {1, 1});
+
+	std::set<std::string> requestedAsyms;
+	ba::split(requestedAsyms, asyms, ba::is_any_of(","));
+
+	std::ostringstream os;
+
+	auto stats = optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsyms, os);
+
+	stats["model"] = os.str();
+
+	std::unique_ptr<std::iostream> s(new std::stringstream);
+	io::filtering_stream<io::output> out;
+
+	if (get_header("accept-encoding").find("gzip") != std::string::npos)
+	{
+		out.push(io::gzip_compressor());
+		rep.set_header("content-encoding", "gzip");
+	}
+
+	out.push(*s.get());
+
+	out << stats;
+
+	rep.set_content(s.release(), "application/json");
 
 	return rep;
 }
@@ -798,6 +825,7 @@ int a_main(int argc, char *const argv[])
 	fs::path dbDir = vm["db-dir"].as<std::string>();
 
 	file_locator::init(vm);
+	LigandsTable::init(vm["ligands"].as<std::string>());
 
 	std::vector<std::string> vConn;
 	std::string db_user;

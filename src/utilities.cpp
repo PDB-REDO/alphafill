@@ -95,6 +95,7 @@ po::variables_map load_options(int argc, char *const argv[],
 
 		("structure-name-pattern", po::value<std::string>(), "Pattern for locating structure files")
 		("metadata-name-pattern", po::value<std::string>(), "Pattern for locating metadata files")
+		("pdb-name-pattern", po::value<std::string>(), "Pattern for locating PDB files")
 
 		("config", po::value<std::string>(), "Config file")
 

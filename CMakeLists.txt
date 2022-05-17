@@ -178,6 +178,7 @@ check_function_exists(sysconf HAVE_SYSCONF)
 add_executable(af-filledd
 	${PROJECT_SOURCE_DIR}/src/bsd-closefrom.c
 	${PROJECT_SOURCE_DIR}/src/af-filledd.cpp
+	${PROJECT_SOURCE_DIR}/src/ligands.cpp
 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
@@ -213,6 +214,7 @@ add_executable(validate-fill
 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
+	${PROJECT_SOURCE_DIR}/src/validate.cpp
 )
 
 target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})

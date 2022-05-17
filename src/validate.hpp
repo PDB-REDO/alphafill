@@ -26,6 +26,18 @@
 
 #pragma once
 
-#include "cif++/Cif++.hpp"
+#include "cif++/Structure.hpp"
 
-std::tuple<float,float,float> validateCif(const cif::Datablock &db, zeep::json::element &info);
+#include "ligands.hpp"
+
+std::tuple<float,float,float> validateCif(cif::Datablock &db, const std::string &asymID, zeep::json::element &info, float maxLigandPolyAtomDistance = 6);
+
+std::tuple<std::vector<mmcif::Monomer *>, std::vector<mmcif::Monomer *>> AlignAndTrimSequences(mmcif::Polymer &rx, mmcif::Polymer &ry);
+std::tuple<std::vector<mmcif::Atom>, std::vector<mmcif::Atom>, std::vector<mmcif::Atom>, std::vector<mmcif::Atom>>
+FindAtomsNearLigand(const std::vector<mmcif::Monomer *> &pa, const std::vector<mmcif::Monomer *> &pb,
+	const mmcif::Residue &ra, const mmcif::Residue &rb, float maxDistance, const Ligand &ligand);
+std::tuple<std::vector<mmcif::Monomer *>, std::vector<mmcif::Monomer *>> AlignAndTrimSequences(mmcif::Polymer &rx, mmcif::Polymer &ry);
+double Align(const mmcif::Structure &a, mmcif::Structure &b,
+	std::vector<mmcif::Point> &cAlphaA, std::vector<mmcif::Point> &cAlphaB);
+double Align(std::vector<mmcif::Atom> &aA, std::vector<mmcif::Atom> &aB);
+double CalculateRMSD(const std::vector<mmcif::Atom> &a, const std::vector<mmcif::Atom> &b);

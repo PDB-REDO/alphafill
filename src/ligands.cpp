@@ -28,6 +28,10 @@
 
 // --------------------------------------------------------------------
 
+std::unique_ptr<LigandsTable> LigandsTable::sInstance;
+
+// --------------------------------------------------------------------
+
 void Ligand::modify(mmcif::Structure &structure, const std::string &asymID) const
 {
 	assert(mLigand);

@@ -59,76 +59,32 @@
 
 			<div class="col">
 
-				<table class="mt-4 table table-sm table-hover" id="transplant-table-by-compound">
+				<h5>Table with statistics for the original and optimized model</h5>
+
+				<table class="mt-4 table table-sm table-hover" id="statistics">
 					<thead>
 						<tr>
-							<th><abbr title="Name of the compound that was transplanted by AlphaFill">Compound</abbr>
-							</th>
-							<th><abbr
-									title="PDB-REDO identifier followed by chain that was used in the alignment">PDBID</abbr>
-							</th>
-							<th><abbr title="RMSD for the overall protein alignment based on Cα atoms">Global
-									RMSd</abbr></th>
-							<th><abbr title="The ID for the struct_asym created for this transplant">Asym</abbr></th>
-							<th><abbr title="RMSD of the alignment of all backbone atoms within 6Å of the compound that was transplanted by AlphaFill">Local RMSd</abbr></th>
-							<th><abbr title="RMSD of the van der Waals overlap between ligand and polymer atoms">Clash RMSd</abbr></th>
-							<th>
-								<div class="form-check">
-									<input class="form-check-input" checked="checked" type="checkbox" id="show-all" />
-									<label class="form-check-label" for="show-all">Show</label>
-								</div>
-							</th>
+							<th></th>
+							<th>Original</th>
+							<th>Optimized</th>
 						</tr>
 					</thead>
 
 					<tbody>
-						<tr z:each="c,i: ${by_compound}" class="transplanted-row"
-							role="button" z:data-asym-id="${c.asym_id}">
-
-							<td z:if="${c.first-hit and c.first-transplant}" z:rowspan="${c.hit-count}"
-								z:text="${c.analogue_id == c.compound_id ? c.compound_id : |${c.compound_id} -&gt; ${c.analogue_id}|}">
-							</td>
-
-							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}" z:with="link=${#af.link(${c.pdb_id})}">
-								<z:block z:switch="${link}">
-									<span z:case="null" z:text="${c.pdb_id}"></span>
-									<a z:case="*" z:href="${link}" z:text="${c.pdb_id}"></a>
-								</z:block>
-							</td>
-
-							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}"
-								z:classappend="${c.global-rmsd gt cutoff.global.unreliable ? 'unreliable' : c.global-rmsd gt cutoff.global.suspect ? 'suspect' }">
-								<span z:text="${#numbers.formatDecimal(c.global-rmsd, 1, 2)}"></span>
-								<span z:if="${c.global-rmsd gt cutoff.global.suspect and c.global-rmsd le cutoff.global.unreliable}" class="float-end"><abbr
-										title="This transplant is considered suspect">?</abbr></span>
-								<span z:if="${c.global-rmsd gt cutoff.global.unreliable}" class="float-end"><abbr
-									title="This transplant is considered unreliable">?</abbr></span>
-								</td>
-
-							<td z:text="${c.asym_id}"></td>
-
-							<td z:classappend="${c.local-rmsd gt cutoff.local.unreliable ? 'unreliable' : c.local-rmsd gt cutoff.local.suspect ? 'suspect' }">
-								<span z:text="${#numbers.formatDecimal(c.local-rmsd, 1, 2)}"></span>
-								<span z:if="${c.local-rmsd gt cutoff.local.suspect and c.local-rmsd le 2}" class="float-end"><abbr
-										title="This transplant is considered suspect">?</abbr></span>
-								<span z:if="${c.local-rmsd gt cutoff.local.unreliable}" class="float-end"><abbr
-									title="This transplant is considered unreliable">?</abbr></span>
-							</td>
-
-							<td>
-								<span z:text="${#numbers.formatDecimal(c.clash-score, 1, 2)}"></span>
-								<!-- <span z:if="${c.local-rmsd gt cutoff.local.suspect and c.local-rmsd le 2}" class="float-end"><abbr
-										title="This transplant is considered suspect">?</abbr></span>
-								<span z:if="${c.local-rmsd gt cutoff.local.unreliable}" class="float-end"><abbr
-									title="This transplant is considered unreliable">?</abbr></span> -->
-							</td>
-
-							<td>
-								<div class="form-check">
-									<input class="form-check-input" type="checkbox" checked="checked"
-										z:data-asym-id="${c.asym_id}" />
-								</div>
-							</td>
+						<tr>
+							<td>Combined atoms</td>
+							<td id="combined-original"></td>
+							<td id="combined-optimized"></td>
+						</tr>
+						<tr>
+							<td>Protein atoms</td>
+							<td id="protein-original"></td>
+							<td id="protein-optimized"></td>
+						</tr>
+						<tr>
+							<td>Ligand atoms</td>
+							<td id="ligand-original"></td>
+							<td id="ligand-optimized"></td>
 						</tr>
 					</tbody>
 				</table>
