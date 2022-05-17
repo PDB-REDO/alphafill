@@ -16,6 +16,11 @@ window.addEventListener('load', () => {
 			return data.json();
 		})
 		.then(result => {
+			if (typeof result.error == 'string')
+				throw result.error;
+
+			model = result.model;
+
 			viewer.loadStructureFromString(result.model)
 				.then(() => {
 					viewer.selectAsym(ASYM_ID);
@@ -33,11 +38,19 @@ window.addEventListener('load', () => {
 			document.getElementById("ligand-original").textContent = formatter.format(+result.lev.before.ligand);
 			document.getElementById("ligand-optimized").textContent = formatter.format(+result.lev.after.ligand);
 
+			const link = document.getElementById('model-link');
+			link.href = "data:text/plain;charset=utf-8," + encodeURIComponent(model);
+			link.download = `${AF_ID}-${ASYM_ID}-optimized.cif`;
+
+			document.getElementById('link-table').classList.remove('invisible');
+
 			document.getElementById('model').classList.remove('invisible');
 		})
 		.catch(err => {
 			loadAlert.style.display = 'none';
 			errorAlert.style.display = '';
-			alert(err);
+			const msg = document.getElementById('error-message');
+			if (msg != null)
+				msg.textContent = err;
 		});
 })

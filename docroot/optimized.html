@@ -33,26 +33,17 @@
 			</span>
 		</div>
 
-		<!-- <table class="table table-sm mt-4">
+		<div id="load-alert" class="alert alert-info">Running yasara, please wait...</div>
+		<div id="error-alert" class="alert alert-danger" style="display: none">Failed to create optimized model <span id="error-message"></span></div>
+
+		<table id="link-table" class="table table-sm mt-4 invisible">
 			<tr>
 				<td>Structure file</td>
-				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}|"
-						z:text="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}|"></a></td>
+				<td><a id="model-link"
+					   z:href="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}/optimized/A,${asym_id}|"
+					   z:text="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}/optimized/A,${asym_id}|"></a></td>
 			</tr>
-			<tr>
-				<td>Metadata</td>
-				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}/json|"
-						z:text="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}/json|"></a></td>
-			</tr>
-			<tr>
-				<td>Original AlphaFold model</td>
-				<td><a z:href="|https://alphafold.ebi.ac.uk/entry/${af_id}|"
-						z:text="|https://alphafold.ebi.ac.uk/entry/${af_id}|" target="_BLANK"></a></td>
-			</tr>
-		</table> -->
-
-		<div id="load-alert" class="alert alert-info">Running yasara, please wait...</div>
-		<div id="error-alert" class="alert alert-danger" style="display: none">Failed to create optimized model</div>
+		</table>
 
 		<div id="model" class="invisible row mt-5">
 			<div class="col" id="app"></div>

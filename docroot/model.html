@@ -96,7 +96,7 @@
 							<th><abbr title="The ID for the struct_asym created for this transplant">Asym</abbr></th>
 							<th><abbr title="RMSD of the alignment of all backbone atoms within 6Å of the compound that was transplanted by AlphaFill">Local RMSd</abbr></th>
 							<th><abbr title="RMSD of the van der Waals overlap between ligand and polymer atoms">Clash RMSd</abbr></th>
-							<th>
+							<th colspan="2">
 								<div class="form-check">
 									<input class="form-check-input" checked="checked" type="checkbox" id="show-all" />
 									<label class="form-check-label" for="show-all">Show</label>
@@ -152,6 +152,9 @@
 									<input class="form-check-input" type="checkbox" checked="checked"
 										z:data-asym-id="${c.asym_id}" />
 								</div>
+							</td>
+							<td class="optimize-link invisible" z:data-asym-id="${c.asym_id}">
+								<a z:href="|optimized?id=${af_id};asym=${c.asym_id}|"><abbr title="Generate an energy optimized model using yasara">optimize</abbr></a>
 							</td>
 						</tr>
 					</tbody>
