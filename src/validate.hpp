@@ -41,3 +41,31 @@ double Align(const mmcif::Structure &a, mmcif::Structure &b,
 	std::vector<mmcif::Point> &cAlphaA, std::vector<mmcif::Point> &cAlphaB);
 double Align(std::vector<mmcif::Atom> &aA, std::vector<mmcif::Atom> &aB);
 double CalculateRMSD(const std::vector<mmcif::Atom> &a, const std::vector<mmcif::Atom> &b);
+
+// --------------------------------------------------------------------
+// clash score
+
+struct CAtom
+{
+	CAtom(const CAtom &) = default;
+	CAtom(CAtom &&) = default;
+
+	CAtom(mmcif::AtomType type, mmcif::Point pt, int charge, int seqID, const std::string &id);
+
+	CAtom(const mmcif::Atom &atom)
+		: CAtom(atom.type(), atom.location(), atom.charge(), atom.labelSeqID(), atom.labelAtomID())
+	{
+	}
+
+	mmcif::AtomType type;
+	mmcif::Point pt;
+	float radius;
+	int seqID;
+	std::string id;
+};
+
+std::tuple<int,zeep::json::element> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance);
+
+// --------------------------------------------------------------------
+
+float ClashScore(const cif::Datablock &db, float maxDistance = 4);

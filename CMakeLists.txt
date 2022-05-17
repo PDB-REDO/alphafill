@@ -123,7 +123,9 @@ add_executable(alphafill
 	${PROJECT_SOURCE_DIR}/src/ligands.cpp
 	${PROJECT_SOURCE_DIR}/src/matrix.cpp
 	${PROJECT_SOURCE_DIR}/src/alphafill.cpp
-	${PROJECT_SOURCE_DIR}/src/utilities.cpp)
+	${PROJECT_SOURCE_DIR}/src/utilities.cpp
+	${PROJECT_SOURCE_DIR}/src/validate.cpp
+	)
 
 target_include_directories(alphafill
 	PUBLIC

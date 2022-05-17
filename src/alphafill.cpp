@@ -42,6 +42,7 @@
 #include "queue.hpp"
 #include "revision.hpp"
 #include "utilities.hpp"
+#include "validate.hpp"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -277,45 +278,6 @@ std::tuple<std::vector<size_t>, std::vector<size_t>> getTrimmedIndicesForHsp(con
 	return {ixq, ixt};
 }
 
-double CalculateRMSD(const std::vector<mmcif::Point> &pa, const std::vector<mmcif::Point> &pb)
-{
-	return RMSd(pa, pb);
-}
-
-double Align(const mmcif::Structure &a, mmcif::Structure &b,
-	std::vector<Point> &cAlphaA, std::vector<Point> &cAlphaB)
-{
-	auto ta = CenterPoints(cAlphaA);
-
-	if (cif::VERBOSE > 0)
-		std::cerr << "translate A: " << -ta << std::endl;
-
-	auto tb = CenterPoints(cAlphaB);
-
-	if (cif::VERBOSE > 0)
-		std::cerr << "translate B: " << -tb << std::endl;
-
-	auto rotation = AlignPoints(cAlphaB, cAlphaA);
-
-	if (cif::VERBOSE > 0)
-	{
-		const auto &[angle, axis] = mmcif::QuaternionToAngleAxis(rotation);
-		std::cerr << "rotation: " << angle << " degrees rotation around axis " << axis << std::endl;
-	}
-
-	b.translateRotateAndTranslate(-tb, rotation, ta);
-
-	for (auto &pt : cAlphaB)
-		pt.rotate(rotation);
-
-	double result = CalculateRMSD(cAlphaA, cAlphaB);
-
-	if (cif::VERBOSE > 0)
-		std::cerr << "RMSd: " << result << std::endl;
-
-	return result;
-}
-
 std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 	const std::vector<mmcif::Residue *> &pdb, const std::vector<size_t> &pdb_ix,
 	const std::vector<mmcif::Residue *> &af, const std::vector<size_t> &af_ix,
@@ -418,108 +380,6 @@ std::tuple<UniqueType,std::string> isUniqueLigand(const mmcif::Structure &struct
 	}
 
 	return result;
-}
-
-// --------------------------------------------------------------------
-
-struct CAtom
-{
-	CAtom(const CAtom &) = default;
-	CAtom(CAtom &&) = default;
-
-	CAtom(mmcif::AtomType type, Point pt, int charge, int seqID, const std::string &id)
-		: type(type), pt(pt), seqID(seqID), id(id)
-	{
-		const mmcif::AtomTypeTraits att(type);
-
-		if (charge == 0)
-		{
-			radius = att.radius(mmcif::RadiusType::VanderWaals);
-			if (std::isnan(radius))
-				radius = att.radius();
-		}
-		else
-			radius = att.effective_ionic_radius(charge);
-
-		if (std::isnan(radius))
-			throw std::runtime_error("Unknown radius for atom " + att.symbol() + " with charge " + std::to_string(charge));
-	}
-
-	CAtom(const mmcif::Atom &atom)
-		: CAtom(atom.type(), atom.location(), atom.charge(), atom.labelSeqID(), atom.labelAtomID())
-	{
-	}
-
-	mmcif::AtomType type;
-	Point pt;
-	float radius;
-	int seqID;
-	std::string id;
-};
-
-std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance)
-{
-	auto maxDistanceSq = maxDistance * maxDistance;
-
-	json distancePairs;
-
-	int n = 0, m = 0;
-	double sumOverlapSq = 0;
-
-	for (auto &pa : polyAtoms)
-	{
-		bool near = false;
-
-		for (auto &ra : resAtoms)
-		{
-			auto d = DistanceSquared(pa.pt, ra.pt);
-
-			if (d >= maxDistanceSq)
-				continue;
-			
-			near = true;
-
-			d = std::sqrt(d);
-
-			auto overlap = pa.radius + ra.radius - d;
-			if (overlap < 0)
-				overlap = 0;
-			
-			if (overlap > 0)
-			{
-				++n;
-				sumOverlapSq += overlap * overlap;
-			}
-			
-			json d_info{
-				{ "distance", d },
-				{ "VdW_overlap", overlap },
-				{
-					"poly_atom", {
-						{ "seq_id", pa.seqID },
-						{ "id", pa.id }
-					}
-				}
-			};
-			if (resAtoms.size() > 1)
-				d_info["res_atom_id"] = ra.id;
-			distancePairs.push_back(std::move(d_info));
-		}
-
-		if (near)
-			++m;
-	}
-
-	return {
-		m,
-		{
-			{ "score", m ? std::sqrt(sumOverlapSq / distancePairs.size()) : 0 },
-			{ "clash_count", n },
-			{ "poly_atom_count", m },
-			{ "ligand_atom_count", resAtoms.size() },
-			{ "distances", std::move(distancePairs) }
-		}
-	};
 }
 
 // --------------------------------------------------------------------

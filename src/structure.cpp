@@ -122,6 +122,9 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 		struct_conn.erase("ptnr1_label_asym_id"_key == asymID or "ptnr2_label_asym_id"_key == asymID);
 	}
 
+	mmcif::Structure structure(db);
+	structure.cleanupEmptyCategories();
+
 	cif.save(os);
 }
 
@@ -153,22 +156,35 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 		{ "ligand", s3 }
 	};
 
-	auto &as_i = db_i["atom_site"];
 	auto &as_y = db_y["atom_site"];
 
-	for (auto r : as_i)
+	using key_type = std::tuple<std::string,int,std::string>;
+	using value_type = std::tuple<float,float,float>;
+	std::map<key_type, value_type> locations;
+
+	for (const auto &[asym_id, seq_id, atom_id, auth_seq_id, x, y, z] :
+		as_y.find<std::string,int,std::string,int,float,float,float>("type_symbol"_key != "H",
+			"label_asym_id", "label_seq_id", "label_atom_id", "auth_seq_id", "Cartn_x", "Cartn_y", "Cartn_z"))
+	{
+		if (asym_id == "A")
+			locations.emplace(key_type{ asym_id, seq_id, atom_id }, value_type{ x, y, z });
+		else
+			locations.emplace(key_type{ asym_id, 0, atom_id }, value_type{ x, y, z });
+	}
+
+	auto &as_i = db_i["atom_site"];
+
+	for (auto r : as_i.rows())
 	{
 		const auto &[asym_id, seq_id, atom_id, auth_seq_id] = r.get<std::string,int,std::string,int>({"label_asym_id", "label_seq_id", "label_atom_id", "auth_seq_id"});
 
-		const auto &[x, y, z] = as_y.find1<float,float,float>(
-			asym_id == "A" ?
-				"label_asym_id"_key == asym_id and "label_seq_id"_key == seq_id and "label_atom_id"_key == atom_id :
-				"label_asym_id"_key == asym_id and "auth_seq_id"_key == auth_seq_id and "label_atom_id"_key == atom_id,
-			"Cartn_x", "Cartn_y", "Cartn_z");
+		auto l = locations.find(asym_id == "A" ? key_type{ asym_id, seq_id, atom_id } : key_type{ asym_id, 0, atom_id });
+		if (l == locations.end())
+			continue;
 
-		r["Cartn_x"] = x;
-		r["Cartn_y"] = y;
-		r["Cartn_z"] = z;
+		r["Cartn_x"] = std::get<0>(l->second);
+		r["Cartn_y"] = std::get<1>(l->second);
+		r["Cartn_z"] = std::get<2>(l->second);
 	}
 
 	fin.save(os);

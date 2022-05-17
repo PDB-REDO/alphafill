@@ -384,6 +384,172 @@ FindAtomsNearLigand(const std::vector<mmcif::Monomer *> &pa, const std::vector<m
 
 // --------------------------------------------------------------------
 
+CAtom::CAtom(mmcif::AtomType type, mmcif::Point pt, int charge, int seqID, const std::string &id)
+	: type(type), pt(pt), seqID(seqID), id(id)
+{
+	const mmcif::AtomTypeTraits att(type);
+
+	if (charge == 0)
+	{
+		radius = att.radius(mmcif::RadiusType::VanderWaals);
+		if (std::isnan(radius))
+			radius = att.radius();
+	}
+	else
+		radius = att.effective_ionic_radius(charge);
+
+	if (std::isnan(radius))
+		throw std::runtime_error("Unknown radius for atom " + att.symbol() + " with charge " + std::to_string(charge));
+}
+
+std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance)
+{
+	auto maxDistanceSq = maxDistance * maxDistance;
+
+	json distancePairs;
+
+	int n = 0, m = 0;
+	double sumOverlapSq = 0;
+
+	for (auto &pa : polyAtoms)
+	{
+		bool near = false;
+
+		for (auto &ra : resAtoms)
+		{
+			auto d = DistanceSquared(pa.pt, ra.pt);
+
+			if (d >= maxDistanceSq)
+				continue;
+			
+			near = true;
+
+			d = std::sqrt(d);
+
+			auto overlap = pa.radius + ra.radius - d;
+			if (overlap < 0)
+				overlap = 0;
+			
+			if (overlap > 0)
+			{
+				++n;
+				sumOverlapSq += overlap * overlap;
+			}
+			
+			json d_info{
+				{ "distance", d },
+				{ "VdW_overlap", overlap },
+				{
+					"poly_atom", {
+						{ "seq_id", pa.seqID },
+						{ "id", pa.id }
+					}
+				}
+			};
+			if (resAtoms.size() > 1)
+				d_info["res_atom_id"] = ra.id;
+			distancePairs.push_back(std::move(d_info));
+		}
+
+		if (near)
+			++m;
+	}
+
+	return {
+		m,
+		{
+			{ "score", m ? std::sqrt(sumOverlapSq / distancePairs.size()) : 0 },
+			{ "clash_count", n },
+			{ "poly_atom_count", m },
+			{ "ligand_atom_count", resAtoms.size() },
+			{ "distances", std::move(distancePairs) }
+		}
+	};
+}
+
+float ClashScore(const cif::Datablock &db, float maxDistance)
+{
+	using namespace cif::literals;
+
+	auto maxDistanceSq = maxDistance * maxDistance;
+
+	auto radius = [](const std::string &symbol, const std::string &comp_id, int charge)
+	{
+		const mmcif::AtomTypeTraits att(symbol);
+		float radius;
+
+		if (charge == 0 and att.isMetal())
+		{
+			auto compound = mmcif::CompoundFactory::instance().create(comp_id);
+			if (compound)
+				charge = compound->formalCharge();
+		}
+
+		if (charge == 0)
+		{
+			radius = att.radius(mmcif::RadiusType::VanderWaals);
+			if (std::isnan(radius))
+				radius = att.radius();
+		}
+		else
+			radius = att.effective_ionic_radius(charge);
+
+		if (std::isnan(radius))
+			throw std::runtime_error("Unknown radius for atom " + att.symbol() + " with charge " + std::to_string(charge));
+
+		return radius;
+	};
+
+	int n = 0, m = 0, o = 0;
+	double sumOverlapSq = 0;
+
+	auto &atom_site = db["atom_site"];
+
+	for (const auto &[px, py, pz, psymbol, pcomp_id, pcharge] : atom_site.find<float,float,float,std::string,std::string,int>("label_asym_id"_key == "A",
+		"Cartn_x", "Cartn_y", "Cartn_z", "type_symbol", "label_comp_id", "pdbx_formal_charge"))
+	{
+		bool near = false;
+
+		mmcif::Point pp{ px, py, pz };
+		float pradius = radius(psymbol, pcomp_id, pcharge);
+
+		for (const auto &[lx, ly, lz, lsymbol, lcomp_id, lcharge] : atom_site.find<float,float,float,std::string,std::string,int>("label_asym_id"_key != "A",
+			"Cartn_x", "Cartn_y", "Cartn_z", "type_symbol", "label_comp_id", "pdbx_formal_charge"))
+		{
+			mmcif::Point pl{ lx, ly, lz };
+
+			auto d = DistanceSquared(pp, pl);
+
+			if (d >= maxDistanceSq)
+				continue;
+			
+			near = true;
+			++o;
+
+			d = std::sqrt(d);
+
+			float lradius = radius(lsymbol, lcomp_id, lcharge);
+
+			auto overlap = pradius + lradius - d;
+			if (overlap < 0)
+				overlap = 0;
+			
+			if (overlap > 0)
+			{
+				++n;
+				sumOverlapSq += overlap * overlap;
+			}
+		}
+
+		if (near)
+			++m;
+	}
+
+	return m ? std::sqrt(sumOverlapSq / o) : 0;
+}
+
+// --------------------------------------------------------------------
+
 std::tuple<float,float,float> validateCif(cif::Datablock &db, const std::string &asymID, zeep::json::element &info,
 	float maxLigandPolyAtomDistance)
 {
@@ -414,7 +580,8 @@ std::tuple<float,float,float> validateCif(cif::Datablock &db, const std::string 
 
 		for (auto transplant : hit["transplants"])
 		{
-			std::string asymID = transplant["asym_id"].as<std::string>();
+			if (transplant["asym_id"].as<std::string>() != asymID)
+				continue;
 
 			auto pdbAsymID = hit["pdb_asym_id"].as<std::string>();
 			auto pdbCompoundID = transplant["compound_id"].as<std::string>();
