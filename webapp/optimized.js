@@ -37,6 +37,8 @@ window.addEventListener('load', () => {
 			document.getElementById("protein-optimized").textContent = formatter.format(+result.lev.after.protein);
 			document.getElementById("ligand-original").textContent = formatter.format(+result.lev.before.ligand);
 			document.getElementById("ligand-optimized").textContent = formatter.format(+result.lev.after.ligand);
+			document.getElementById("clash-original").textContent = formatter.format(+result.clash.before);
+			document.getElementById("clash-optimized").textContent = formatter.format(+result.clash.after);
 
 			const link = document.getElementById('model-link');
 			link.href = "data:text/plain;charset=utf-8," + encodeURIComponent(model);

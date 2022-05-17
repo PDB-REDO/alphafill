@@ -149,6 +149,7 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 
 	std::string ligandAsymID = db_i["struct_asym"].find1<std::string>("id"_key != "A", "id");
 
+	float clashBefore = ClashScore(fin.front());
 	auto &&[s1, s2, s3] = validateCif(fin.front(), ligandAsymID, info);
 	json before{
 		{ "combined", s1 },
@@ -189,6 +190,7 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 
 	fin.save(os);
 
+	float clashAfter = ClashScore(fin.front());
 	std::tie(s1, s2, s3) = validateCif(fin.front(), ligandAsymID, info);
 	json after{
 		{ "combined", s1 },
@@ -197,8 +199,14 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 	};
 
 	return{
-		{ "before", before },
-		{ "after", after }
+		{ "clash", {
+			{ "before", clashBefore },
+			{ "after", clashAfter }
+		}},
+		{ "lev", {
+			{ "before", before },
+			{ "after", after }
+		}}
 	};
 }
 
@@ -349,7 +357,5 @@ json optimizeWithYasara(const std::string &yasara, const std::string &af_id, std
 
 	fs::remove_all(tmpdir);
 
-	return {
-		{ "lev", score }
-	};
+	return score;
 }

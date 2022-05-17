@@ -68,4 +68,4 @@ std::tuple<int,zeep::json::element> CalculateClashScore(const std::vector<CAtom>
 
 // --------------------------------------------------------------------
 
-float ClashScore(const cif::Datablock &db, float maxDistance = 4);
+float ClashScore(cif::Datablock &db, float maxDistance = 4);

@@ -467,16 +467,13 @@ std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, co
 	};
 }
 
-float ClashScore(const cif::Datablock &db, float maxDistance)
+float ClashScore(cif::Datablock &db, float maxDistance)
 {
 	using namespace cif::literals;
 
-	auto maxDistanceSq = maxDistance * maxDistance;
-
-	auto radius = [](const std::string &symbol, const std::string &comp_id, int charge)
+	auto addAtom = [](const std::string &symbol, const std::string &comp_id, int charge, mmcif::Point p, std::vector<CAtom> &v)
 	{
 		const mmcif::AtomTypeTraits att(symbol);
-		float radius;
 
 		if (charge == 0 and att.isMetal())
 		{
@@ -485,40 +482,36 @@ float ClashScore(const cif::Datablock &db, float maxDistance)
 				charge = compound->formalCharge();
 		}
 
-		if (charge == 0)
-		{
-			radius = att.radius(mmcif::RadiusType::VanderWaals);
-			if (std::isnan(radius))
-				radius = att.radius();
-		}
-		else
-			radius = att.effective_ionic_radius(charge);
-
-		if (std::isnan(radius))
-			throw std::runtime_error("Unknown radius for atom " + att.symbol() + " with charge " + std::to_string(charge));
-
-		return radius;
+		v.emplace_back(att.type(), p, charge, 0, "");
 	};
+
+	auto &atom_site = db["atom_site"];
+
+	std::vector<CAtom> cP, cL;
+
+	for (const auto &[asym_id, px, py, pz, symbol, comp_id, charge] : atom_site.rows<std::string,float,float,float,std::string,std::string,int>(
+			"label_asym_id", "Cartn_x", "Cartn_y", "Cartn_z", "type_symbol", "label_comp_id", "pdbx_formal_charge"))
+	{
+		if (asym_id == "A")
+			addAtom(symbol, comp_id, charge, { px, py, pz }, cP);
+		else
+			addAtom(symbol, comp_id, charge, { px, py, pz }, cL);
+	}
+
+	// --------------------------------------------------------------------
+
+	auto maxDistanceSq = maxDistance * maxDistance;
 
 	int n = 0, m = 0, o = 0;
 	double sumOverlapSq = 0;
 
-	auto &atom_site = db["atom_site"];
-
-	for (const auto &[px, py, pz, psymbol, pcomp_id, pcharge] : atom_site.find<float,float,float,std::string,std::string,int>("label_asym_id"_key == "A",
-		"Cartn_x", "Cartn_y", "Cartn_z", "type_symbol", "label_comp_id", "pdbx_formal_charge"))
+	for (auto &pa : cP)
 	{
 		bool near = false;
 
-		mmcif::Point pp{ px, py, pz };
-		float pradius = radius(psymbol, pcomp_id, pcharge);
-
-		for (const auto &[lx, ly, lz, lsymbol, lcomp_id, lcharge] : atom_site.find<float,float,float,std::string,std::string,int>("label_asym_id"_key != "A",
-			"Cartn_x", "Cartn_y", "Cartn_z", "type_symbol", "label_comp_id", "pdbx_formal_charge"))
+		for (auto &ra : cL)
 		{
-			mmcif::Point pl{ lx, ly, lz };
-
-			auto d = DistanceSquared(pp, pl);
+			auto d = DistanceSquared(pa.pt, ra.pt);
 
 			if (d >= maxDistanceSq)
 				continue;
@@ -528,9 +521,7 @@ float ClashScore(const cif::Datablock &db, float maxDistance)
 
 			d = std::sqrt(d);
 
-			float lradius = radius(lsymbol, lcomp_id, lcharge);
-
-			auto overlap = pradius + lradius - d;
+			auto overlap = pa.radius + ra.radius - d;
 			if (overlap < 0)
 				overlap = 0;
 			
