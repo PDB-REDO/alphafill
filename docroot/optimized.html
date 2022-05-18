@@ -25,13 +25,6 @@
 	<div class="container site-content">
 		<h2 z:text="|${chunked ? af_id + '-F' + chunk : af_id}|"></h2>
 		<h5 z:text="|Ligand ${asym_id} optimized with Yasara|"></h5>
-		<div z:if="${chunked}" class="alert alert-info" role="alert">
-			This is a chunked model with the following chunks: 
-
-			<span z:each="l,i : ${chunks}">
-				<a class="alert-link" z:text="${i.count}" z:href="|./model?id=${l}|"></a><span z:if="${not i.last}">, </span>
-			</span>
-		</div>
 
 		<div id="load-alert" class="alert alert-info">Running yasara, please wait...</div>
 		<div id="error-alert" class="alert alert-danger" style="display: none">Failed to create optimized model <span id="error-message"></span></div>

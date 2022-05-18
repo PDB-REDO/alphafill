@@ -33,7 +33,7 @@ window.addEventListener('load', () => {
 			document.getElementById("clash-optimized").textContent = formatter.format(+result.clash.after);
 
 			const link = document.getElementById('model-link');
-			link.href = "data:text/plain;charset=utf-8," + encodeURIComponent(model);
+			link.href = "data:text/plain;charset=utf-8," + encodeURIComponent(result.model);
 			link.download = `${AF_ID}-${ASYM_ID}-optimized.cif`;
 
 			document.getElementById('link-table').classList.remove('invisible');
