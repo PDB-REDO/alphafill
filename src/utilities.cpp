@@ -97,6 +97,8 @@ po::variables_map load_options(int argc, char *const argv[],
 		("metadata-name-pattern", po::value<std::string>(), "Pattern for locating metadata files")
 		("pdb-name-pattern", po::value<std::string>(), "Pattern for locating PDB files")
 
+		("yasara", po::value<std::string>()->default_value("/opt/yasara/yasara"), "Location of the yasara executable")
+
 		("config", po::value<std::string>(), "Config file")
 
 		("help,h", "Display help message")

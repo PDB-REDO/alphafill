@@ -571,8 +571,9 @@ void affd_html_controller::schema(const zh::request &request, const zh::scope &s
 class affd_rest_controller : public zh::rest_controller
 {
   public:
-	affd_rest_controller()
+	affd_rest_controller(const std::string &yasara)
 		: zh::rest_controller("v1")
+		, m_yasara(yasara)
 	{
 		map_get_request("aff/{id}", &affd_rest_controller::get_aff_structure, "id");
 		map_get_request("aff/{id}/json", &affd_rest_controller::get_aff_structure_json, "id");
@@ -599,6 +600,9 @@ class affd_rest_controller : public zh::rest_controller
 
 	zh::reply get_aff_structure_optimized(const std::string &af_id, const std::string &asyms);
 	zh::reply get_aff_structure_optimized_with_stats(const std::string &af_id, const std::string &asyms);
+
+  private:
+	std::string m_yasara;
 };
 
 zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
@@ -682,7 +686,7 @@ zh::reply affd_rest_controller::get_aff_structure_optimized(const std::string &a
 
 	out.push(*s.get());
 
-	optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsyms, out);
+	optimizeWithYasara(m_yasara, af_id, requestedAsyms, out);
 
 	rep.set_content(s.release(), "text/plain");
 
@@ -885,7 +889,7 @@ int a_main(int argc, char *const argv[])
 		// s->add_controller(new user_admin_rest_controller());
 
 		s->add_controller(new affd_html_controller());
-		s->add_controller(new affd_rest_controller());
+		s->add_controller(new affd_rest_controller(vm["yasara"].as<std::string>()));
 
 		return s; },
 		PACKAGE_NAME);
