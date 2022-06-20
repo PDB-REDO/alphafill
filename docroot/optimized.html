@@ -24,7 +24,7 @@
 
 	<div class="container site-content">
 		<h2 z:text="|${chunked ? af_id + '-F' + chunk : af_id}|"></h2>
-		<h5 z:text="|Ligand ${compound-id} (${compound-name}) with asym ID ${asym_id} optimized with Yasara|"></h5>
+		<h5 z:text="|Ligand ${compound-id} (${compound-name}) with identifier ${asym_id} optimized with Yasara|"></h5>
 
 		<div id="load-alert" class="alert alert-info">Running yasara, please wait...</div>
 		<div id="error-alert" class="alert alert-danger" style="display: none">Failed to create optimized model <span id="error-message"></span></div>
