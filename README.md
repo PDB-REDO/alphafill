@@ -28,6 +28,7 @@ cmake ..
 cmake --build .
 cmake --install .
 ```
+The building method is not OS-specific and has been tested on Ubuntu LTS 20:04. Typical compilation time is in the rorder of minutes.
 
 Configuration
 -------------
@@ -49,6 +50,7 @@ Running alpafill is then as easy as:
 ```
 alphafill /srv/data/afdb/cif/AF-XXX.cif.gz /srv/data/af-filled/AF-XXX.cif.gz
 ```
+Typical running time is less than 2 minutes but varies depending on the number of transplants.
 
 ### af-filledd
 Before running the web application, you need to create a PostgreSQL database first. The owner and name can then be recorded in a af-filledd.conf file similar to the config file of alphafill. The location of your filled structures should be recorded as well as the db-dir option.
