@@ -775,7 +775,8 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 	int uniprot_start, uniprot_end;
 	cif::tie(uniprot_start, uniprot_end) = struct_ref_seq.front().get("db_align_beg", "db_align_end");
 
-	result["structures"].push_back({{"model_identifier", id},
+	result["structures"].push_back({
+		{"model_identifier", id},
 		{"model_category", "DEEP-LEARNING"},
 		{"model_url", "https://alphafill.eu/v1/aff/" + id},
 		{"model_page_url", "https://alphafill.eu/model?id=" + id},
@@ -785,7 +786,8 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 		{"sequence_identity", 1.0},
 		{"coverage", 1.0},
 		{"uniprot_start", uniprot_start},
-		{"uniprot_end", uniprot_end}});
+		{"uniprot_end", uniprot_end}
+	});
 
 	return result;
 }
