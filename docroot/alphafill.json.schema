@@ -12,8 +12,7 @@
                 },
                 "date": {
                     "description": "Date of AlphaFill run",
-                    "type": "string",
-                    "format": "date"
+                    "type": "string"
                 },
                 "file": {
                     "description": "Input file used for AlphaFill",
@@ -21,15 +20,11 @@
                 },
                 "hits": {
                     "description": "List of hits",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/Hit" 
-                    }
+                    "$ref": "#/definitions/Hit"
                 },
                 "id": {
                     "description": "AlphaFold identifier",
-                    "type": "string"
-                }
+                    "type": "string"}
             },
             "required": [
                 "alphafill_version",
@@ -41,7 +36,7 @@
             "title": "Data"
         },
         "Hit": {
-            "type": "object",
+            "type": "array",
             "properties": {
                 "alignment_length": {
                     "description": "Number of residues that was used in the alignment",
@@ -60,16 +55,12 @@
                     "type": "string"
                 },
                 "rmsd": {
-                    "description": "Root-Mean-Square Deviation of the hit compared to the AlphaFold model",
+                    "description": "Root-Mean-Square Deviation of the hit compared to the AlphaFold model (global RMSD)",
                     "type": "number"
                 },
                 "transplants": {
                     "description": "List of ligands that was transplanted from the PDB-REDO model",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/Transplant"
-                    }
-                }
+                    "$ref": "#/definitions/Transplant"}
             },
             "required": [
                 "alignment_length",
@@ -85,34 +76,114 @@
             "type": "object",
             "properties": {
                 "analogue_id": {
-                    "description": "Compound that was placed (transplanted) in the structure by AlphaFill",
+                    "description": "Compound that was placed (transplanted) in the AlphaFold models by AlphaFill",
                     "type": "string"
                 },
                 "asym_id": {
                     "description": "Chain in which the compound was placed",
                     "type": "string"
                 },
+                "clash": {
+                    "description": "All requirements and metadata used for calculation of the Transplant clash score (TCS)",
+                    "$ref": "#/definitions/Clash"}
+                },
                 "compound_id": {
                     "description": "Name of the compound that was found in the corresponding PDB-REDO model",
                     "type": "string"
                 },
-                "entity_id": {
-                    "description": "Unique identifier for chemical structure of the transplanted ligand",
-                    "type": "string"
+                "pdb_asym_id": {
+		    "description": "asymID as reported in the pdb-file of the compound that was found in the corresponding PDB-REDO model",
+                    "type": ["string", "null"]
+                },
+                "pdb_auth_asym_id": {
+		    "description": "asymID as reported in the mmCIF-file of the compound that was found in the corresponding PDB-REDO model",
+                    "type": ["string", "null"]
+                },
+                "pdb_auth_ins_code": {
+		    "description": "insCode as reported in the mmCIF-file of the compound that was found in the corresponding PDB-REDO model",
+                    "type": ["string", "null"]
+                },
+                "pdb_auth_seq_id": {
+		    "description": "seqID as reported in the mmCIF-file of the compound that was found in the corresponding PDB-REDO model",
+                    "type": ["string", "null"]
                 },
                 "rmsd": {
-                    "description": "Root-Mean-Square Deviation of the ligand binding pocket",
-                    "type": "number"
-                }
+                    "description": "Root-Mean-Square Deviation of the ligand binding pocket (local RMSD)",
+                    "type": ["number", "null"]
             },
             "required": [
                 "analogue_id",
                 "asym_id",
+                "clash",
                 "compound_id",
-                "entity_id",
+                "pdb_asym_id",
+                "pdb_auth_asym_id",
+                "pdb_auth_ins_code",
+                "pdb_auth_seq_id",
                 "rmsd"
             ],
             "title": "Transplant"
+        },
+	"Clash": {
+            "type": "object",
+            "properties": {
+                "clash_count": {
+                    "description": "Number of Van-der-Waals violations",
+		    "type": "integer"
+                },
+                "distances": {
+                    "type": "array",
+                    "$ref": "#/definitions/Distance"
+                },
+                "ligand_atom_count": {
+                    "description": "Number of atoms present in the tranplant",
+		    "type": "integer"
+                },
+                "poly_atom_count": {
+                    "description": "Number of protein atoms present within 4 Angstrom from the transplant atoms",
+                    "type": "integer"
+                },
+                "score": {
+                    "description": "Transplant clash score (TCS) calculated by the square-root of (the sum of the squared Van-der-Waals overlaps, devided by the number of distances considered).",
+                    "type": "number"
+            }},
+            "required": [
+                "clash_count",
+                "distances",
+                "ligand_atom_count",
+                "poly_atom_count",
+                "score"
+            ],
+            "title": "Clash"
+        },
+	"Distance": {
+            "type": "object",
+            "properties": {
+                "VdW_overlap": {
+		    "description": "Van-der-Waals violation",
+                    "type": "number"
+                },
+                "distance": {
+		    "description": "Distance between the transplant atom and the protein atom",
+                    "type": "number"
+                },
+                "poly_atom": {
+		    "description": "The protein atom considered in distance calculation",
+                    "properties":{
+			"id": {"description":"", "type":"string"},
+			"seq_id":{"description":"", "type":"number"}
+                },
+                "res_atom_id": {
+		    "description": "The transplant atom considered in distance calcualation",
+		    "type" : "string"
+            },
+            "required": [
+                "VdW_overlap",
+                "distance",
+                "poly_atom",
+                "res_atom_id"
+            ],
+            "title": "Distance"
         }
     }
-}
+}}}

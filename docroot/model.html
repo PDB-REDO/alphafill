@@ -93,7 +93,7 @@
 							</th>
 							<th><abbr title="RMSD for the overall protein alignment based on Cα atoms">Global
 									RMSd</abbr></th>
-							<th><abbr title="The ID for the struct_asym created for this transplant">Asym</abbr></th>
+							<th><abbr title="The identifier for this transplant">Asym</abbr></th>
 							<th><abbr title="RMSd of the alignment of all backbone atoms within 6Å of the compound that was transplanted by AlphaFill">Local RMSd</abbr></th>
 							<th><abbr title="Transplant clash score, RMSd of the van der Waals overlap between ligand and polymer atoms">TCS</abbr></th>
 							<th colspan="2">
@@ -116,18 +116,13 @@
 							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}" z:with="link=${#af.link(${c.pdb_id})}">
 								<z:block z:switch="${link}">
 									<span z:case="null" z:text="${c.pdb_id}"></span>
-									<a z:case="*" z:href="${link}" z:text="${c.pdb_id}"></a>
+									<a z:case="*" z:href="${link}" z:text="${c.pdb_id}" target="_BLANK"></a>
 								</z:block>
 							</td>
 
-							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}"
-								z:classappend="${c.global-rmsd gt cutoff.global.unreliable ? 'unreliable' : c.global-rmsd gt cutoff.global.suspect ? 'suspect' }">
+							<td z:if="${c.first-transplant}" z:rowspan="${c.transplant-count}">
 								<span z:text="${#numbers.formatDecimal(c.global-rmsd, 1, 2)}"></span>
-								<span z:if="${c.global-rmsd gt cutoff.global.suspect and c.global-rmsd le cutoff.global.unreliable}" class="float-end"><abbr
-										title="This transplant is considered suspect">?</abbr></span>
-								<span z:if="${c.global-rmsd gt cutoff.global.unreliable}" class="float-end"><abbr
-									title="This transplant is considered unreliable">?</abbr></span>
-								</td>
+							</td>
 
 							<td z:text="${c.asym_id}"></td>
 
@@ -139,12 +134,12 @@
 									title="This transplant is considered unreliable">?</abbr></span>
 							</td>
 
-							<td>
+							<td z:classappend="${c.clash-score gt cutoff.tcs.unreliable ? 'unreliable' : c.clash-score gt cutoff.tcs.suspect ? 'suspect' }">
 								<span z:text="${#numbers.formatDecimal(c.clash-score, 1, 2)}"></span>
-								<!-- <span z:if="${c.local-rmsd gt cutoff.local.suspect and c.local-rmsd le 2}" class="float-end"><abbr
+								<span z:if="${c.clash-score gt cutoff.tcs.suspect and c.clash-score le 2}" class="float-end"><abbr
 										title="This transplant is considered suspect">?</abbr></span>
-								<span z:if="${c.local-rmsd gt cutoff.local.unreliable}" class="float-end"><abbr
-									title="This transplant is considered unreliable">?</abbr></span> -->
+								<span z:if="${c.clash-score gt cutoff.tcs.unreliable}" class="float-end"><abbr
+									title="This transplant is considered unreliable">?</abbr></span>
 							</td>
 
 							<td>
@@ -154,7 +149,7 @@
 								</div>
 							</td>
 							<td class="optimize-link invisible" z:data-asym-id="${c.asym_id}">
-								<a z:href="|optimized?id=${af_id};asym=${c.asym_id}|"><abbr title="Generate an energy optimized model using yasara">optimize</abbr></a>
+								<a z:href="|optimized?id=${af_id};asym=${c.asym_id}|"><abbr title="Generate an energy optimized model using yasara">optimise</abbr></a>
 							</td>
 						</tr>
 					</tbody>

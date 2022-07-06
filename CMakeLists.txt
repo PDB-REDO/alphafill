@@ -116,6 +116,9 @@ find_package(zeep 5.1.6 REQUIRED)
 find_package(cifpp REQUIRED)
 find_package(Boost COMPONENTS program_options)
 
+pkg_check_modules(PQ libpq REQUIRED)
+pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED)
+
 # The alphafill executable
 
 add_executable(alphafill
@@ -143,9 +146,6 @@ if(USE_RSRC)
 endif()
 
 # The web interface, af-filledd
-
-pkg_check_modules(PQ libpq REQUIRED)
-pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED)
 
 find_program(YARN yarn REQUIRED)
 
@@ -198,7 +198,7 @@ target_compile_definitions(af-filledd PUBLIC
 
 target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 target_link_libraries(af-filledd
-	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
+	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LINK_LIBRARIES} ${PQ_LINK_LIBRARIES} std::filesystem)
 
 add_dependencies(af-filledd webpack)
 
@@ -221,18 +221,6 @@ add_executable(validate-fill
 
 target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 target_link_libraries(validate-fill
-	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
+	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LINK_LIBRARIES} ${PQ_LINK_LIBRARIES} std::filesystem)
 
-add_executable(merge-af
-	${PROJECT_SOURCE_DIR}/src/merge-af.cpp
-	${PROJECT_SOURCE_DIR}/src/utilities.cpp
-)
-
-target_include_directories(merge-af PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
-target_link_libraries(merge-af
-	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
-	
-install(TARGETS alphafill af-filledd validate-fill merge-af
-    RUNTIME DESTINATION ${BIN_INSTALL_DIR}
-)
 

@@ -504,8 +504,9 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 	// TODO: These magic numbers should of course be configurable parameters
 	// 11.43, 3.04 voor global, en 3.10 en 0.92 voor local
 	sub.put("cutoff", json{
-		{"global", {{"unreliable", 11.43}, {"suspect", 3.04}}},
-		{"local", {{"unreliable", 3.10}, {"suspect", 0.92}}}
+		// {"global", {{"unreliable", 11.43}, {"suspect", 3.04}}},
+		{"local", {{"unreliable", 3.10}, {"suspect", 0.92}}},
+		{"tcs", {{"unreliable", 1.27}, {"suspect", 0.64}}}
 	});
 
 	get_server().get_template_processor().create_reply_from_template("model", sub, reply);
@@ -530,6 +531,22 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 	sub.put("af_id", afId);
 	sub.put("chunk", chunkNr);
 	sub.put("asym_id", asymID);
+
+	try
+	{
+		using namespace cif::literals;
+
+		auto cif = file_locator::get_structure_file(afId, chunkNr);
+		cif::File cf(cif);
+
+		auto &db = cf.front();
+		auto entity_id = db["struct_asym"].find1<std::string>("id"_key == asymID, "entity_id");
+		const auto &[compound_name, compound_id] = db["pdbx_entity_nonpoly"].find1<std::string, std::string>("entity_id"_key == entity_id, "name", "comp_id");
+
+		sub.put("compound-name", compound_name);
+		sub.put("compound-id", compound_id);
+	}
+	catch (...) { }
 
 	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metdata_file(afId, 2));
 
