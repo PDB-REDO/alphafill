@@ -595,7 +595,7 @@ class affd_rest_controller : public zh::rest_controller
 		map_get_request("aff/{id}", &affd_rest_controller::get_aff_structure, "id");
 		map_get_request("aff/{id}/json", &affd_rest_controller::get_aff_structure_json, "id");
 
-		map_get_request("aff/3d-beacon/{id}", &affd_rest_controller::get_aff_3d_beacon, "id");
+		map_get_request("aff/3d-beacon/{id}", &affd_rest_controller::get_aff_3d_beacon, "id", "version");
 
 		map_get_request("aff/{id}/stripped/{asymlist}", &affd_rest_controller::get_aff_structure_stripped_def, "id", "asymlist");
 		map_get_request("aff/{id}/stripped/{asymlist}/{identity}", &affd_rest_controller::get_aff_structure_stripped, "id", "asymlist", "identity");
@@ -606,7 +606,7 @@ class affd_rest_controller : public zh::rest_controller
 
 	zh::reply get_aff_structure(const std::string &af_id);
 	zeep::json::element get_aff_structure_json(const std::string &af_id);
-	zeep::json::element get_aff_3d_beacon(std::string id);
+	zeep::json::element get_aff_3d_beacon(std::string id, std::string version);
 
 	zh::reply get_aff_structure_stripped_def(const std::string &id, const std::string &asyms)
 	{
@@ -758,8 +758,10 @@ zeep::json::element affd_rest_controller::get_aff_structure_json(const std::stri
 	return result;
 }
 
-zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
+zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, std::string version)
 {
+	static const std::regex KVersionRX(R"((\d+)(?:\.(\d+))?(?:\.(\d+))?)");
+
 	if (ba::ends_with(af_id, ".json"))
 		af_id.erase(af_id.begin() + af_id.length() - 5, af_id.end());
 
@@ -770,9 +772,14 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
 
-	zeep::json::element result{
-		{"uniprot_entry",
-			{{"ac", id}}}};
+	int version_major = 1, version_minor = 0;
+	std::smatch m;
+	if (std::regex_match(version, m, KVersionRX))
+	{
+		version_major = std::stoi(m[1]);
+		if (m.length() >= 2)
+			version_minor = std::stoi(m[2]);
+	}
 
 	using namespace std::chrono;
 
@@ -787,24 +794,59 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 	// get the chain length...
 
 	cif::File cf(file);
-	auto &struct_ref_seq = cf.firstDatablock()["struct_ref_seq"];
+	auto &db = cf.front();
+	auto &struct_ref = db["struct_ref"];
+	auto &struct_ref_seq = db["struct_ref_seq"];
 
 	int uniprot_start, uniprot_end;
 	cif::tie(uniprot_start, uniprot_end) = struct_ref_seq.front().get("db_align_beg", "db_align_end");
 
-	result["structures"].push_back({
-		{"model_identifier", id},
-		{"model_category", "DEEP-LEARNING"},
-		{"model_url", "https://alphafill.eu/v1/aff/" + id},
-		{"model_page_url", "https://alphafill.eu/model?id=" + id},
-		{"model_format", "MMCIF"},
-		{"provider", "AlphaFill"},
-		{"created", ss.str()},
-		{"sequence_identity", 1.0},
-		{"coverage", 1.0},
-		{"uniprot_start", uniprot_start},
-		{"uniprot_end", uniprot_end}
-	});
+	std::string db_code;
+	cif::tie(db_code) = struct_ref.front().get("db_code");
+
+	zeep::json::element result{
+		{"uniprot_entry", {
+			{"ac", id},
+			{"id", db_code},
+			{"sequence_length", uniprot_end - uniprot_start + 1}}
+		}};
+
+	if (version_major >= 2)
+	{
+		zeep::json::element summary{
+			{"summary", {
+				{"model_identifier", id},
+				{"model_category", "DEEP-LEARNING"},
+				{"model_url", "https://alphafill.eu/v1/aff/" + id},
+				{"model_format", "MMCIF"},
+				{"model_page_url", "https://alphafill.eu/model?id=" + id},
+				{"provider", "AlphaFill"},
+				{"created", ss.str()},
+				{"sequence_identity", 1.0},
+				{"uniprot_start", uniprot_start},
+				{"uniprot_end", uniprot_end},
+				{"coverage", 1.0},
+			}
+		}};
+
+		result["structures"].push_back(std::move(summary));
+	}
+	else
+	{
+		result["structures"].push_back({
+			{"model_identifier", id},
+			{"model_category", "DEEP-LEARNING"},
+			{"model_url", "https://alphafill.eu/v1/aff/" + id},
+			{"model_page_url", "https://alphafill.eu/model?id=" + id},
+			{"model_format", "MMCIF"},
+			{"provider", "AlphaFill"},
+			{"created", ss.str()},
+			{"sequence_identity", 1.0},
+			{"coverage", 1.0},
+			{"uniprot_start", uniprot_start},
+			{"uniprot_end", uniprot_end}
+		});
+	}
 
 	return result;
 }
