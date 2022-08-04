@@ -383,7 +383,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 
 		for (size_t i = 0; i < allChunks.size(); ++i)
 			chunks.emplace_back(afId + "-F" + std::to_string(i + 1));
-		
+
 		sub.put("chunks", chunks);
 	}
 
@@ -504,10 +504,9 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 	// TODO: These magic numbers should of course be configurable parameters
 	// 11.43, 3.04 voor global, en 3.10 en 0.92 voor local
 	sub.put("cutoff", json{
-		// {"global", {{"unreliable", 11.43}, {"suspect", 3.04}}},
-		{"local", {{"unreliable", 3.10}, {"suspect", 0.92}}},
-		{"tcs", {{"unreliable", 1.27}, {"suspect", 0.64}}}
-	});
+						  // {"global", {{"unreliable", 11.43}, {"suspect", 3.04}}},
+						  {"local", {{"unreliable", 3.10}, {"suspect", 0.92}}},
+						  {"tcs", {{"unreliable", 1.27}, {"suspect", 0.64}}}});
 
 	get_server().get_template_processor().create_reply_from_template("model", sub, reply);
 }
@@ -546,7 +545,9 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 		sub.put("compound-name", compound_name);
 		sub.put("compound-id", compound_id);
 	}
-	catch (...) { }
+	catch (...)
+	{
+	}
 
 	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metdata_file(afId, 2));
 
@@ -559,7 +560,7 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 
 		for (size_t i = 0; i < allChunks.size(); ++i)
 			chunks.emplace_back(afId + "-F" + std::to_string(i + 1));
-		
+
 		sub.put("chunks", chunks);
 	}
 
@@ -807,11 +808,9 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 	cif::tie(db_code) = struct_ref.front().get("db_code");
 
 	zeep::json::element result{
-		{"uniprot_entry", {
-			{"ac", id},
-			{"id", db_code},
-			{"sequence_length", uniprot_end - uniprot_start + 1}}
-		}};
+		{"uniprot_entry", {{"ac", id},
+							  {"id", db_code},
+							  {"sequence_length", uniprot_end - uniprot_start + 1}}}};
 
 	if (version_major >= 2)
 	{
@@ -836,37 +835,32 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 		{
 			if (type == "polymer")
 			{
-				entities.push_back({
-					{"entity_type", "POLYMER"},
+				entities.push_back({{"entity_type", "POLYMER"},
 					{"entity_poly_type", "POLYPEPTIDE(L)"},
-					{"description", description}
-				});
+					{"description", description}});
 				entities.back()["chain_ids"].push_back("A");
 				continue;
 			}
 
 			if (type == "non-polymer")
 			{
-				entities.push_back({
-					{"entity_type", "NON-POLYMER"},
-					{"description", description}
-				});
+				entities.push_back({{"entity_type", "NON-POLYMER"},
+					{"description", description}});
 
 				auto &chain_ids = entities.back()["chain_ids"];
 
 				for (const auto &[asym_id] : struct_asym.find<std::string>("entity_id"_key == id, "id"))
 					chain_ids.push_back(asym_id);
-				
+
 				continue;
 			}
 		}
 
-		result["structures"].push_back({"summary", summary});
+		result["structures"].push_back({{"summary", summary}});
 	}
 	else
 	{
-		result["structures"].push_back({
-			{"model_identifier", id},
+		result["structures"].push_back({{"model_identifier", id},
 			{"model_category", "DEEP-LEARNING"},
 			{"model_url", "https://alphafill.eu/v1/aff/" + id},
 			{"model_page_url", "https://alphafill.eu/model?id=" + id},
@@ -876,8 +870,7 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 			{"sequence_identity", 1.0},
 			{"coverage", 1.0},
 			{"uniprot_start", uniprot_start},
-			{"uniprot_end", uniprot_end}
-		});
+			{"uniprot_end", uniprot_end}});
 	}
 
 	return result;
@@ -892,27 +885,15 @@ int a_main(int argc, char *const argv[])
 	int result = 0;
 
 	po::options_description visible(argv[0] + " <command> [options]"s);
-	visible.add_options()
-		("command",		po::value<std::string>(),	"Command, one of start, stop, status or reload")
-		("no-daemon,F",								"Do not fork a background process")
-		
-		("address",		po::value<std::string>(),	"Address to listen to")
-		("port",		po::value<unsigned short>(),"Port to listen to")
-		("user",		po::value<std::string>(),	"User to run as")
-		("context",		po::value<std::string>(),	"Reverse proxy context")
-		("db-link-template",
-						po::value<std::string>(),	"Template for links to pdb(-redo) entry")
+	visible.add_options()("command", po::value<std::string>(), "Command, one of start, stop, status or reload")("no-daemon,F", "Do not fork a background process")
 
-		("db-dbname",	po::value<std::string>(),	"AF DB name")
-		("db-user",		po::value<std::string>(),	"AF DB owner")
-		("db-password",	po::value<std::string>(),	"AF DB password")
-		("db-host",		po::value<std::string>(),	"AF DB host")
-		("db-port",		po::value<std::string>(),	"AF DB port")
-		;
+		("address", po::value<std::string>(), "Address to listen to")("port", po::value<unsigned short>(), "Port to listen to")("user", po::value<std::string>(), "User to run as")("context", po::value<std::string>(), "Reverse proxy context")("db-link-template",
+			po::value<std::string>(), "Template for links to pdb(-redo) entry")
+
+			("db-dbname", po::value<std::string>(), "AF DB name")("db-user", po::value<std::string>(), "AF DB owner")("db-password", po::value<std::string>(), "AF DB password")("db-host", po::value<std::string>(), "AF DB host")("db-port", po::value<std::string>(), "AF DB port");
 
 	po::options_description hidden("hidden options");
-	hidden.add_options()
-		("rebuild-db",								"Rebuild the af-filled-db");
+	hidden.add_options()("rebuild-db", "Rebuild the af-filled-db");
 
 	po::positional_options_description p;
 	p.add("command", 1);
