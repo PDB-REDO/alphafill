@@ -760,6 +760,8 @@ zeep::json::element affd_rest_controller::get_aff_structure_json(const std::stri
 
 zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, std::string version)
 {
+	using namespace cif::literals;
+
 	static const std::regex KVersionRX(R"((\d+)(?:\.(\d+))?(?:\.(\d+))?)");
 
 	if (ba::ends_with(af_id, ".json"))
@@ -814,22 +816,52 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 	if (version_major >= 2)
 	{
 		zeep::json::element summary{
-			{"summary", {
-				{"model_identifier", id},
-				{"model_category", "DEEP-LEARNING"},
-				{"model_url", "https://alphafill.eu/v1/aff/" + id},
-				{"model_format", "MMCIF"},
-				{"model_page_url", "https://alphafill.eu/model?id=" + id},
-				{"provider", "AlphaFill"},
-				{"created", ss.str()},
-				{"sequence_identity", 1.0},
-				{"uniprot_start", uniprot_start},
-				{"uniprot_end", uniprot_end},
-				{"coverage", 1.0},
-			}
-		}};
+			{"model_identifier", id},
+			{"model_category", "TEMPLATE-BASED"},
+			{"model_url", "https://alphafill.eu/v1/aff/" + id},
+			{"model_format", "MMCIF"},
+			{"model_page_url", "https://alphafill.eu/model?id=" + id},
+			{"provider", "AlphaFill"},
+			{"created", ss.str()},
+			{"sequence_identity", 1.0},
+			{"uniprot_start", uniprot_start},
+			{"uniprot_end", uniprot_end},
+			{"coverage", 1.0},
+		};
 
-		result["structures"].push_back(std::move(summary));
+		auto &entities = summary["entities"];
+		auto &struct_asym = db["struct_asym"];
+
+		for (const auto &[id, description, type] : db["entity"].rows<int, std::string, std::string>("id", "pdbx_description", "type"))
+		{
+			if (type == "polymer")
+			{
+				entities.push_back({
+					{"entity_type", "POLYMER"},
+					{"entity_poly_type", "POLYPEPTIDE(L)"},
+					{"description", description}
+				});
+				entities.back()["chain_ids"].push_back("A");
+				continue;
+			}
+
+			if (type == "non-polymer")
+			{
+				entities.push_back({
+					{"entity_type", "NON-POLYMER"},
+					{"description", description}
+				});
+
+				auto &chain_ids = entities.back()["chain_ids"];
+
+				for (const auto &[asym_id] : struct_asym.find<std::string>("entity_id"_key == id, "id"))
+					chain_ids.push_back(asym_id);
+				
+				continue;
+			}
+		}
+
+		result["structures"].push_back({"summary", summary});
 	}
 	else
 	{
