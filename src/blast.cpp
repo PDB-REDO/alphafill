@@ -17,7 +17,7 @@
 #include <boost/format.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
 
-#include <cif++/CifUtils.hpp>
+#include <cif++.hpp>
 
 #include "blast.hpp"
 #include "matrix.hpp"

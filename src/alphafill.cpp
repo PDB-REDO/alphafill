@@ -27,8 +27,7 @@
 #include <fstream>
 #include <iomanip>
 
-#include <cif++/CifUtils.hpp>
-#include <cif++/Structure.hpp>
+#include <cif++.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/date_time.hpp>
@@ -69,7 +68,7 @@ fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id)
 	return pdb_path;
 }
 
-sequence getSequenceForStrand(cif::Datablock &db, const std::string &strand)
+sequence getSequenceForStrand(cif::datablock &db, const std::string &strand)
 {
 	using namespace cif::literals;
 
@@ -118,9 +117,12 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 
 				try
 				{
-					cif::File pdbFile(pdbFileForID(dbDir, id));
+					cif::file pdbFile(pdbFileForID(dbDir, id));
 
-					auto a = getSequenceForStrand(pdbFile.firstDatablock(), strand);
+					if (pdbFile.empty())
+						throw std::runtime_error("Invalid cif file for " + id);
+
+					auto a = getSequenceForStrand(pdbFile.front(), strand);
 					auto b = encode(seq);
 
 					if (a == b)
@@ -215,23 +217,23 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 
 // --------------------------------------------------------------------
 
-using mmcif::Point;
-using mmcif::Quaternion;
+using cif::point;
+using cif::quaternion;
 
-bool validateHit(mmcif::Structure &structure, const BlastHit &hit)
+bool validateHit(cif::datablock &db, const BlastHit &hit)
 {
 	using namespace cif::literals;
 
-	return getSequenceForStrand(structure.datablock(), hit.mDefLine.substr(6)) == hit.mTarget;
+	return getSequenceForStrand(db, hit.mDefLine.substr(6)) == hit.mTarget;
 }
 
-std::vector<mmcif::Residue *> getResiduesForChain(mmcif::Structure &structure, const std::string &chain_id)
+std::vector<cif::mm::residue *> get_residuesForChain(cif::mm::structure &structure, const std::string &chain_id)
 {
-	std::vector<mmcif::Residue *> result;
+	std::vector<cif::mm::residue *> result;
 
 	for (auto &poly : structure.polymers())
 	{
-		if (poly.chainID() != chain_id)
+		if (poly.get_asym_id() != chain_id)
 			continue;
 
 		for (auto &res : poly)
@@ -278,12 +280,12 @@ std::tuple<std::vector<size_t>, std::vector<size_t>> getTrimmedIndicesForHsp(con
 	return {ixq, ixt};
 }
 
-std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
-	const std::vector<mmcif::Residue *> &pdb, const std::vector<size_t> &pdb_ix,
-	const std::vector<mmcif::Residue *> &af, const std::vector<size_t> &af_ix,
-	const std::vector<mmcif::Atom> &residue, float maxDistance, const Ligand &ligand)
+std::tuple<std::vector<point>, std::vector<point>> selectAtomsNearResidue(
+	const std::vector<cif::mm::residue *> &pdb, const std::vector<size_t> &pdb_ix,
+	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
+	const std::vector<cif::mm::atom> &residue, float maxDistance, const Ligand &ligand)
 {
-	std::vector<Point> ra, rb;
+	std::vector<point> ra, rb;
 
 	float maxDistanceSq = maxDistance * maxDistance;
 
@@ -297,16 +299,16 @@ std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 		{
 			assert(pdb_ix[i] < pdb.size());
 
-			auto atom = pdb[pdb_ix[i]]->atomByID(atom_id);
+			auto atom = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
 			if (not atom)
 				continue;
 
 			for (auto &b : residue)
 			{
-				if (ligand.drops(b.labelAtomID()))
+				if (ligand.drops(b.get_label_atom_id()))
 					continue;
 
-				if (DistanceSquared(atom, b) > maxDistanceSq)
+				if (distance_squared(atom, b) > maxDistanceSq)
 					continue;
 
 				nearby = true;
@@ -325,14 +327,14 @@ std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
 			assert(af_ix[i] < af.size());
 			assert(pdb_ix[i] < pdb.size());
 
-			auto pt_a = pdb[pdb_ix[i]]->atomByID(atom_id);
-			auto pt_b = af[af_ix[i]]->atomByID(atom_id);
+			auto pt_a = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
+			auto pt_b = af[af_ix[i]]->get_atom_by_atom_id(atom_id);
 
 			if (not pt_a and pt_b)
 				continue;
 
-			ra.push_back(pt_a.location());
-			rb.push_back(pt_b.location());
+			ra.push_back(pt_a.get_location());
+			rb.push_back(pt_b.get_location());
 		}
 	}
 
@@ -346,34 +348,34 @@ enum class UniqueType
 	Seen, Unique, MoreAtoms
 };
 
-std::tuple<UniqueType,std::string> isUniqueLigand(const mmcif::Structure &structure, float minDistance, const mmcif::Residue &lig, std::string_view id)
+std::tuple<UniqueType,std::string> isUniqueLigand(const cif::mm::structure &structure, float minDistance, const cif::mm::residue &lig, std::string_view id)
 {
 	std::tuple<UniqueType,std::string> result{ UniqueType::Unique, "" };
 
 	auto minDistanceSq = minDistance * minDistance;
 
-	std::vector<mmcif::Point> pa;
+	std::vector<point> pa;
 
 	for (auto &a : lig.atoms())
-		pa.push_back(a.location());
-	auto ca = mmcif::Centroid(pa);
+		pa.push_back(a.get_location());
+	auto ca = cif::centroid(pa);
 
-	for (auto &np : structure.nonPolymers())
+	for (auto &np : structure.non_polymers())
 	{
-		if (np.compoundID() != id)
+		if (np.get_compound_id() != id)
 			continue;
-		std::vector<mmcif::Point> pb;
+		std::vector<point> pb;
 
 		for (auto &a : np.atoms())
-			pb.push_back(a.location());
-		auto cb = mmcif::Centroid(pb);
+			pb.push_back(a.get_location());
+		auto cb = cif::centroid(pb);
 
-		if (DistanceSquared(ca, cb) < minDistanceSq)
+		if (distance_squared(ca, cb) < minDistanceSq)
 		{
 			if (lig.unique_atoms().size() > np.unique_atoms().size())
-				result = { UniqueType::MoreAtoms, np.asymID() };
+				result = { UniqueType::MoreAtoms, np.get_asym_id() };
 			else
-				result = { UniqueType::Seen, np.asymID() };
+				result = { UniqueType::Seen, np.get_asym_id() };
 
 			break;
 		}
@@ -462,11 +464,13 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 
 				try
 				{
-					cif::File file(f);
+					cif::file file(f);
+					if (file.empty())
+						throw std::runtime_error("invalid cif file " + f.string());
 
 					progress.consumed(1);
 
-					auto &db = file.firstDatablock();
+					auto &db = file.front();
 					auto pdb_chem_comp = db.get("chem_comp");
 					if (not pdb_chem_comp)
 						continue;
@@ -485,7 +489,7 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 						continue;
 
 					std::unique_lock lock(guard);
-					result.push_back(db.getName());
+					result.push_back(db.name());
 				}
 				catch(const std::exception& e)
 				{
@@ -641,8 +645,12 @@ int a_main(int argc, char *const argv[])
 	// --------------------------------------------------------------------
 
 	fs::path xyzin = vm["xyzin"].as<std::string>();
-	mmcif::File f(xyzin);
-	mmcif::Structure af_structure(f, 1, mmcif::StructureOpenOptions::SkipHydrogen);
+	cif::file f(xyzin);
+	if (f.empty())
+		throw std::runtime_error("invalid cif file " + xyzin.string());
+
+	cif::datablock &db = f.front();
+	cif::mm::structure af_structure(f, 1, cif::mm::StructureOpenOptions::SkipHydrogen);
 
 	// --------------------------------------------------------------------
 	// atoms for the clash score calculation
@@ -659,8 +667,6 @@ int a_main(int argc, char *const argv[])
 
 	const std::regex kIDRx(R"(^>(\w{4,8})_(\w)( .*)?)");
 
-	auto &db = f.data();
-
 	std::string afID;
 	cif::tie(afID) = db["entry"].front().get("id");
 
@@ -675,11 +681,11 @@ int a_main(int argc, char *const argv[])
 	json &hits = result["hits"] = json::array();
 
 	// keep a LRU cache of mmCIF parsed files
-	std::list<std::tuple<std::string,std::shared_ptr<mmcif::File>>> mmCifFiles;
+	std::list<std::tuple<std::string,std::shared_ptr<cif::file>>> mmCifFiles;
 
 	for (auto r : db["entity_poly"])
 	{
-		auto &&[id, seq] = r.get<std::string, std::string>({"entity_id", "pdbx_seq_one_letter_code"});
+		auto &&[id, seq] = r.get<std::string, std::string>("entity_id", "pdbx_seq_one_letter_code");
 
 		if (cif::VERBOSE > 0)
 			std::cerr << "Blasting:" << std::endl
@@ -750,7 +756,7 @@ int a_main(int argc, char *const argv[])
 				{
 					fs::path pdb_path = pdbFileForID(pdbDir, pdb_id);
 
-					mmCifFiles.emplace_front(pdb_id, std::make_shared<mmcif::File>(pdb_path.string()));
+					mmCifFiles.emplace_front(pdb_id, std::make_shared<cif::file>(pdb_path.string()));
 					ci = mmCifFiles.begin();
 
 					if (mmCifFiles.size() > 5)
@@ -761,7 +767,7 @@ int a_main(int argc, char *const argv[])
 
 				// Check to see if it is any use to continue with this structure
 
-				auto pdb_chem_comp = pdb_f.data().get("chem_comp");
+				auto pdb_chem_comp = pdb_f.front().get("chem_comp");
 				if (not pdb_chem_comp)
 					continue;
 
@@ -785,7 +791,7 @@ int a_main(int argc, char *const argv[])
 					continue;
 				}
 
-				mmcif::Structure pdb_structure(pdb_f);
+				cif::mm::structure pdb_structure(pdb_f);
 
 				// if (not validateHit(pdb_structure, hit))
 				// {
@@ -793,8 +799,8 @@ int a_main(int argc, char *const argv[])
 				// 	exit(1);
 				// }
 
-				auto af_res = getResiduesForChain(af_structure, "A");
-				auto pdb_res = getResiduesForChain(pdb_structure, chain_id);
+				auto af_res = get_residuesForChain(af_structure, "A");
+				auto pdb_res = get_residuesForChain(pdb_structure, chain_id);
 
 				if (pdb_res.size() == 0)
 				{
@@ -832,22 +838,22 @@ int a_main(int argc, char *const argv[])
 
 					assert(af_ix_trimmed.size() == pdb_ix_trimmed.size());
 
-					std::vector<Point> af_ca_trimmed, pdb_ca_trimmed;
+					std::vector<point> af_ca_trimmed, pdb_ca_trimmed;
 					for (size_t i = 0; i < af_ix_trimmed.size(); ++i)
 					{
 						assert(af_ix_trimmed[i] < af_res.size());
 						assert(pdb_ix_trimmed[i] < pdb_res.size());
 
-						auto af_ca = af_res[af_ix_trimmed[i]]->atomByID("CA");
+						auto af_ca = af_res[af_ix_trimmed[i]]->get_atom_by_atom_id("CA");
 						if (not af_ca)
 							continue;
 
-						auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->atomByID("CA");
+						auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->get_atom_by_atom_id("CA");
 						if (not pdb_ca)
 							continue;
 
-						af_ca_trimmed.push_back(af_ca.location());
-						pdb_ca_trimmed.push_back(pdb_ca.location());
+						af_ca_trimmed.push_back(af_ca.get_location());
+						pdb_ca_trimmed.push_back(pdb_ca.get_location());
 					}
 
 					if (af_ca_trimmed.size() < af_ix_trimmed.size() and cif::VERBOSE > 0)
@@ -864,14 +870,14 @@ int a_main(int argc, char *const argv[])
 
 					json r_hsp{
 						{"pdb_id", pdb_id},
-						{"pdb_asym_id", pdb_res.front()->asymID()},
+						{"pdb_asym_id", pdb_res.front()->get_asym_id()},
 						{"identity", hsp.identity()},
 						{"alignment_length", hsp.length()},
 						{"rmsd", rmsd}};
 
-					for (auto &res : pdb_structure.nonPolymers())
+					for (auto &res : pdb_structure.non_polymers())
 					{
-						auto comp_id = res.compoundID();
+						auto comp_id = res.get_compound_id();
 
 						Ligand ligand = ligands[comp_id];
 
@@ -923,10 +929,10 @@ int a_main(int argc, char *const argv[])
 							{
 								if (cif::VERBOSE > 0)
 								{
-									auto &rep_res = af_structure.getResidue(replace_id);
+									auto &rep_res = af_structure.get_residue(replace_id);
 									std::cerr << "Residue " << res << " has more atoms than the first transplant " << rep_res << std::endl;
 
-									af_structure.removeResidue(rep_res);
+									af_structure.remove_residue(rep_res);
 								}
 								break;
 							}
@@ -941,33 +947,33 @@ int a_main(int argc, char *const argv[])
 
 						for (auto &atom : res.atoms())
 						{
-							if (ligand.drops(atom.labelAtomID()))
+							if (ligand.drops(atom.get_label_atom_id()))
 								continue;
 
-							mmcif::AtomTypeTraits att(atom.type());
+							cif::atom_type_traits att(atom.get_type());
 
-							int formal_charge = atom.charge();
+							int formal_charge = atom.get_charge();
 
-							if (formal_charge == 0 and att.isMetal() and res.atoms().size() == 1)
+							if (formal_charge == 0 and att.is_metal() and res.atoms().size() == 1)
 							{
-								auto compound = mmcif::CompoundFactory::instance().create(comp_id);
+								auto compound = cif::compound_factory::instance().create(comp_id);
 								if (compound)
-									formal_charge = compound->formalCharge();
+									formal_charge = compound->formal_charge();
 							}
 
 							try
 							{
-								resAtoms.emplace_back(att.type(), atom.location(), formal_charge, atom.labelSeqID(), atom.labelAtomID());
+								resAtoms.emplace_back(att.type(), atom.get_location(), formal_charge, atom.get_label_seq_id(), atom.get_label_atom_id());
 							}
 							catch (const std::exception &ex)
 							{
-								auto compound = mmcif::CompoundFactory::instance().create(att.symbol());
+								auto compound = cif::compound_factory::instance().create(att.symbol());
 								if (compound)
-									formal_charge = compound->formalCharge();
+									formal_charge = compound->formal_charge();
 								else
 									formal_charge = 0;
 
-								resAtoms.emplace_back(att.type(), atom.location(), formal_charge, atom.labelSeqID(), atom.labelAtomID());
+								resAtoms.emplace_back(att.type(), atom.get_location(), formal_charge, atom.get_label_seq_id(), atom.get_label_atom_id());
 							}
 						}
 
@@ -980,40 +986,40 @@ int a_main(int argc, char *const argv[])
 							continue;
 						}
 
-						auto entity_id = af_structure.createNonPolyEntity(comp_id);
-						auto asym_id = af_structure.createNonpoly(entity_id, res.atoms());
+						auto entity_id = af_structure.create_non_poly_entity(comp_id);
+						auto asym_id = af_structure.create_non_poly(entity_id, res.atoms());
 
 						r_hsp["transplants"].push_back({
 							{"compound_id", comp_id},
 							// {"entity_id", entity_id},
 							{"asym_id", asym_id},
-							{"pdb_asym_id", res.asymID()},
-							{"pdb_auth_asym_id", res.authAsymID()},
-							{"pdb_auth_seq_id", res.authSeqID()},
+							{"pdb_asym_id", res.get_asym_id()},
+							{"pdb_auth_asym_id", res.get_auth_asym_id()},
+							{"pdb_auth_seq_id", res.get_auth_seq_id()},
 							{"rmsd", rmsd},
 							{"analogue_id", analogue},
 							{"clash", clashInfo}
 						});
 
-						if (not res.authInsCode().empty())
-							r_hsp["transplants"].back().emplace("pdb_auth_ins_code", res.authInsCode());
+						if (not res.get_pdb_ins_code().empty())
+							r_hsp["transplants"].back().emplace("pdb_auth_ins_code", res.get_pdb_ins_code());
 						else
 							r_hsp["transplants"].back().emplace("pdb_auth_ins_code", nullptr);
 
 						// copy any struct_conn record that might be needed
 
-						auto &pdb_struct_conn = pdb_structure.category("struct_conn");
-						auto &af_struct_conn = af_structure.category("struct_conn");
+						auto &pdb_struct_conn = pdb_structure.get_category("struct_conn");
+						auto &af_struct_conn = af_structure.get_category("struct_conn");
 
 						for (auto atom : res.atoms())
 						{
 							for (auto conn : pdb_struct_conn.find(
-									 ("ptnr1_label_asym_id"_key == atom.labelAsymID() and "ptnr1_label_atom_id"_key == atom.labelAtomID()) or
-									 ("ptnr2_label_asym_id"_key == atom.labelAsymID() and "ptnr2_label_atom_id"_key == atom.labelAtomID())))
+									 ("ptnr1_label_asym_id"_key == atom.get_label_asym_id() and "ptnr1_label_atom_id"_key == atom.get_label_atom_id()) or
+									 ("ptnr2_label_asym_id"_key == atom.get_label_asym_id() and "ptnr2_label_atom_id"_key == atom.get_label_atom_id())))
 							{
 								std::string a_type, a_comp;
-								if (conn["ptnr1_label_asym_id"].as<std::string>() == atom.labelAsymID() and
-									conn["ptnr1_label_atom_id"].as<std::string>() == atom.labelAtomID())
+								if (conn["ptnr1_label_asym_id"].as<std::string>() == atom.get_label_asym_id() and
+									conn["ptnr1_label_atom_id"].as<std::string>() == atom.get_label_atom_id())
 								{
 									a_type = conn["ptnr2_label_atom_id"].as<std::string>();
 									a_comp = conn["ptnr2_label_comp_id"].as<std::string>();
@@ -1025,7 +1031,7 @@ int a_main(int argc, char *const argv[])
 								}
 
 								// locate the corresponding atom in the af structure
-								auto a_a = af_structure.getAtomByPositionAndType(atom.location(), a_type, a_comp);
+								auto a_a = af_structure.get_atom_by_position_and_type(atom.get_location(), a_type, a_comp);
 
 								if (not a_a)
 								{
@@ -1037,27 +1043,29 @@ int a_main(int argc, char *const argv[])
 								auto conn_type = conn["conn_type_id"].as<std::string>();
 
 								af_struct_conn.emplace({
-									{"id", af_struct_conn.getUniqueID(conn_type)},
+									{"id", af_struct_conn.get_unique_id(conn_type)},
 									{"conn_type_id", conn_type},
 									{"ptnr1_label_asym_id", asym_id},
-									{"ptnr1_label_comp_id", res.compoundID()},
+									{"ptnr1_label_comp_id", res.get_compound_id()},
 									{"ptnr1_label_seq_id", "."},
-									{"ptnr1_label_atom_id", atom.labelAtomID()},
+									{"ptnr1_label_atom_id", atom.get_label_atom_id()},
+									{"ptnr1_label_alt_id", atom.get_label_alt_id()},
 									{"ptnr1_symmetry", "1_555"},
-									{"ptnr2_label_asym_id", a_a.labelAsymID()},
-									{"ptnr2_label_comp_id", a_a.labelCompID()},
-									{"ptnr2_label_seq_id", a_a.labelSeqID()},
-									{"ptnr2_label_atom_id", a_a.labelAtomID()},
+									{"ptnr2_label_asym_id", a_a.get_label_asym_id()},
+									{"ptnr2_label_comp_id", a_a.get_label_comp_id()},
+									{"ptnr2_label_seq_id", a_a.get_label_seq_id()},
+									{"ptnr2_label_atom_id", a_a.get_label_atom_id()},
+									{"ptnr2_label_alt_id", a_a.get_label_alt_id()},
 									{"ptnr1_auth_asym_id", asym_id},
-									{"ptnr1_auth_comp_id", res.compoundID()},
+									{"ptnr1_auth_comp_id", res.get_compound_id()},
 									{"ptnr1_auth_seq_id", "1"},
-									{"ptnr1_auth_atom_id", atom.authAtomID()},
-									{"ptnr2_auth_asym_id", a_a.labelAsymID()},
-									{"ptnr2_auth_comp_id", a_a.labelCompID()},
-									{"ptnr2_auth_seq_id", a_a.labelSeqID()},
-									{"ptnr2_auth_atom_id", a_a.authAtomID()},
+									{"ptnr1_auth_atom_id", atom.get_auth_atom_id()},
+									{"ptnr2_auth_asym_id", a_a.get_label_asym_id()},
+									{"ptnr2_auth_comp_id", a_a.get_label_comp_id()},
+									{"ptnr2_auth_seq_id", a_a.get_label_seq_id()},
+									{"ptnr2_auth_atom_id", a_a.get_auth_atom_id()},
 									{"ptnr2_symmetry", "1_555"},
-									{"pdbx_dist_value", Distance(a_a, atom)}});
+									{"pdbx_dist_value", distance(a_a, atom)}});
 							}
 						}
 
@@ -1079,9 +1087,15 @@ int a_main(int argc, char *const argv[])
 		}
 	}
 
-	af_structure.cleanupEmptyCategories();
+	af_structure.cleanup_empty_categories();
 
-	af_structure.datablock().add_software("alphafill", "model annotation", kVersionNumber, kBuildDate);
+	auto &software = af_structure.get_category("software");
+	software.emplace({
+		{"pdbx_ordinal", software.size() + 1},// TODO: should we check this ordinal number???
+		{"name", "alphafill"},
+		{"version", kVersionNumber},
+		{"date", kBuildDate},
+		{"classification", "model annotation"}});
 
 	if (vm.count("output"))
 	{

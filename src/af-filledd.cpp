@@ -40,8 +40,7 @@
 #include <zeep/http/uri.hpp>
 #include <zeep/json/parser.hpp>
 
-#include <cif++/Cif++.hpp>
-#include <cif++/CifUtils.hpp>
+#include <cif++.hpp>
 
 #include "data-service.hpp"
 #include "db-connection.hpp"
@@ -491,9 +490,11 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 
 	try
 	{
-		cif::File file(cifFile);
+		cif::file file(cifFile);
+		if (file.empty())
+			throw zeep::http::not_found;
 
-		std::string title = file.firstDatablock()["entity"].find1<std::string>("id"_key == 1, "pdbx_description");
+		std::string title = file.front()["entity"].find1<std::string>("id"_key == 1, "pdbx_description");
 		sub.put("title", title);
 	}
 	catch (const std::exception &e)
@@ -530,6 +531,26 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 	sub.put("af_id", afId);
 	sub.put("chunk", chunkNr);
 	sub.put("asym_id", asymID);
+
+	try
+	{
+		using namespace cif::literals;
+
+		auto cif = file_locator::get_structure_file(afId, chunkNr);
+		cif::file cf(cif);
+		if (cf.empty())
+			throw zeep::http::not_found;
+
+		auto &db = cf.front();
+		auto entity_id = db["struct_asym"].find1<std::string>("id"_key == asymID, "entity_id");
+		const auto &[compound_name, compound_id] = db["pdbx_entity_nonpoly"].find1<std::string, std::string>("entity_id"_key == entity_id, "name", "comp_id");
+
+		sub.put("compound-name", compound_name);
+		sub.put("compound-id", compound_id);
+	}
+	catch (...)
+	{
+	}
 
 	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metdata_file(afId, 2));
 
@@ -765,8 +786,12 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 
 	// get the chain length...
 
-	cif::File cf(file);
-	auto &struct_ref_seq = cf.firstDatablock()["struct_ref_seq"];
+	cif::file cf(file);
+	if (cf.empty())
+		throw zeep::http::not_found;
+	auto &db = cf.front();
+	auto &struct_ref = db["struct_ref"];
+	auto &struct_ref_seq = db["struct_ref_seq"];
 
 	int uniprot_start, uniprot_end;
 	cif::tie(uniprot_start, uniprot_end) = struct_ref_seq.front().get("db_align_beg", "db_align_end");

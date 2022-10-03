@@ -114,7 +114,8 @@ endif()
 
 find_package(zeep 5.1.6 REQUIRED)
 find_package(cifpp REQUIRED)
-find_package(Boost COMPONENTS program_options)
+find_package(Boost COMPONENTS program_options iostreams)
+find_package(libpqxx 7.2 REQUIRED)
 
 # The alphafill executable
 
@@ -186,6 +187,8 @@ add_executable(af-filledd
 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
 	${PROJECT_SOURCE_DIR}/src/structure.cpp
 	${PROJECT_SOURCE_DIR}/src/validate.cpp
+
+	${PROJECT_SOURCE_DIR}/src/https-client.cpp
 )
 
 target_compile_definitions(af-filledd PUBLIC
@@ -198,7 +201,7 @@ target_compile_definitions(af-filledd PUBLIC
 
 target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 target_link_libraries(af-filledd
-	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
+	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams libpqxx::pqxx std::filesystem)
 
 add_dependencies(af-filledd webpack)
 

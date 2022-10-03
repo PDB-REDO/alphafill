@@ -32,7 +32,7 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <cif++/CifUtils.hpp>
+#include <cif++.hpp>
 
 #include <zeep/json/parser.hpp>
 

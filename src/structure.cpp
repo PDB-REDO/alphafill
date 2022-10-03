@@ -39,9 +39,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include <cif++/Cif++.hpp>
-#include <cif++/CifUtils.hpp>
-// #include <cif++/Compound.hpp>
+#include <cif++.hpp>
 
 #include <zeep/http/reply.hpp>
 #include <zeep/json/parser.hpp>
@@ -99,10 +97,10 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 		}
 	}
 
-	cif::File cif(file);
-	auto &db = cif.firstDatablock();
+	cif::file cif(file);
+	auto &db = cif.front();
 
-	cif.loadDictionary("mmcif_pdbx_v50");
+	cif.load_dictionary("mmcif_pdbx_v50");
 
 	auto &struct_asym = db["struct_asym"];
 	auto &atom_site = db["atom_site"];
@@ -122,8 +120,8 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 		struct_conn.erase("ptnr1_label_asym_id"_key == asymID or "ptnr2_label_asym_id"_key == asymID);
 	}
 
-	mmcif::Structure structure(db);
-	structure.cleanupEmptyCategories();
+	cif::mm::structure structure(db);
+	structure.cleanup_empty_categories();
 
 	cif.save(os);
 }
@@ -134,14 +132,14 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 {
 	using namespace cif::literals;
 
-	cif::File fin(input);
-	cif::File yin(yasara_out);
+	cif::file fin(input);
+	cif::file yin(yasara_out);
 
 	auto &db_i = fin.front();
 	auto &db_y = yin.front();
 
 	json info;
-	const auto &[afID, chunkNr] = parse_af_id(db_i.getName());
+	const auto &[afID, chunkNr] = parse_af_id(db_i.name());
 	std::ifstream infoFile(file_locator::get_metdata_file(afID, chunkNr));
 	zeep::json::parse_json(infoFile, info);
 
@@ -171,7 +169,7 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 
 	for (auto r : as_i.rows())
 	{
-		const auto &[asym_id, seq_id, atom_id, auth_seq_id] = r.get<std::string,int,std::string,int>({"label_asym_id", "label_seq_id", "label_atom_id", "auth_seq_id"});
+		const auto &[asym_id, seq_id, atom_id, auth_seq_id] = r.get<std::string,int,std::string,int>("label_asym_id", "label_seq_id", "label_atom_id", "auth_seq_id");
 
 		auto l = locations.find(asym_id == "A" ? key_type{ asym_id, seq_id, atom_id } : key_type{ asym_id, 0, atom_id });
 		if (l == locations.end())

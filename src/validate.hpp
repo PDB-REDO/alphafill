@@ -26,21 +26,21 @@
 
 #pragma once
 
-#include "cif++/Structure.hpp"
+#include "cif++.hpp"
 
 #include "ligands.hpp"
 
-std::tuple<float,float,float> validateCif(cif::Datablock &db, const std::string &asymID, zeep::json::element &info, float maxLigandPolyAtomDistance = 6);
+std::tuple<float,float,float> validateCif(cif::datablock &db, const std::string &asymID, zeep::json::element &info, float maxLigandPolyAtomDistance = 6);
 
-std::tuple<std::vector<mmcif::Monomer *>, std::vector<mmcif::Monomer *>> AlignAndTrimSequences(mmcif::Polymer &rx, mmcif::Polymer &ry);
-std::tuple<std::vector<mmcif::Atom>, std::vector<mmcif::Atom>, std::vector<mmcif::Atom>, std::vector<mmcif::Atom>>
-FindAtomsNearLigand(const std::vector<mmcif::Monomer *> &pa, const std::vector<mmcif::Monomer *> &pb,
-	const mmcif::Residue &ra, const mmcif::Residue &rb, float maxDistance, const Ligand &ligand);
-std::tuple<std::vector<mmcif::Monomer *>, std::vector<mmcif::Monomer *>> AlignAndTrimSequences(mmcif::Polymer &rx, mmcif::Polymer &ry);
-double Align(const mmcif::Structure &a, mmcif::Structure &b,
-	std::vector<mmcif::Point> &cAlphaA, std::vector<mmcif::Point> &cAlphaB);
-double Align(std::vector<mmcif::Atom> &aA, std::vector<mmcif::Atom> &aB);
-double CalculateRMSD(const std::vector<mmcif::Atom> &a, const std::vector<mmcif::Atom> &b);
+std::tuple<std::vector<cif::mm::monomer *>, std::vector<cif::mm::monomer *>> AlignAndTrimSequences(cif::mm::polymer &rx, cif::mm::polymer &ry);
+std::tuple<std::vector<cif::mm::atom>, std::vector<cif::mm::atom>, std::vector<cif::mm::atom>, std::vector<cif::mm::atom>>
+FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector<cif::mm::monomer *> &pb,
+	const cif::mm::residue &ra, const cif::mm::residue &rb, float maxDistance, const Ligand &ligand);
+std::tuple<std::vector<cif::mm::monomer *>, std::vector<cif::mm::monomer *>> AlignAndTrimSequences(cif::mm::polymer &rx, cif::mm::polymer &ry);
+double Align(const cif::mm::structure &a, cif::mm::structure &b,
+	std::vector<cif::point> &cAlphaA, std::vector<cif::point> &cAlphaB);
+double Align(std::vector<cif::mm::atom> &aA, std::vector<cif::mm::atom> &aB);
+double CalculateRMSD(const std::vector<cif::mm::atom> &a, const std::vector<cif::mm::atom> &b);
 
 // --------------------------------------------------------------------
 // clash score
@@ -50,15 +50,15 @@ struct CAtom
 	CAtom(const CAtom &) = default;
 	CAtom(CAtom &&) = default;
 
-	CAtom(mmcif::AtomType type, mmcif::Point pt, int charge, int seqID, const std::string &id);
+	CAtom(cif::atom_type type, cif::point pt, int charge, int seqID, const std::string &id);
 
-	CAtom(const mmcif::Atom &atom)
-		: CAtom(atom.type(), atom.location(), atom.charge(), atom.labelSeqID(), atom.labelAtomID())
+	CAtom(const cif::mm::atom &atom)
+		: CAtom(atom.get_type(), atom.get_location(), atom.get_charge(), atom.get_label_seq_id(), atom.get_label_atom_id())
 	{
 	}
 
-	mmcif::AtomType type;
-	mmcif::Point pt;
+	cif::atom_type type;
+	cif::point pt;
 	float radius;
 	int seqID;
 	std::string id;
@@ -68,4 +68,4 @@ std::tuple<int,zeep::json::element> CalculateClashScore(const std::vector<CAtom>
 
 // --------------------------------------------------------------------
 
-float ClashScore(cif::Datablock &db, float maxDistance = 4);
+float ClashScore(cif::datablock &db, float maxDistance = 4);

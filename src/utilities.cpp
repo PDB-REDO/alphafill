@@ -28,9 +28,8 @@
 #include <fstream>
 #include <iostream>
 
-#include <cif++/Cif++.hpp>
-#include <cif++/CifUtils.hpp>
-#include <cif++/Compound.hpp>
+#include <cif++.hpp>
+#include <cif++/compound.hpp>
 
 #include "revision.hpp"
 #include "utilities.hpp"
@@ -172,17 +171,17 @@ po::variables_map load_options(int argc, char *const argv[],
 	// Load extra CCD definitions, if any
 
 	if (vm.count("compounds"))
-		cif::addFileResource("components.cif", vm["compounds"].as<std::string>());
+		cif::add_file_resource("components.cif", vm["compounds"].as<std::string>());
 	else if (vm.count("components"))
-		cif::addFileResource("components.cif", vm["components"].as<std::string>());
+		cif::add_file_resource("components.cif", vm["components"].as<std::string>());
 
 	if (vm.count("extra-compounds"))
-		mmcif::CompoundFactory::instance().pushDictionary(vm["extra-compounds"].as<std::string>());
+		cif::compound_factory::instance().push_dictionary(vm["extra-compounds"].as<std::string>());
 
 	// And perhaps a private mmcif_pdbx dictionary
 
 	if (vm.count("mmcif-dictionary"))
-		cif::addFileResource("mmcif_pdbx_v50.dic", vm["mmcif-dictionary"].as<std::string>());
+		cif::add_file_resource("mmcif_pdbx_v50.dic", vm["mmcif-dictionary"].as<std::string>());
 
 	return vm;
 }
@@ -213,7 +212,7 @@ int main(int argc, char *const argv[])
 	try
 	{
 #if defined(DATA_DIR)
-		cif::addDataDirectory(DATA_DIR);
+		cif::add_data_directory(DATA_DIR);
 #endif
 		result = a_main(argc, argv);
 	}

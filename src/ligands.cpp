@@ -32,13 +32,13 @@ std::unique_ptr<LigandsTable> LigandsTable::sInstance;
 
 // --------------------------------------------------------------------
 
-void Ligand::modify(mmcif::Structure &structure, const std::string &asymID) const
+void Ligand::modify(cif::mm::structure &structure, const std::string &asymID) const
 {
 	assert(mLigand);
 	auto analogue = mLigand->front()["analogue_id"].as<std::string>();
 	if (not analogue.empty())
 	{
-		auto &res = structure.getResidue(asymID);
+		auto &res = structure.get_residue(asymID);
 
 		std::vector<std::tuple<std::string, std::string>> remap;
 
@@ -48,11 +48,11 @@ void Ligand::modify(mmcif::Structure &structure, const std::string &asymID) cons
 				remap.emplace_back(a1, a2);
 		}
 
-		structure.changeResidue(res, analogue, remap);
+		structure.change_residue(res, analogue, remap);
 	}
 }
 
-size_t Ligand::atom_count(const mmcif::Residue &res) const
+size_t Ligand::atom_count(const cif::mm::residue &res) const
 {
 	using namespace cif::literals;
 
