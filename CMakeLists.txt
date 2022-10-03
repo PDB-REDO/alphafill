@@ -113,7 +113,7 @@ if(USE_RSRC)
 endif()
 
 find_package(zeep 5.1.6 REQUIRED)
-find_package(cifpp REQUIRED)
+find_package(cifpp 5 REQUIRED)
 find_package(Boost COMPONENTS program_options iostreams)
 find_package(libpqxx 7.2 REQUIRED)
 
@@ -132,12 +132,11 @@ target_include_directories(alphafill
 	PUBLIC
 	cifpp::cifpp
 	zeep::zeep
-	${PROJECT_SOURCE_DIR}/include
-	${cifpp_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+	${PROJECT_SOURCE_DIR}/include)
 
 target_include_directories(alphafill PRIVATE ${CMAKE_BINARY_DIR})
 
-target_link_libraries(alphafill cifpp::cifpp zeep::zeep Boost::program_options)
+target_link_libraries(alphafill cifpp::cifpp zeep::zeep Boost::program_options Boost::iostreams)
 
 if(USE_RSRC)
 	mrc_target_resources(alphafill ${CIFPP_SHARE_DIR}/mmcif_pdbx_v50.dic)
@@ -145,8 +144,8 @@ endif()
 
 # The web interface, af-filledd
 
-pkg_check_modules(PQ libpq REQUIRED)
-pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED)
+# pkg_check_modules(PQ libpq REQUIRED)
+# pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED)
 
 find_program(YARN yarn REQUIRED)
 
@@ -188,7 +187,7 @@ add_executable(af-filledd
 	${PROJECT_SOURCE_DIR}/src/structure.cpp
 	${PROJECT_SOURCE_DIR}/src/validate.cpp
 
-	${PROJECT_SOURCE_DIR}/src/https-client.cpp
+	# ${PROJECT_SOURCE_DIR}/src/https-client.cpp
 )
 
 target_compile_definitions(af-filledd PUBLIC
@@ -224,18 +223,5 @@ add_executable(validate-fill
 
 target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 target_link_libraries(validate-fill
-	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
-
-add_executable(merge-af
-	${PROJECT_SOURCE_DIR}/src/merge-af.cpp
-	${PROJECT_SOURCE_DIR}/src/utilities.cpp
-)
-
-target_include_directories(merge-af PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
-target_link_libraries(merge-af
-	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options ${PQXX_LIBRARIES} ${PQ_LIBRARIES} std::filesystem)
-	
-install(TARGETS alphafill af-filledd validate-fill merge-af
-    RUNTIME DESTINATION ${BIN_INSTALL_DIR}
-)
+	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams libpqxx::pqxx std::filesystem)
 

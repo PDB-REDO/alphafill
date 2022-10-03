@@ -609,50 +609,50 @@ std::tuple<float,float,float> validateCif(cif::datablock &db, const std::string 
 				continue;
 			}
 
-			// // [11-4 11:43] Robbie Joosten
-			// // Bij de alignment moeten we rekening houden met de conformatie van TYR, PHE, ASP, en GLU.
-			// // Het verschil in de laatste torsiehoek moet geminimaliseerd worden door de zijketens (in
-			// // het PDB_REDO model) 180 graden te flippen (i.e. de atoomnamen te swappen). Voor TYR, PHE
-			// // en ASP gaat het om de torsiehoek chi-2. In GLU gaat het om chi-3.
+			// [11-4 11:43] Robbie Joosten
+			// Bij de alignment moeten we rekening houden met de conformatie van TYR, PHE, ASP, en GLU.
+			// Het verschil in de laatste torsiehoek moet geminimaliseerd worden door de zijketens (in
+			// het PDB_REDO model) 180 graden te flippen (i.e. de atoomnamen te swappen). Voor TYR, PHE
+			// en ASP gaat het om de torsiehoek chi-2. In GLU gaat het om chi-3.
 
-			// for (size_t i = 0; i < afPoly.size(); ++i)
-			// {
-			// 	try
-			// 	{
-			// 		auto &rA = *afPoly[i];
-			// 		auto &rP = *pdbPoly[i];
+			for (size_t i = 0; i < afPoly.size(); ++i)
+			{
+				try
+				{
+					auto &rA = *afPoly[i];
+					auto &rP = *pdbPoly[i];
 
-			// 		if (rA.get_compound_id() == "TYR" or rA.get_compound_id() == "PHE")
-			// 		{
-			// 			if (std::abs(rA.chi(1) - rP.chi(1)) > 90)
-			// 			{
-			// 				pdbStructure.swap_atoms(rP.get_atom_by_atom_id("CD1"), rP.get_atom_by_atom_id("CD2"));
-			// 				pdbStructure.swap_atoms(rP.get_atom_by_atom_id("CE1"), rP.get_atom_by_atom_id("CE2"));
-			// 			}
+					if (rA.get_compound_id() == "TYR" or rA.get_compound_id() == "PHE")
+					{
+						if (std::abs(rA.chi(1) - rP.chi(1)) > 90)
+						{
+							pdbStructure.swap_atoms(rP.get_atom_by_atom_id("CD1"), rP.get_atom_by_atom_id("CD2"));
+							pdbStructure.swap_atoms(rP.get_atom_by_atom_id("CE1"), rP.get_atom_by_atom_id("CE2"));
+						}
 
-			// 			continue;
-			// 		}
+						continue;
+					}
 
-			// 		if (rA.get_compound_id() == "ASP")
-			// 		{
-			// 			if (std::abs(rA.chi(1) - rP.chi(1)) > 90)
-			// 				pdbStructure.swap_atoms(rP.get_atom_by_atom_id("OD1"), rP.get_atom_by_atom_id("OD2"));
-			// 			continue;
-			// 		}
+					if (rA.get_compound_id() == "ASP")
+					{
+						if (std::abs(rA.chi(1) - rP.chi(1)) > 90)
+							pdbStructure.swap_atoms(rP.get_atom_by_atom_id("OD1"), rP.get_atom_by_atom_id("OD2"));
+						continue;
+					}
 
-			// 		if (rA.get_compound_id() == "GLU")
-			// 		{
-			// 			if (std::abs(rA.chi(2) - rP.chi(2)) > 90)
-			// 				pdbStructure.swap_atoms(rP.get_atom_by_atom_id("OE1"), rP.get_atom_by_atom_id("OE2"));
-			// 			continue;
-			// 		}
-			// 	}
-			// 	catch (const std::exception &ex)
-			// 	{
-			// 		if (cif::VERBOSE > 0)
-			// 			std::cerr << ex.what() << std::endl;
-			// 	}
-			// }
+					if (rA.get_compound_id() == "GLU")
+					{
+						if (std::abs(rA.chi(2) - rP.chi(2)) > 90)
+							pdbStructure.swap_atoms(rP.get_atom_by_atom_id("OE1"), rP.get_atom_by_atom_id("OE2"));
+						continue;
+					}
+				}
+				catch (const std::exception &ex)
+				{
+					if (cif::VERBOSE > 0)
+						std::cerr << ex.what() << std::endl;
+				}
+			}
 
 			// Align the PDB structure on the AF structure, based on C-alpha
 			Align(afStructure, pdbStructure, caA, caP);
