@@ -17,3 +17,4 @@ validate/validation-report.tsv
 validate/validate-fill-report.txt
 long-af-seq-ids.txt
 test-yasara/
+test/*.cif
