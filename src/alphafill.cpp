@@ -649,6 +649,11 @@ int a_main(int argc, char *const argv[])
 	if (f.empty())
 		throw std::runtime_error("invalid cif file " + xyzin.string());
 
+	// This sucks, kinda... The mmcif_af dictionary does not specify
+	// all links required to correctly work with libcifpp...
+	if (f.get_validator() == nullptr or f.get_validator()->name() != "mmdb_pdbx.dic")
+		f.set_validator(&cif::validator_factory::instance()["mmcif_pdbx.dic"]);
+
 	cif::datablock &db = f.front();
 	cif::mm::structure af_structure(f, 1, cif::mm::StructureOpenOptions::SkipHydrogen);
 
