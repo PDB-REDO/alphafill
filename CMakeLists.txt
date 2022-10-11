@@ -115,7 +115,7 @@ endif()
 find_package(zeep 5.1.6 REQUIRED)
 find_package(cifpp 5 REQUIRED)
 find_package(Boost COMPONENTS program_options iostreams)
-find_package(libpqxx 7.2 REQUIRED)
+# find_package(libpqxx 7.2 REQUIRED)
 
 # The alphafill executable
 
@@ -139,13 +139,13 @@ target_include_directories(alphafill PRIVATE ${CMAKE_BINARY_DIR})
 target_link_libraries(alphafill cifpp::cifpp zeep::zeep Boost::program_options Boost::iostreams)
 
 if(USE_RSRC)
-	mrc_target_resources(alphafill ${CIFPP_SHARE_DIR}/mmcif_pdbx_v50.dic)
+	mrc_target_resources(alphafill ${CIFPP_SHARE_DIR}/mmcif_pdbx.dic ${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic)
 endif()
 
 # The web interface, af-filledd
 
-# pkg_check_modules(PQ libpq REQUIRED)
-# pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED)
+pkg_check_modules(PQ libpq REQUIRED IMPORTED_TARGET)
+pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED IMPORTED_TARGET)
 
 find_program(YARN yarn REQUIRED)
 
@@ -200,7 +200,7 @@ target_compile_definitions(af-filledd PUBLIC
 
 target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 target_link_libraries(af-filledd
-	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams libpqxx::pqxx std::filesystem)
+	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams PkgConfig::PQXX PkgConfig::PQ std::filesystem)
 
 add_dependencies(af-filledd webpack)
 
@@ -223,5 +223,5 @@ add_executable(validate-fill
 
 target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 target_link_libraries(validate-fill
-	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams libpqxx::pqxx std::filesystem)
+	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams PkgConfig::PQXX PkgConfig::PQ std::filesystem)
 

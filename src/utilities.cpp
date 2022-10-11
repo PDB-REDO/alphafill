@@ -181,7 +181,7 @@ po::variables_map load_options(int argc, char *const argv[],
 	// And perhaps a private mmcif_pdbx dictionary
 
 	if (vm.count("mmcif-dictionary"))
-		cif::add_file_resource("mmcif_pdbx_v50.dic", vm["mmcif-dictionary"].as<std::string>());
+		cif::add_file_resource("mmcif_pdbx", vm["mmcif-dictionary"].as<std::string>());
 
 	return vm;
 }

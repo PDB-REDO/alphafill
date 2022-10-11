@@ -100,7 +100,8 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	cif::file cif(file);
 	auto &db = cif.front();
 
-	cif.load_dictionary("mmcif_pdbx_v50");
+	if (cif.get_validator() == nullptr)
+		cif.load_dictionary("mmcif_af");
 
 	auto &struct_asym = db["struct_asym"];
 	auto &atom_site = db["atom_site"];
