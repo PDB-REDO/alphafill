@@ -27,7 +27,7 @@
 #include <filesystem>
 #include <regex>
 
-#include <boost/program_options.hpp>
+#include <cfg.hpp>
 
 // --------------------------------------------------------------------
 
@@ -36,52 +36,37 @@ void print_what(const std::exception &ex);
 
 // --------------------------------------------------------------------
 
-boost::program_options::variables_map load_options(
-	int argc, char *const argv[],
-	boost::program_options::options_description &visible_options,
-	boost::program_options::options_description &hidden_options,
-	boost::program_options::positional_options_description &positional_options,
-	const char *config_file_name);
-
-// --------------------------------------------------------------------
-
 class file_locator
 {
   public:
-	static void init(boost::program_options::variables_map &vm);
-
 	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr)
 	{
-		return s_instance->get_structure_file_1(id, chunk_nr);
+		return instance().get_structure_file_1(id, chunk_nr);
 	}
 
 	static std::filesystem::path get_pdb_file(const std::string &id)
 	{
-		return s_instance->get_pdb_file_1(id);
+		return instance().get_pdb_file_1(id);
 	}
 
 	static std::filesystem::path get_metdata_file(const std::string &id, int chunk_nr)
 	{
-		return s_instance->get_metdata_file_1(id, chunk_nr);
+		return instance().get_metdata_file_1(id, chunk_nr);
 	}
 
 	static std::vector<std::filesystem::path> get_all_structure_files(const std::string &id);
 
   private:
-	static std::unique_ptr<file_locator> s_instance;
 
+	static file_locator &instance()
+	{
+		static file_locator s_instance(cfg::config::instance());
+		return s_instance;
+	}
+
+	file_locator(cfg::config &config);
 	file_locator(const file_locator &) = delete;
 	file_locator &operator=(const file_locator &) = delete;
-
-	file_locator(const std::filesystem::path &db_dir, const std::filesystem::path &pdb_dir,
-		const std::string &structure_name_pattern, const std::string &pdb_name_pattern, const std::string &metadata_name_pattern)
-		: m_db_dir(db_dir)
-		, m_pdb_dir(pdb_dir)
-		, m_structure_name_pattern(structure_name_pattern)
-		, m_pdb_name_pattern(pdb_name_pattern)
-		, m_metadata_name_pattern(metadata_name_pattern)
-	{
-	}
 
 	std::filesystem::path get_structure_file_1(const std::string &id, int chunk_nr)
 	{

@@ -88,4 +88,8 @@ class data_service
 
 	uint32_t count_structures(float min_identity) const;
 	uint32_t count_structures(float min_identity, const std::string &compound) const;
+
+	// On demand services
+
+	bool exists_in_afdb(const std::string &id) const;
 };

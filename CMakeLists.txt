@@ -25,7 +25,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # set the project name
-project(alphafill VERSION 1.2.0 LANGUAGES C CXX)
+project(alphafill VERSION 2.0.0 LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -38,6 +38,7 @@ include(Dart)
 include(FindFilesystem)
 include(FindPkgConfig)
 include(GenerateExportHeader)
+include(AddGitSubmodule)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
@@ -116,36 +117,14 @@ find_package(zeep 5.1.6 REQUIRED)
 find_package(cifpp 5 REQUIRED)
 find_package(Boost COMPONENTS program_options iostreams)
 # find_package(libpqxx 7.2 REQUIRED)
+add_git_submodule(libconfig EXCLUDE_FROM_ALL)
 
-# The alphafill executable
-
-add_executable(alphafill
-	${PROJECT_SOURCE_DIR}/src/blast.cpp
-	${PROJECT_SOURCE_DIR}/src/ligands.cpp
-	${PROJECT_SOURCE_DIR}/src/matrix.cpp
-	${PROJECT_SOURCE_DIR}/src/alphafill.cpp
-	${PROJECT_SOURCE_DIR}/src/utilities.cpp
-	${PROJECT_SOURCE_DIR}/src/validate.cpp
-	)
-
-target_include_directories(alphafill
-	PUBLIC
-	cifpp::cifpp
-	zeep::zeep
-	${PROJECT_SOURCE_DIR}/include)
-
-target_include_directories(alphafill PRIVATE ${CMAKE_BINARY_DIR})
-
-target_link_libraries(alphafill cifpp::cifpp zeep::zeep Boost::program_options Boost::iostreams)
-
-if(USE_RSRC)
-	mrc_target_resources(alphafill ${CIFPP_SHARE_DIR}/mmcif_pdbx.dic ${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic)
-endif()
-
-# The web interface, af-filledd
+# For the web interface
 
 pkg_check_modules(PQ libpq REQUIRED IMPORTED_TARGET)
 pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED IMPORTED_TARGET)
+pkg_check_modules(SSL libssl IMPORTED_TARGET)
+pkg_check_modules(CRYPTO libcrypto IMPORTED_TARGET)
 
 find_program(YARN yarn REQUIRED)
 
@@ -177,20 +156,28 @@ check_function_exists(dirfd HAVE_DIRFD)
 find_file(HAVE_PROC_PID '/proc/self/fd/0')
 check_function_exists(sysconf HAVE_SYSCONF)
 
-add_executable(af-filledd
+# The alphafill executable
+
+add_executable(alphafill
+	${PROJECT_SOURCE_DIR}/src/alphafill.cpp
+	${PROJECT_SOURCE_DIR}/src/blast.cpp
 	${PROJECT_SOURCE_DIR}/src/bsd-closefrom.c
-	${PROJECT_SOURCE_DIR}/src/af-filledd.cpp
 	${PROJECT_SOURCE_DIR}/src/ligands.cpp
+	${PROJECT_SOURCE_DIR}/src/matrix.cpp
 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
+	# ${PROJECT_SOURCE_DIR}/src/af-filledd.cpp
 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
 	${PROJECT_SOURCE_DIR}/src/structure.cpp
 	${PROJECT_SOURCE_DIR}/src/validate.cpp
 
-	# ${PROJECT_SOURCE_DIR}/src/https-client.cpp
-)
+	${PROJECT_SOURCE_DIR}/src/https-client.cpp
+	)
 
-target_compile_definitions(af-filledd PUBLIC
+target_include_directories(alphafill PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(alphafill PRIVATE ${CMAKE_BINARY_DIR})
+
+target_compile_definitions(alphafill PUBLIC
 	HAVE_DIRENT_H=${HAVE_DIRENT_H}
 	HAVE_FCNTL_H=${HAVE_FCNTL_H}
 	HAVE_DIRFD=${HAVE_DIRFD}
@@ -198,30 +185,71 @@ target_compile_definitions(af-filledd PUBLIC
 	HAVE_SYSCONF=${HAVE_SYSCONF}
 )
 
-target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
-target_link_libraries(af-filledd
-	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams PkgConfig::PQXX PkgConfig::PQ std::filesystem)
+add_dependencies(alphafill webpack)
 
-add_dependencies(af-filledd webpack)
+target_link_libraries(alphafill
+	libconfig::libconfig cifpp::cifpp zeep::zeep Boost::program_options Boost::iostreams PkgConfig::PQXX PkgConfig::PQ PkgConfig::SSL PkgConfig::CRYPTO std::filesystem)
 
 if(USE_RSRC)
-	mrc_target_resources(af-filledd
+	mrc_target_resources(alphafill
+
 		${PROJECT_SOURCE_DIR}/docroot/
 		${PROJECT_SOURCE_DIR}/db-schema.sql
 		${PROJECT_SOURCE_DIR}/scripts/refine.mcr
-	)
+
+		${CIFPP_SHARE_DIR}/mmcif_pdbx.dic
+		${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic
+		${PROJECT_SOURCE_DIR}/rsrc/mmcif_ma.dic)
 endif()
 
-add_executable(validate-fill
-	${PROJECT_SOURCE_DIR}/src/ligands.cpp
-	${PROJECT_SOURCE_DIR}/src/validate-fill.cpp
-	${PROJECT_SOURCE_DIR}/src/utilities.cpp
-	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
-	${PROJECT_SOURCE_DIR}/src/data-service.cpp
-	${PROJECT_SOURCE_DIR}/src/validate.cpp
-)
 
-target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
-target_link_libraries(validate-fill
-	PRIVATE zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams PkgConfig::PQXX PkgConfig::PQ std::filesystem)
+# add_executable(af-filledd
+# 	${PROJECT_SOURCE_DIR}/src/bsd-closefrom.c
+# 	${PROJECT_SOURCE_DIR}/src/af-filledd.cpp
+# 	${PROJECT_SOURCE_DIR}/src/ligands.cpp
+# 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
+# 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
+# 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
+# 	${PROJECT_SOURCE_DIR}/src/structure.cpp
+# 	${PROJECT_SOURCE_DIR}/src/validate.cpp
+
+# 	# ${PROJECT_SOURCE_DIR}/src/https-client.cpp
+# )
+
+# target_compile_definitions(af-filledd PUBLIC
+# 	HAVE_DIRENT_H=${HAVE_DIRENT_H}
+# 	HAVE_FCNTL_H=${HAVE_FCNTL_H}
+# 	HAVE_DIRFD=${HAVE_DIRFD}
+# 	HAVE_PROC_PID=${HAVE_PROC_PID}
+# 	HAVE_SYSCONF=${HAVE_SYSCONF}
+# )
+
+# target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
+# target_link_libraries(af-filledd
+# 	PRIVATE libconfig::libconfig zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams PkgConfig::PQXX PkgConfig::PQ std::filesystem)
+
+# add_dependencies(af-filledd webpack)
+
+# if(USE_RSRC)
+# 	mrc_target_resources(af-filledd
+# 		${PROJECT_SOURCE_DIR}/docroot/
+# 		${PROJECT_SOURCE_DIR}/db-schema.sql
+# 		${PROJECT_SOURCE_DIR}/scripts/refine.mcr
+# 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic
+# 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_ma.dic
+# 	)
+# endif()
+
+# add_executable(validate-fill
+# 	${PROJECT_SOURCE_DIR}/src/ligands.cpp
+# 	${PROJECT_SOURCE_DIR}/src/validate-fill.cpp
+# 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
+# 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
+# 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
+# 	${PROJECT_SOURCE_DIR}/src/validate.cpp
+# )
+
+# target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
+# target_link_libraries(validate-fill
+# 	PRIVATE libconfig::libconfig zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams PkgConfig::PQXX PkgConfig::PQ std::filesystem)
 

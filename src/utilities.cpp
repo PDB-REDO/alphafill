@@ -29,30 +29,26 @@
 #include <iostream>
 
 #include <cif++.hpp>
-#include <cif++/compound.hpp>
+#include <cfg.hpp>
 
 #include "revision.hpp"
 #include "utilities.hpp"
 
 namespace fs = std::filesystem;
-namespace po = boost::program_options;
 
 // --------------------------------------------------------------------
 
-std::unique_ptr<file_locator> file_locator::s_instance;
-
-void file_locator::init(boost::program_options::variables_map &vm)
+file_locator::file_locator(cfg::config &config)
+	: m_db_dir(config.get<std::string>("db-dir"))
+	, m_pdb_dir(config.get<std::string>("pdb-dir"))
+	, m_structure_name_pattern(config.get<std::string>("structure-name-pattern"))
+	, m_pdb_name_pattern(config.get<std::string>("pdb-name-pattern"))
+	, m_metadata_name_pattern(config.get<std::string>("metadata-name-pattern"))
 {
-	fs::path dbDir = vm["db-dir"].as<std::string>();
-	if (not fs::is_directory(dbDir))
+	if (not fs::is_directory(m_db_dir))
 		throw std::runtime_error("AlphfaFill data directory does not exist");
-
-	fs::path pdbDir = vm["pdb-dir"].as<std::string>();
-	if (not fs::is_directory(pdbDir))
+	if (not fs::is_directory(m_pdb_dir))
 		throw std::runtime_error("PDB directory does not exist");
-
-	s_instance.reset(new file_locator(dbDir, pdbDir, vm["structure-name-pattern"].as<std::string>(),
-		vm["pdb-name-pattern"].as<std::string>(), vm["metadata-name-pattern"].as<std::string>()));
 }
 
 std::vector<std::filesystem::path> file_locator::get_all_structure_files(const std::string &id)
@@ -62,7 +58,7 @@ std::vector<std::filesystem::path> file_locator::get_all_structure_files(const s
 	int i = 1;
 	for (;;)
 	{
-		fs::path chunk = s_instance->get_structure_file(id, i);
+		fs::path chunk = instance().get_structure_file(id, i);
 		if (not fs::exists(chunk))
 			break;
 		
@@ -75,116 +71,116 @@ std::vector<std::filesystem::path> file_locator::get_all_structure_files(const s
 
 // --------------------------------------------------------------------
 
-po::variables_map load_options(int argc, char *const argv[],
-	po::options_description &visible_options,
-	po::options_description &hidden_options, po::positional_options_description &positional_options,
-	const char *config_file_name)
-{
-	visible_options.add_options()
-		("af-dir", po::value<std::string>(), "Directory containing the alphafold data")
-		("db-dir", po::value<std::string>(), "Directory containing the af-filled data")
-		("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")
+// po::variables_map load_options(int argc, char *const argv[],
+// 	po::options_description &visible_options,
+// 	po::options_description &hidden_options, po::positional_options_description &positional_options,
+// 	const char *config_file_name)
+// {
+// 	visible_options.add_options()
+// 		("af-dir", po::value<std::string>(), "Directory containing the alphafold data")
+// 		("db-dir", po::value<std::string>(), "Directory containing the af-filled data")
+// 		("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")
 
-		("ligands", po::value<std::string>()->default_value("af-ligands.cif"), "File in CIF format describing the ligands and their modifications")
+// 		("ligands", po::value<std::string>()->default_value("af-ligands.cif"), "File in CIF format describing the ligands and their modifications")
 
-		("compounds", po::value<std::string>(), "Location of the components.cif file from CCD")
-		("components", po::value<std::string>(), "Location of the components.cif file from CCD, alias")
-		("extra-compounds", po::value<std::string>(), "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file")
-		("mmcif-dictionary", po::value<std::string>(), "Path to the mmcif_pdbx.dic file to use instead of default")
+// 		("compounds", po::value<std::string>(), "Location of the components.cif file from CCD")
+// 		("components", po::value<std::string>(), "Location of the components.cif file from CCD, alias")
+// 		("extra-compounds", po::value<std::string>(), "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file")
+// 		("mmcif-dictionary", po::value<std::string>(), "Path to the mmcif_pdbx.dic file to use instead of default")
 
-		("structure-name-pattern", po::value<std::string>(), "Pattern for locating structure files")
-		("metadata-name-pattern", po::value<std::string>(), "Pattern for locating metadata files")
-		("pdb-name-pattern", po::value<std::string>(), "Pattern for locating PDB files")
+// 		("structure-name-pattern", po::value<std::string>(), "Pattern for locating structure files")
+// 		("metadata-name-pattern", po::value<std::string>(), "Pattern for locating metadata files")
+// 		("pdb-name-pattern", po::value<std::string>(), "Pattern for locating PDB files")
 
-		("config", po::value<std::string>(), "Config file")
+// 		("config", po::value<std::string>(), "Config file")
 
-		("help,h", "Display help message")
-		("version", "Print version")
-		("verbose,v", "Verbose output")
-		("quiet", "Do not produce warnings");
+// 		("help,h", "Display help message")
+// 		("version", "Print version")
+// 		("verbose,v", "Verbose output")
+// 		("quiet", "Do not produce warnings");
 
-	hidden_options.add_options()
-		("debug,d", po::value<int>(), "Debug level (for even more verbose output)");
+// 	hidden_options.add_options()
+// 		("debug,d", po::value<int>(), "Debug level (for even more verbose output)");
 
-	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
+// 	po::options_description cmdline_options;
+// 	cmdline_options.add(visible_options).add(hidden_options);
 
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv)
-				  .options(cmdline_options)
-				  .positional(positional_options)
-				  .run(),
-		vm);
+// 	po::variables_map vm;
+// 	po::store(po::command_line_parser(argc, argv)
+// 				  .options(cmdline_options)
+// 				  .positional(positional_options)
+// 				  .run(),
+// 		vm);
 
-	fs::path configFile = config_file_name;
-	if (vm.count("config"))
-		configFile = vm["config"].as<std::string>();
+// 	fs::path configFile = config_file_name;
+// 	if (vm.count("config"))
+// 		configFile = vm["config"].as<std::string>();
 
-	if (not fs::exists(configFile) and getenv("HOME") != nullptr)
-		configFile = fs::path(getenv("HOME")) / ".config" / configFile;
+// 	if (not fs::exists(configFile) and getenv("HOME") != nullptr)
+// 		configFile = fs::path(getenv("HOME")) / ".config" / configFile;
 
-	if (fs::exists(configFile))
-	{
-		std::ifstream cfgFile(configFile);
-		if (cfgFile.is_open())
-			po::store(po::parse_config_file(cfgFile, visible_options, true), vm);
-	}
+// 	if (fs::exists(configFile))
+// 	{
+// 		std::ifstream cfgFile(configFile);
+// 		if (cfgFile.is_open())
+// 			po::store(po::parse_config_file(cfgFile, visible_options, true), vm);
+// 	}
 
-	po::notify(vm);
+// 	po::notify(vm);
 
-	// --------------------------------------------------------------------
+// 	// --------------------------------------------------------------------
 
-	if (vm.count("version"))
-	{
-		write_version_string(std::cout, vm.count("verbose"));
-		exit(0);
-	}
+// 	if (vm.count("version"))
+// 	{
+// 		write_version_string(std::cout, vm.count("verbose"));
+// 		exit(0);
+// 	}
 
-	if (vm.count("help"))
-	{
-		std::cout << visible_options << std::endl;
-		exit(0);
-	}
+// 	if (vm.count("help"))
+// 	{
+// 		std::cout << visible_options << std::endl;
+// 		exit(0);
+// 	}
 
-	if (vm.count("quiet"))
-		cif::VERBOSE = -1;
+// 	if (vm.count("quiet"))
+// 		cif::VERBOSE = -1;
 
-	if (vm.count("verbose"))
-		cif::VERBOSE = 1;
+// 	if (vm.count("verbose"))
+// 		cif::VERBOSE = 1;
 
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
+// 	if (vm.count("debug"))
+// 		cif::VERBOSE = vm["debug"].as<int>();
 
-	if (vm.count("db-dir") == 0)
-	{
-		std::cout << "AlphaFill data directory not specified" << std::endl;
-		exit(1);
-	}
+// 	if (vm.count("db-dir") == 0)
+// 	{
+// 		std::cout << "AlphaFill data directory not specified" << std::endl;
+// 		exit(1);
+// 	}
 
-	if (vm.count("pdb-dir") == 0)
-	{
-		std::cout << "PDB directory not specified" << std::endl;
-		exit(1);
-	}
+// 	if (vm.count("pdb-dir") == 0)
+// 	{
+// 		std::cout << "PDB directory not specified" << std::endl;
+// 		exit(1);
+// 	}
 
-	// --------------------------------------------------------------------
-	// Load extra CCD definitions, if any
+// 	// --------------------------------------------------------------------
+// 	// Load extra CCD definitions, if any
 
-	if (vm.count("compounds"))
-		cif::add_file_resource("components.cif", vm["compounds"].as<std::string>());
-	else if (vm.count("components"))
-		cif::add_file_resource("components.cif", vm["components"].as<std::string>());
+// 	if (vm.count("compounds"))
+// 		cif::add_file_resource("components.cif", vm["compounds"].as<std::string>());
+// 	else if (vm.count("components"))
+// 		cif::add_file_resource("components.cif", vm["components"].as<std::string>());
 
-	if (vm.count("extra-compounds"))
-		cif::compound_factory::instance().push_dictionary(vm["extra-compounds"].as<std::string>());
+// 	if (vm.count("extra-compounds"))
+// 		cif::compound_factory::instance().push_dictionary(vm["extra-compounds"].as<std::string>());
 
-	// And perhaps a private mmcif_pdbx dictionary
+// 	// And perhaps a private mmcif_pdbx dictionary
 
-	if (vm.count("mmcif-dictionary"))
-		cif::add_file_resource("mmcif_pdbx", vm["mmcif-dictionary"].as<std::string>());
+// 	if (vm.count("mmcif-dictionary"))
+// 		cif::add_file_resource("mmcif_pdbx", vm["mmcif-dictionary"].as<std::string>());
 
-	return vm;
-}
+// 	return vm;
+// }
 
 // --------------------------------------------------------------------
 
@@ -214,7 +210,40 @@ int main(int argc, char *const argv[])
 #if defined(DATA_DIR)
 		cif::add_data_directory(DATA_DIR);
 #endif
-		result = a_main(argc, argv);
+
+		auto &config = cfg::config::instance();
+
+		config.init(
+			cfg::make_option("version", "Show version number"),
+			cfg::make_option("verbose", "Show verbose output")
+		);
+
+		config.set_ignore_unknown(true);
+		config.parse(argc, argv);
+
+		if (config.has("version"))
+		{
+			write_version_string(std::cout, config.has("verbose"));
+			exit(0);
+		}
+
+		std::string command;
+		if (not config.operands().empty())
+			command = config.operands().front();
+
+		if (command == "server")
+			std::cerr << "unimplemented" << std::endl;
+		else if (command == "process")
+			result = a_main(argc - 1, argv + 1);
+		else if (command == "validate")
+			std::cerr << "unimplemented" << std::endl;
+		else 
+		{
+			std::cerr << "Usage: alphafill command [options...]" << std::endl
+					  << "  where command is one of: 'server', 'process', 'validate'" << std::endl;
+			
+			exit(1);
+		}
 	}
 	catch (const std::exception &ex)
 	{

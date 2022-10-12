@@ -33,6 +33,8 @@
 #include <zeep/http/message-parser.hpp>
 #include <zeep/streambuf.hpp>
 
+#include <cfg.hpp>
+
 #include "https-client.hpp"
 
 namespace zh = zeep::http;
@@ -60,6 +62,7 @@ class client_base
 
 	client_base(const std::string &url)
 		: m_req({ "GET", url })
+		, m_verbose(cfg::config::instance().has("m_verbose"))
 	{
 	}
 
@@ -72,7 +75,7 @@ class client_base
 			{
 				if (not error)
 					receive_response();
-				else if (VERBOSE)
+				else if (m_verbose)
 					std::cout << "Write failed: " << error.message() << "\n";
 			});
 	}
@@ -85,7 +88,7 @@ class client_base
 			{
 				if (error and error != boost::asio::error::eof)
 				{
-					if (VERBOSE)
+					if (m_verbose)
 						std::cout << "Read failed: " << error.message() << "\n";
 					return;
 				}
@@ -102,7 +105,7 @@ class client_base
 
 	boost::array<char, 4096> m_buffer;
 	const zh::request m_req;
-	bool m_done = false;
+	bool m_done = false, m_verbose = false;
 	zh::reply_parser m_reply_parser;
 };
 
@@ -129,7 +132,7 @@ class client : public client_base<tcp::socket>
 			{
 				if (not error)
 					send_request();
-				else if (VERBOSE)
+				else if (m_verbose)
 					std::cout << "Connect failed: " << error.message() << "\n";
 			});
 	}
@@ -184,7 +187,7 @@ class ssl_client : public client_base<boost::asio::ssl::stream<tcp::socket>>
 			{
 				if (not error)
 					handshake();
-				else if (VERBOSE)
+				else if (m_verbose)
 					std::cout << "Connect failed: " << error.message() << "\n";
 			});
 	}
@@ -196,7 +199,7 @@ class ssl_client : public client_base<boost::asio::ssl::stream<tcp::socket>>
 			{
 				if (not error)
 					send_request();
-				else if (VERBOSE)
+				else if (m_verbose)
 					std::cout << "Handshake failed: " << error.message() << "\n";
 			});
 	}
@@ -241,7 +244,7 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 			}
 			else if (error)
 			{
-				if (VERBOSE)
+				if (cfg::config::instance().has("verbose"))
 					std::cerr << error << std::endl;
 				break;
 			}

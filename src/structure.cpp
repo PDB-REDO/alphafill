@@ -54,7 +54,6 @@
 #include "validate.hpp"
 
 namespace fs = std::filesystem;
-namespace po = boost::program_options;
 
 using json = zeep::json::element;
 

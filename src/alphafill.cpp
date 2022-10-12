@@ -31,10 +31,9 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/date_time.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/program_options.hpp>
 
 #include <zeep/json/element.hpp>
+#include <cfg.hpp>
 
 #include "blast.hpp"
 #include "ligands.hpp"
@@ -43,9 +42,9 @@
 #include "utilities.hpp"
 #include "validate.hpp"
 
-namespace po = boost::program_options;
+#include "data-service.hpp"
+
 namespace fs = std::filesystem;
-namespace io = boost::iostreams;
 namespace ba = boost::algorithm;
 
 using json = zeep::json::element;
@@ -528,49 +527,73 @@ int a_main(int argc, char *const argv[])
 	using namespace std::literals;
 	using namespace cif::literals;
 
-	po::options_description visible_options(argv[0] + " [options] input-file [output-file]"s);
+	auto &config = cfg::config::instance();
+	config.init(
+		cfg::make_option<std::string>("af-dir", "Directory containing the alphafold data"),
+		cfg::make_option<std::string>("db-dir", "Directory containing the af-filled data"),
+		cfg::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 
-	visible_options.add_options()
-		("pdb-fasta", po::value<std::string>(), "The FastA file containing the PDB sequences")
-		("pdb-id-list", po::value<std::string>(), "Optional file containing the list of PDB ID's that have any of the transplantable ligands")
+		cfg::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
+		cfg::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"),
 
-		("max-ligand-to-backbone-distance", po::value<float>()->default_value(6), "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure")
-		("min-hsp-identity", po::value<float>()->default_value(0.25), "The minimal identity for a high scoring pair (note, value between 0 and 1)")
-		("min-alignment-length", po::value<int>()->default_value(85), "The minimal length of an alignment")
-		("min-separation-distance", po::value<float>()->default_value(3.5), "The centroids of two identical ligands should be at least this far apart to count as separate occurrences")
-		("blast-report-limit", po::value<uint32_t>()->default_value(250), "Number of blast hits to use")
+		cfg::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
 
-		("clash-distance-cutoff", po::value<float>()->default_value(4), "The max distance between polymer atoms and ligand atoms used in calculating clash scores")
+		cfg::make_option<float>("max-ligand-to-backbone-distance", 6, "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure"),
+		cfg::make_option<float>("min-hsp-identity", 0.25, "The minimal identity for a high scoring pair (note, value between 0 and 1)"),
+		cfg::make_option<int>("min-alignment-length", 85, "The minimal length of an alignment"),
+		cfg::make_option<float>("min-separation-distance", 3.5, "The centroids of two identical ligands should be at least this far apart to count as separate occurrences"),
+		cfg::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
 
-		("threads,t", po::value<size_t>()->default_value(1), "Number of threads to use, zero means all available cores");
+		cfg::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
 
-	po::options_description hidden_options("hidden options");
-	hidden_options.add_options()
-		("xyzin,i", po::value<std::string>(), "coordinates file")
-		("output,o", po::value<std::string>(), "Output to this file")
+		cfg::make_option<std::string>("compounds", "Location of the components.cif file from CCD"),
+		cfg::make_option<std::string>("components", "Location of the components.cif file from CCD, alias"),
+		cfg::make_option<std::string>("extra-compounds", "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file"),
+		cfg::make_option<std::string>("mmcif-dictionary", "Path to the mmcif_pdbx.dic file to use instead of default"),
 
-		("validate-fasta", "Validate the FastA file (check if all sequence therein are the same as in the corresponding PDB files)")
-		("prepare-pdb-list", "Generate a list with PDB ID's that contain any of the ligands")
+		cfg::make_option<std::string>("structure-name-pattern", "Pattern for locating structure files"),
+		cfg::make_option<std::string>("metadata-name-pattern", "Pattern for locating metadata files"),
+		cfg::make_option<std::string>("pdb-name-pattern", "Pattern for locating PDB files"),
 
-		("test-pdb-id", po::value<std::string>(), "Test with single PDB ID")
+		cfg::make_option<size_t>("threads,t", 1, "Number of threads to use, zero means all available cores"),
 
-		("test", "Run test code");
+		cfg::make_hidden_option("validate-fasta", "Validate the FastA file (check if all sequence therein are the same as in the corresponding PDB files)"),
+		cfg::make_hidden_option("prepare-pdb-list", "Generate a list with PDB ID's that contain any of the ligands"),
 
-	po::positional_options_description p;
-	p.add("xyzin", 1);
-	p.add("output", 1);
+		cfg::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
 
-	po::variables_map vm = load_options(argc, argv, visible_options, hidden_options, p, "alphafill.conf");
+		cfg::make_option<std::string>("alphafold-3d-beacon", "The URL of the 3d-beacons service for alphafold"),
+		cfg::make_hidden_option<std::string>("test-af-id", ""),
+
+		cfg::make_hidden_option("test", "Run test code")
+	);
+
+	config.set_ignore_unknown(true);
+	config.parse(argc, argv);
 
 	// --------------------------------------------------------------------
 
-	if (vm.count("pdb-fasta") == 0)
+	if (config.has("help"))
+	{
+		std::cerr << config << std::endl;
+		exit(config.has("help") ? 0 : 1);
+	}
+
+	cif::VERBOSE = config.has("verbose") != 0;
+	if (config.has("debug"))
+		cif::VERBOSE = config.get<int>("debug");
+
+	config.parse_config_file("config", "alphafill.conf", { fs::current_path().string(), "/etc/" });
+
+	// --------------------------------------------------------------------
+
+	if (not config.has("pdb-fasta"))
 	{
 		std::cout << "fasta file not specified" << std::endl;
 		exit(1);
 	}
 
-	if (vm.count("pdb-dir") == 0)
+	if (not config.has("pdb-dir"))
 	{
 		std::cout << "PDB directory not specified" << std::endl;
 		exit(1);
@@ -578,22 +601,28 @@ int a_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	std::string fasta = vm["pdb-fasta"].as<std::string>();
+	std::string fasta = config.get<std::string>("pdb-fasta");
 	if (not fs::exists(fasta))
 		throw std::runtime_error("PDB-Fasta file does not exist (" + fasta + ")");
 
-	fs::path pdbDir = vm["pdb-dir"].as<std::string>();
+	fs::path pdbDir = config.get<std::string>("pdb-dir");
 	if (not fs::is_directory(pdbDir))
 		throw std::runtime_error("PDB directory does not exist");
 
 	// --------------------------------------------------------------------
 	
-	if (vm.count("validate-fasta"))
-		return validateFastA(vm["pdb-fasta"].as<std::string>(), vm["pdb-dir"].as<std::string>(), std::thread::hardware_concurrency());
+	if (config.has("validate-fasta"))
+		return validateFastA(config.get<std::string>("pdb-fasta"), config.get<std::string>("pdb-dir"), std::thread::hardware_concurrency());
+
+	if (config.has("test-af-id"))
+	{
+		data_service::instance().exists_in_afdb(config.get<std::string>("test-af-id"));
+		return 0;
+	}
 
 	// --------------------------------------------------------------------
 
-	fs::path ligandsFile = vm["ligands"].as<std::string>();
+	fs::path ligandsFile = config.get<std::string>("ligands");
 	if (not fs::exists(ligandsFile))
 	{
 		std::cerr << "Ligands file not found" << std::endl;
@@ -602,23 +631,23 @@ int a_main(int argc, char *const argv[])
 
 	LigandsTable ligands(ligandsFile);
 
-	float maxDistance = vm["clash-distance-cutoff"].as<float>();
+	float maxDistance = config.get<float>("clash-distance-cutoff");
 
 	// --------------------------------------------------------------------
 	
-	if (vm.count("prepare-pdb-list"))
-		return GeneratePDBList(vm["pdb-dir"].as<std::string>(), ligands, vm.count("output") ? vm["output"].as<std::string>() : "");
+	if (config.has("prepare-pdb-list"))
+		return GeneratePDBList(config.get<std::string>("pdb-dir"), ligands, config.has("output") ? config.get<std::string>("output") : "");
 
 	cif::iset pdbIDsContainingLigands;
-	if (vm.count("test-pdb-id"))
-		pdbIDsContainingLigands.emplace(vm["test-pdb-id"].as<std::string>());
-	else if (vm.count("pdb-id-list"))
+	if (config.has("test-pdb-id"))
+		pdbIDsContainingLigands.emplace(config.get<std::string>("test-pdb-id"));
+	else if (config.has("pdb-id-list"))
 	{
-		std::ifstream file(vm["pdb-id-list"].as<std::string>());
+		std::ifstream file(config.get<std::string>("pdb-id-list"));
 
 		if (not file.is_open())
 		{
-			std::cerr << "Could not open pdb-id-list " << vm["pdb-id-list"].as<std::string>() << std::endl;
+			std::cerr << "Could not open pdb-id-list " << config.get<std::string>("pdb-id-list") << std::endl;
 			exit(1);
 		}
 
@@ -628,23 +657,21 @@ int a_main(int argc, char *const argv[])
 	}
 
 	// --------------------------------------------------------------------
-	
-	if (vm.count("xyzin") == 0)
+
+	float minHspIdentity = config.get<float>("min-hsp-identity");
+	size_t minAlignmentLength = config.get<int>("min-alignment-length");
+	float minSeparationDistance = config.get<float>("min-separation-distance");
+	float maxLigandBackboneDistance = config.get<float>("max-ligand-to-backbone-distance");
+
+	// --------------------------------------------------------------------
+
+	if (config.operands().empty())
 	{
 		std::cout << "Input file not specified" << std::endl;
 		exit(1);
 	}
 
-	// --------------------------------------------------------------------
-
-	float minHspIdentity = vm["min-hsp-identity"].as<float>();
-	size_t minAlignmentLength = vm["min-alignment-length"].as<int>();
-	float minSeparationDistance = vm["min-separation-distance"].as<float>();
-	float maxLigandBackboneDistance = vm["max-ligand-to-backbone-distance"].as<float>();
-
-	// --------------------------------------------------------------------
-
-	fs::path xyzin = vm["xyzin"].as<std::string>();
+	fs::path xyzin = config.operands().front();
 	cif::file f(xyzin);
 	if (f.empty())
 		throw std::runtime_error("invalid cif file " + xyzin.string());
@@ -697,11 +724,11 @@ int a_main(int argc, char *const argv[])
 					  << seq << std::endl
 					  << std::endl;
 
-		size_t threads = vm["threads"].as<size_t>();
+		size_t threads = config.get<size_t>("threads");
 		if (threads == 0)
 			threads = std::thread::hardware_concurrency();
 
-		auto result = BlastP(fasta, seq, "BLOSUM62", 3, 10, true, true, 11, 1, vm["blast-report-limit"].as<uint32_t>(), threads);
+		auto result = BlastP(fasta, seq, "BLOSUM62", 3, 10, true, true, 11, 1, config.get<uint32_t>("blast-report-limit"), threads);
 
 		if (cif::VERBOSE > 0)
 			std::cerr << "Found " << result.size() << " hits" << std::endl;
@@ -1109,9 +1136,9 @@ int a_main(int argc, char *const argv[])
 		{"date", kBuildDate},
 		{"classification", "model annotation"}});
 
-	if (vm.count("output"))
+	if (config.operands().size() == 2)
 	{
-		fs::path output = vm["output"].as<std::string>();
+		fs::path output = config.operands().back();
 
 		if (output.has_parent_path() and not fs::exists(output.parent_path()))
 			fs::create_directories(output.parent_path());

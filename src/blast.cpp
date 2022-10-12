@@ -15,7 +15,8 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
-#include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/interprocess/file_mapping.hpp>
+#include <boost/interprocess/mapped_region.hpp>
 
 #include <cif++.hpp>
 
@@ -24,7 +25,6 @@
 
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
-namespace io = boost::iostreams;
 
 // --------------------------------------------------------------------
 
@@ -1310,12 +1310,26 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 {
 	for (const fs::path &p : inDatabanks)
 	{
-		io::mapped_file file(p.string().c_str(), io::mapped_file::readonly);
-		if (not file.is_open())
-			throw blast_exception("FastA file " + p.string() + " not open");
+		// io::mapped_file file(p.string().c_str(), io::mapped_file::readonly);
 
-		const char *data = file.const_data();
-		size_t length = file.size();
+		using namespace boost::interprocess;
+
+		//Create a file mapping
+		file_mapping m_file(p.string().c_str(), read_write);
+
+		// if (not m_file.is_open())
+		// 	throw blast_exception("FastA file " + p.string() + " not open");
+
+		//Map the whole file with read-write permissions in this process
+		mapped_region region(m_file, read_write);
+
+		//Get the address of the mapped region
+		const char *data = reinterpret_cast<const char*>(region.get_address());
+		size_t length = region.get_size();
+
+
+		// const char *data = file.const_data();
+		// size_t length = file.size();
 
 		if (inNrOfThreads <= 1)
 			SearchPart(data, length, inProgress, mDbCount, mDbLength, mHits);

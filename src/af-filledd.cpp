@@ -31,7 +31,6 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
-#include <boost/program_options.hpp>
 
 #include <zeep/crypto.hpp>
 #include <zeep/http/daemon.hpp>

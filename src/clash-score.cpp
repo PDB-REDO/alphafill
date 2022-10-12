@@ -32,8 +32,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/date_time.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-#include <boost/program_options.hpp>
 
 #include <zeep/json/element.hpp>
 
@@ -43,7 +41,6 @@
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
-namespace io = boost::iostreams;
 namespace ba = boost::algorithm;
 
 using json = zeep::json::element;
