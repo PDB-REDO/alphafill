@@ -71,6 +71,123 @@ std::vector<std::filesystem::path> file_locator::get_all_structure_files(const s
 
 // --------------------------------------------------------------------
 
+fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id)
+{
+	for (auto &ch : pdb_id)
+		ch = std::tolower(ch);
+
+	// try a PDB-REDO layout first
+	fs::path pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif");
+	if (not fs::exists(pdb_path))
+		pdb_path = pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz");
+
+	if (not fs::exists(pdb_path))
+		throw std::runtime_error("PDB file for " + pdb_id + " not found");
+
+	return pdb_path;
+}
+
+std::vector<cif::mm::residue *> get_residuesForChain(cif::mm::structure &structure, const std::string &chain_id)
+{
+	std::vector<cif::mm::residue *> result;
+
+	for (auto &poly : structure.polymers())
+	{
+		if (poly.get_asym_id() != chain_id)
+			continue;
+
+		for (auto &res : poly)
+			result.emplace_back(&res);
+	}
+
+	return result;
+}
+
+using cif::point;
+
+std::tuple<std::vector<point>, std::vector<point>> selectAtomsNearResidue(
+	const std::vector<cif::mm::residue *> &pdb, const std::vector<size_t> &pdb_ix,
+	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
+	const std::vector<cif::mm::atom> &residue, float maxDistance, const Ligand &ligand)
+{
+	std::vector<point> ra, rb;
+
+	float maxDistanceSq = maxDistance * maxDistance;
+
+	assert(pdb_ix.size() == af_ix.size());
+
+	for (size_t i = 0; i < pdb_ix.size(); ++i)
+	{
+		bool nearby = false;
+
+		for (const char *atom_id : {"C", "CA", "N", "O"})
+		{
+			assert(pdb_ix[i] < pdb.size());
+
+			auto atom = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
+			if (not atom)
+				continue;
+
+			for (auto &b : residue)
+			{
+				if (ligand.drops(b.get_label_atom_id()))
+					continue;
+
+				if (distance_squared(atom, b) > maxDistanceSq)
+					continue;
+
+				nearby = true;
+				break;
+			}
+
+			if (nearby)
+				break;
+		}
+
+		if (not nearby)
+			continue;
+
+		for (const char *atom_id : {"C", "CA", "N", "O"})
+		{
+			assert(af_ix[i] < af.size());
+			assert(pdb_ix[i] < pdb.size());
+
+			auto pt_a = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
+			auto pt_b = af[af_ix[i]]->get_atom_by_atom_id(atom_id);
+
+			if (not pt_a and pt_b)
+				continue;
+
+			ra.push_back(pt_a.get_location());
+			rb.push_back(pt_b.get_location());
+		}
+	}
+
+	return {ra, rb};
+}
+
+
+// --------------------------------------------------------------------
+
+sequence getSequenceForStrand(cif::datablock &db, const std::string &strand)
+{
+	using namespace cif::literals;
+
+	auto &pdbx_poly_seq_scheme = db["pdbx_poly_seq_scheme"];
+	auto r = pdbx_poly_seq_scheme.find("pdb_strand_id"_key == strand);
+	if (r.empty())
+		throw std::runtime_error("Could not locate sequence in PDB for strand id " + strand);
+
+	auto entity_id = r.front()["entity_id"].as<std::string>();
+
+	auto &entity_poly = db["entity_poly"];
+	auto pdb_seq = entity_poly.find1<std::string>("entity_id"_key == entity_id, "pdbx_seq_one_letter_code_can");
+
+	return encode(pdb_seq);
+}
+
+// --------------------------------------------------------------------
+
 // po::variables_map load_options(int argc, char *const argv[],
 // 	po::options_description &visible_options,
 // 	po::options_description &hidden_options, po::positional_options_description &positional_options,
@@ -182,74 +299,3 @@ std::vector<std::filesystem::path> file_locator::get_all_structure_files(const s
 // 	return vm;
 // }
 
-// --------------------------------------------------------------------
-
-// recursively print exception whats:
-void print_what(const std::exception &e)
-{
-	std::cerr << e.what() << std::endl;
-	try
-	{
-		std::rethrow_if_nested(e);
-	}
-	catch (const std::exception &nested)
-	{
-		std::cerr << " >> ";
-		print_what(nested);
-	}
-}
-
-// --------------------------------------------------------------------
-
-int main(int argc, char *const argv[])
-{
-	int result = 0;
-
-	try
-	{
-#if defined(DATA_DIR)
-		cif::add_data_directory(DATA_DIR);
-#endif
-
-		auto &config = cfg::config::instance();
-
-		config.init(
-			cfg::make_option("version", "Show version number"),
-			cfg::make_option("verbose", "Show verbose output")
-		);
-
-		config.set_ignore_unknown(true);
-		config.parse(argc, argv);
-
-		if (config.has("version"))
-		{
-			write_version_string(std::cout, config.has("verbose"));
-			exit(0);
-		}
-
-		std::string command;
-		if (not config.operands().empty())
-			command = config.operands().front();
-
-		if (command == "server")
-			std::cerr << "unimplemented" << std::endl;
-		else if (command == "process")
-			result = a_main(argc - 1, argv + 1);
-		else if (command == "validate")
-			std::cerr << "unimplemented" << std::endl;
-		else 
-		{
-			std::cerr << "Usage: alphafill command [options...]" << std::endl
-					  << "  where command is one of: 'server', 'process', 'validate'" << std::endl;
-			
-			exit(1);
-		}
-	}
-	catch (const std::exception &ex)
-	{
-		print_what(ex);
-		exit(1);
-	}
-
-	return result;
-}

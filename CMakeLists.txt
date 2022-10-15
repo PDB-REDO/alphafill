@@ -164,10 +164,12 @@ add_executable(alphafill
 	${PROJECT_SOURCE_DIR}/src/bsd-closefrom.c
 	${PROJECT_SOURCE_DIR}/src/ligands.cpp
 	${PROJECT_SOURCE_DIR}/src/matrix.cpp
+	${PROJECT_SOURCE_DIR}/src/main.cpp
 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
 	# ${PROJECT_SOURCE_DIR}/src/af-filledd.cpp
 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
+	${PROJECT_SOURCE_DIR}/src/server.cpp
 	${PROJECT_SOURCE_DIR}/src/structure.cpp
 	${PROJECT_SOURCE_DIR}/src/validate.cpp
 

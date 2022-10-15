@@ -26,6 +26,12 @@
 
 #pragma once
 
+#include <filesystem>
+#include <tuple>
+#include <vector>
+
+#include <zeep/json/element.hpp>
+
 #include "cif++.hpp"
 
 #include "ligands.hpp"
@@ -69,3 +75,6 @@ std::tuple<int,zeep::json::element> CalculateClashScore(const std::vector<CAtom>
 // --------------------------------------------------------------------
 
 float ClashScore(cif::datablock &db, float maxDistance = 4);
+
+/// --------------------------------------------------------------------
+int validateFastA(std::filesystem::path fasta, std::filesystem::path dbDir, int threads);

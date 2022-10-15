@@ -40,17 +40,18 @@
 #include <zeep/json/parser.hpp>
 
 #include <cif++.hpp>
+#include <cfg.hpp>
 
 #include "data-service.hpp"
 #include "db-connection.hpp"
 #include "ligands.hpp"
+#include "server.hpp"
 #include "structure.hpp"
 #include "utilities.hpp"
 
 namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 namespace io = boost::iostreams;
-namespace po = boost::program_options;
 namespace zh = zeep::http;
 
 #define PACKAGE_NAME "af-filledd"
@@ -812,66 +813,38 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 
 // --------------------------------------------------------------------
 
-int a_main(int argc, char *const argv[])
+int server_main(int argc, char *const argv[])
 {
 	using namespace std::literals;
 
 	int result = 0;
 
-	po::options_description visible(argv[0] + " <command> [options]"s);
-	visible.add_options()
-		("command",		po::value<std::string>(),	"Command, one of start, stop, status or reload")
-		("no-daemon,F",								"Do not fork a background process")
-		
-		("address",		po::value<std::string>(),	"Address to listen to")
-		("port",		po::value<unsigned short>(),"Port to listen to")
-		("user",		po::value<std::string>(),	"User to run as")
-		("context",		po::value<std::string>(),	"Reverse proxy context")
-		("db-link-template",
-						po::value<std::string>(),	"Template for links to pdb(-redo) entry")
+	auto &config = cfg::config::instance();
 
-		("db-dbname",	po::value<std::string>(),	"AF DB name")
-		("db-user",		po::value<std::string>(),	"AF DB owner")
-		("db-password",	po::value<std::string>(),	"AF DB password")
-		("db-host",		po::value<std::string>(),	"AF DB host")
-		("db-port",		po::value<std::string>(),	"AF DB port")
-		;
+	fs::path dbDir = config.get<std::string>("db-dir");
 
-	po::options_description hidden("hidden options");
-	hidden.add_options()
-		("rebuild-db",								"Rebuild the af-filled-db");
-
-	po::positional_options_description p;
-	p.add("command", 1);
-
-	po::variables_map vm = load_options(argc, argv, visible, hidden, p, "alphafill.conf");
-
-	fs::path dbDir = vm["db-dir"].as<std::string>();
-
-	file_locator::init(vm);
-	LigandsTable::init(vm["ligands"].as<std::string>());
+	LigandsTable::init(config.get<std::string>("ligands"));
 
 	std::vector<std::string> vConn;
 	std::string db_user;
 	for (std::string opt : {"db-host", "db-port", "db-dbname", "db-user", "db-password"})
 	{
-		if (vm.count(opt) == 0)
+		if (not config.has(opt))
 			continue;
 
-		vConn.push_back(opt.substr(3) + "=" + vm[opt].as<std::string>());
-
+		vConn.push_back(opt.substr(3) + "=" + config.get<std::string>(opt));
 		if (opt == "db-user")
-			db_user = vm[opt].as<std::string>();
+			db_user = config.get<std::string>(opt);
 	}
 
 	db_connection::init(ba::join(vConn, " "));
 
 	// --------------------------------------------------------------------
 
-	if (vm.count("rebuild-db"))
+	if (config.has("rebuild-db"))
 		return data_service::rebuild(db_user, dbDir);
 
-	if (vm.count("command") == 0)
+	if (config.operands().size() < 2)
 	{
 		std::cout << "No command specified, use of of start, stop, status or reload" << std::endl;
 		exit(1);
@@ -879,10 +852,10 @@ int a_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	if (vm.count("db-link-template"))
-		s_af_object.set_template(vm["db-link-template"].as<std::string>());
+	if (config.has("db-link-template"))
+		s_af_object.set_template(config.get<std::string>("db-link-template"));
 
-	std::string command = vm["command"].as<std::string>();
+	std::string command = config.operands()[1];
 
 	zh::daemon server([&]()
 		{
@@ -894,8 +867,8 @@ int a_main(int argc, char *const argv[])
 
 		auto s = new zeep::http::server(/*sc*/);
 
-		if (vm.count("context"))
-			s->set_context_name(vm["context"].as<std::string>());
+		if (config.has("context"))
+			s->set_context_name(config.get<std::string>("context"));
 
 		s->add_error_handler(new db_error_handler());
 		s->add_error_handler(new missing_entry_error_handler());
@@ -917,20 +890,20 @@ int a_main(int argc, char *const argv[])
 	if (command == "start")
 	{
 		std::string address = "127.0.0.1";
-		if (vm.count("address"))
-			address = vm["address"].as<std::string>();
+		if (config.has("address"))
+			address = config.get<std::string>("address");
 
 		unsigned short port = 10342;
-		if (vm.count("port"))
-			port = vm["port"].as<unsigned short>();
+		if (config.has("port"))
+			port = config.get<unsigned short>("port");
 
 		std::string user = "www-data";
-		if (vm.count("user"))
-			user = vm["user"].as<std::string>();
+		if (config.has("user"))
+			user = config.get<std::string>("user");
 
 		std::cout << "starting server at http://" << address << ':' << port << '/' << std::endl;
 
-		if (vm.count("no-daemon"))
+		if (config.has("no-daemon"))
 			result = server.run_foreground(address, port);
 		else
 			result = server.start(address, port, 4, 4, user);

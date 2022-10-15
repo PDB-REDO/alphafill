@@ -180,66 +180,6 @@ std::vector<point> getCAlphaForChain(const std::vector<cif::mm::residue *> &resi
 	return result;
 }
 
-
-
-std::tuple<std::vector<point>, std::vector<point>> selectAtomsNearResidue(
-	const std::vector<cif::mm::residue *> &pdb, const std::vector<size_t> &pdb_ix,
-	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
-	const std::vector<cif::mm::atom> &residue, float maxDistance)
-{
-	std::vector<point> ra, rb;
-
-	assert(pdb_ix.size() == af_ix.size());
-
-	for (size_t i = 0; i < pdb_ix.size(); ++i)
-	{
-		bool nearby = false;
-
-		for (const char *atom_id : {"C", "CA", "N", "O"})
-		{
-			assert(pdb_ix[i] < pdb.size());
-
-			auto atom = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
-			if (not atom)
-				continue;
-
-			for (auto &b : residue)
-			{
-				if (distance(atom, b) <= maxDistance)
-				{
-					nearby = true;
-					break;
-				}
-			}
-
-			if (nearby)
-				break;
-		}
-
-		if (not nearby)
-			continue;
-
-		for (const char *atom_id : {"C", "CA", "N", "O"})
-		{
-			assert(af_ix[i] < af.size());
-			assert(pdb_ix[i] < pdb.size());
-
-			auto pt_a = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
-			auto pt_b = af[af_ix[i]]->get_atom_by_atom_id(atom_id);
-
-			if (not pt_a and pt_b)
-				continue;
-
-			ra.push_back(pt_a.get_location());
-			rb.push_back(pt_b.get_location());
-		}
-	}
-
-	return {ra, rb};
-}
-
-
-
 // --------------------------------------------------------------------
 
 int a_main(int argc, char *const argv[])

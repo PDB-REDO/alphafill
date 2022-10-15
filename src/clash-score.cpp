@@ -75,62 +75,62 @@ struct CAtom
 	float radius;
 };
 
-// --------------------------------------------------------------------
+// // --------------------------------------------------------------------
 
-json CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance)
-{
-	auto maxDistanceSq = maxDistance * maxDistance;
+// json CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance)
+// {
+// 	auto maxDistanceSq = maxDistance * maxDistance;
 
-	json result;
+// 	json result;
 
-	auto &dp = result["distance"];
+// 	auto &dp = result["distance"];
 
-	int n = 0, o = 0;
-	double sumOverlapSq = 0;
+// 	int n = 0, o = 0;
+// 	double sumOverlapSq = 0;
 
-	for (auto &pa : polyAtoms)
-	{
-		bool near = false;
+// 	for (auto &pa : polyAtoms)
+// 	{
+// 		bool near = false;
 
-		for (auto &ra : resAtoms)
-		{
-			auto d = DistanceSquared(pa.pt, ra.pt);
+// 		for (auto &ra : resAtoms)
+// 		{
+// 			auto d = DistanceSquared(pa.pt, ra.pt);
 
-			if (d >= maxDistanceSq)
-				continue;
+// 			if (d >= maxDistanceSq)
+// 				continue;
 			
-			near = true;
+// 			near = true;
 
-			d = std::sqrt(d);
+// 			d = std::sqrt(d);
 
-			auto overlap = pa.radius + ra.radius - d;
-			if (overlap < 0)
-				overlap = 0;
+// 			auto overlap = pa.radius + ra.radius - d;
+// 			if (overlap < 0)
+// 				overlap = 0;
 			
-			if (overlap > 0)
-			{
-				++n;
-				sumOverlapSq += overlap * overlap;
-			}
+// 			if (overlap > 0)
+// 			{
+// 				++n;
+// 				sumOverlapSq += overlap * overlap;
+// 			}
 			
-			json d_pair;
-			d_pair.push_back(d);
-			d_pair.push_back(overlap);
+// 			json d_pair;
+// 			d_pair.push_back(d);
+// 			d_pair.push_back(overlap);
 
-			dp.push_back(std::move(d_pair));
-		}
+// 			dp.push_back(std::move(d_pair));
+// 		}
 
-		if (near)
-			++o;
-	}
+// 		if (near)
+// 			++o;
+// 	}
 
-	result["score"] = o ? sumOverlapSq / o : 0;
-	result["clash_count"] = n;
-	result["poly_atom_count"] = o;
-	result["ligand_atom_count"] = resAtoms.size();
+// 	result["score"] = o ? sumOverlapSq / o : 0;
+// 	result["clash_count"] = n;
+// 	result["poly_atom_count"] = o;
+// 	result["ligand_atom_count"] = resAtoms.size();
 
-	return result;
-}
+// 	return result;
+// }
 
 // --------------------------------------------------------------------
 

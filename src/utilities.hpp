@@ -27,12 +27,21 @@
 #include <filesystem>
 #include <regex>
 
+#include <cif++.hpp>
 #include <cfg.hpp>
+
+#include "blast.hpp"
+#include "ligands.hpp"
 
 // --------------------------------------------------------------------
 
-int a_main(int argc, char *const argv[]);
-void print_what(const std::exception &ex);
+std::filesystem::path pdbFileForID(const std::filesystem::path &pdbDir, std::string pdb_id);
+std::vector<cif::mm::residue *> get_residuesForChain(cif::mm::structure &structure, const std::string &chain_id);
+std::tuple<std::vector<cif::point>, std::vector<cif::point>> selectAtomsNearResidue(
+	const std::vector<cif::mm::residue *> &pdb, const std::vector<size_t> &pdb_ix,
+	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
+	const std::vector<cif::mm::atom> &residue, float maxDistance, const Ligand &ligand);
+sequence getSequenceForStrand(cif::datablock &db, const std::string &strand);
 
 // --------------------------------------------------------------------
 

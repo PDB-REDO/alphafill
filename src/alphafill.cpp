@@ -35,6 +35,7 @@
 #include <zeep/json/element.hpp>
 #include <cfg.hpp>
 
+#include "alphafill.hpp"
 #include "blast.hpp"
 #include "ligands.hpp"
 #include "queue.hpp"
@@ -51,171 +52,6 @@ using json = zeep::json::element;
 
 // --------------------------------------------------------------------
 
-fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id)
-{
-	for (auto &ch : pdb_id)
-		ch = std::tolower(ch);
-
-	// try a PDB-REDO layout first
-	fs::path pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif");
-	if (not fs::exists(pdb_path))
-		pdb_path = pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz");
-
-	if (not fs::exists(pdb_path))
-		throw std::runtime_error("PDB file for " + pdb_id + " not found");
-
-	return pdb_path;
-}
-
-sequence getSequenceForStrand(cif::datablock &db, const std::string &strand)
-{
-	using namespace cif::literals;
-
-	auto &pdbx_poly_seq_scheme = db["pdbx_poly_seq_scheme"];
-	auto r = pdbx_poly_seq_scheme.find("pdb_strand_id"_key == strand);
-	if (r.empty())
-		throw std::runtime_error("Could not locate sequence in PDB for strand id " + strand);
-
-	auto entity_id = r.front()["entity_id"].as<std::string>();
-
-	auto &entity_poly = db["entity_poly"];
-	auto pdb_seq = entity_poly.find1<std::string>("entity_id"_key == entity_id, "pdbx_seq_one_letter_code_can");
-
-	return encode(pdb_seq);
-}
-
-int validateFastA(fs::path fasta, fs::path dbDir, int threads)
-{
-	int result = 0;
-
-	std::ifstream f(fasta);
-	if (not f.is_open())
-		throw std::runtime_error("Could not open fasta file");
-	
-	std::string id, strand, seq, line;
-
-	std::vector<std::string> mismatch, unequal_length, not_x_related;
-	blocking_queue<std::tuple<std::string,std::string,std::string>> q;
-
-	std::mutex guard;
-
-	std::vector<std::thread> t;
-	for (int i = 0; i < threads; ++i)
-	{
-		t.emplace_back([&]()
-		{
-			for (;;)
-			{
-				const auto &&[id, strand, seq] = q.pop();
-
-				if (id.empty())	// sentinel
-				{
-					q.push({});
-					break;
-				}
-
-				try
-				{
-					cif::file pdbFile(pdbFileForID(dbDir, id));
-
-					if (pdbFile.empty())
-						throw std::runtime_error("Invalid cif file for " + id);
-
-					auto a = getSequenceForStrand(pdbFile.front(), strand);
-					auto b = encode(seq);
-
-					if (a == b)
-						continue;
-
-					std::unique_lock lock(guard);
-
-					result = -1;
-
-					std::cerr << "Mismatch for " << id << " strand " << strand << std::endl;
-
-					std::cerr << std::endl
-								<< decode(a) << std::endl
-								<< seq << std::endl
-								<< std::endl;
-
-					mismatch.push_back(id);
-
-					if (a.length() != b.length())
-					{
-						unequal_length.push_back(id);
-						continue;
-					}
-
-					for (size_t i = 0; i < a.length(); ++i)
-					{
-						if (a[i] == b[i])
-							continue;
-						
-						if (a[i] == 22 or b[i] == 22)	// either one is X
-							continue;
-						
-						not_x_related.push_back(id);
-					}
-				}
-				catch (std::exception const &ex)
-				{
-					std::cerr << ex.what() << std::endl;
-				}
-			}
-		});
-	}
-
-	while (std::getline(f, line))
-	{
-		if (line[0] == '>')
-		{
-			if (not id.empty())
-			{
-				if (seq.empty() or strand.empty())
-					throw std::runtime_error("No sequence for id " + id);
-
-				q.push({id, strand, seq });
-			}
-				
-			id = line.substr(1, 4);
-			strand = line.substr(6);
-			seq.clear();
-		}
-		else
-			seq.append(line.begin(), line.end());
-	}
-
-	// signal end
-	q.push({});
-
-	for (auto &ti: t)
-		ti.join();
-
-	if (result)
-	{
-		mismatch.erase(std::unique(mismatch.begin(), mismatch.end()), mismatch.end());
-		unequal_length.erase(std::unique(unequal_length.begin(), unequal_length.end()), unequal_length.end());
-		not_x_related.erase(std::unique(not_x_related.begin(), not_x_related.end()), not_x_related.end());
-
-		std::cout << "Report for fasta check" << std::endl
-				  << std::string(80, '-') << std::endl
-				  << std::endl
-				  << "PDB ID's with mismatches" << std::endl
-				  << ba::join(mismatch, ", ") << std::endl
-				  << std::endl
-				  << "PDB ID's with differing sequence length" << std::endl
-				  << ba::join(unequal_length, ", ") << std::endl
-				  << std::endl
-				  << "PDB ID's with mismatches that do not involve X" << std::endl
-				  << ba::join(not_x_related, ", ") << std::endl
-				  << std::endl;
-	}
-
-	return result;
-}
-
-// --------------------------------------------------------------------
-
 using cif::point;
 using cif::quaternion;
 
@@ -224,22 +60,6 @@ bool validateHit(cif::datablock &db, const BlastHit &hit)
 	using namespace cif::literals;
 
 	return getSequenceForStrand(db, hit.mDefLine.substr(6)) == hit.mTarget;
-}
-
-std::vector<cif::mm::residue *> get_residuesForChain(cif::mm::structure &structure, const std::string &chain_id)
-{
-	std::vector<cif::mm::residue *> result;
-
-	for (auto &poly : structure.polymers())
-	{
-		if (poly.get_asym_id() != chain_id)
-			continue;
-
-		for (auto &res : poly)
-			result.emplace_back(&res);
-	}
-
-	return result;
 }
 
 std::tuple<std::vector<size_t>, std::vector<size_t>> getTrimmedIndicesForHsp(const BlastHsp &hsp)
@@ -279,66 +99,6 @@ std::tuple<std::vector<size_t>, std::vector<size_t>> getTrimmedIndicesForHsp(con
 	return {ixq, ixt};
 }
 
-std::tuple<std::vector<point>, std::vector<point>> selectAtomsNearResidue(
-	const std::vector<cif::mm::residue *> &pdb, const std::vector<size_t> &pdb_ix,
-	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
-	const std::vector<cif::mm::atom> &residue, float maxDistance, const Ligand &ligand)
-{
-	std::vector<point> ra, rb;
-
-	float maxDistanceSq = maxDistance * maxDistance;
-
-	assert(pdb_ix.size() == af_ix.size());
-
-	for (size_t i = 0; i < pdb_ix.size(); ++i)
-	{
-		bool nearby = false;
-
-		for (const char *atom_id : {"C", "CA", "N", "O"})
-		{
-			assert(pdb_ix[i] < pdb.size());
-
-			auto atom = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
-			if (not atom)
-				continue;
-
-			for (auto &b : residue)
-			{
-				if (ligand.drops(b.get_label_atom_id()))
-					continue;
-
-				if (distance_squared(atom, b) > maxDistanceSq)
-					continue;
-
-				nearby = true;
-				break;
-			}
-
-			if (nearby)
-				break;
-		}
-
-		if (not nearby)
-			continue;
-
-		for (const char *atom_id : {"C", "CA", "N", "O"})
-		{
-			assert(af_ix[i] < af.size());
-			assert(pdb_ix[i] < pdb.size());
-
-			auto pt_a = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
-			auto pt_b = af[af_ix[i]]->get_atom_by_atom_id(atom_id);
-
-			if (not pt_a and pt_b)
-				continue;
-
-			ra.push_back(pt_a.get_location());
-			rb.push_back(pt_b.get_location());
-		}
-	}
-
-	return {ra, rb};
-}
 
 // --------------------------------------------------------------------
 
@@ -522,103 +282,15 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 
 // --------------------------------------------------------------------
 
-int a_main(int argc, char *const argv[])
+int alphafill_main(int argc, char *const argv[])
 {
 	using namespace std::literals;
 	using namespace cif::literals;
 
 	auto &config = cfg::config::instance();
-	config.init(
-		cfg::make_option<std::string>("af-dir", "Directory containing the alphafold data"),
-		cfg::make_option<std::string>("db-dir", "Directory containing the af-filled data"),
-		cfg::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
-
-		cfg::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
-		cfg::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"),
-
-		cfg::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
-
-		cfg::make_option<float>("max-ligand-to-backbone-distance", 6, "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure"),
-		cfg::make_option<float>("min-hsp-identity", 0.25, "The minimal identity for a high scoring pair (note, value between 0 and 1)"),
-		cfg::make_option<int>("min-alignment-length", 85, "The minimal length of an alignment"),
-		cfg::make_option<float>("min-separation-distance", 3.5, "The centroids of two identical ligands should be at least this far apart to count as separate occurrences"),
-		cfg::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
-
-		cfg::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
-
-		cfg::make_option<std::string>("compounds", "Location of the components.cif file from CCD"),
-		cfg::make_option<std::string>("components", "Location of the components.cif file from CCD, alias"),
-		cfg::make_option<std::string>("extra-compounds", "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file"),
-		cfg::make_option<std::string>("mmcif-dictionary", "Path to the mmcif_pdbx.dic file to use instead of default"),
-
-		cfg::make_option<std::string>("structure-name-pattern", "Pattern for locating structure files"),
-		cfg::make_option<std::string>("metadata-name-pattern", "Pattern for locating metadata files"),
-		cfg::make_option<std::string>("pdb-name-pattern", "Pattern for locating PDB files"),
-
-		cfg::make_option<size_t>("threads,t", 1, "Number of threads to use, zero means all available cores"),
-
-		cfg::make_hidden_option("validate-fasta", "Validate the FastA file (check if all sequence therein are the same as in the corresponding PDB files)"),
-		cfg::make_hidden_option("prepare-pdb-list", "Generate a list with PDB ID's that contain any of the ligands"),
-
-		cfg::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
-
-		cfg::make_option<std::string>("alphafold-3d-beacon", "The URL of the 3d-beacons service for alphafold"),
-		cfg::make_hidden_option<std::string>("test-af-id", ""),
-
-		cfg::make_hidden_option("test", "Run test code")
-	);
-
-	config.set_ignore_unknown(true);
-	config.parse(argc, argv);
-
-	// --------------------------------------------------------------------
-
-	if (config.has("help"))
-	{
-		std::cerr << config << std::endl;
-		exit(config.has("help") ? 0 : 1);
-	}
-
-	cif::VERBOSE = config.has("verbose") != 0;
-	if (config.has("debug"))
-		cif::VERBOSE = config.get<int>("debug");
-
-	config.parse_config_file("config", "alphafill.conf", { fs::current_path().string(), "/etc/" });
-
-	// --------------------------------------------------------------------
-
-	if (not config.has("pdb-fasta"))
-	{
-		std::cout << "fasta file not specified" << std::endl;
-		exit(1);
-	}
-
-	if (not config.has("pdb-dir"))
-	{
-		std::cout << "PDB directory not specified" << std::endl;
-		exit(1);
-	}
-
-	// --------------------------------------------------------------------
 
 	std::string fasta = config.get<std::string>("pdb-fasta");
-	if (not fs::exists(fasta))
-		throw std::runtime_error("PDB-Fasta file does not exist (" + fasta + ")");
-
 	fs::path pdbDir = config.get<std::string>("pdb-dir");
-	if (not fs::is_directory(pdbDir))
-		throw std::runtime_error("PDB directory does not exist");
-
-	// --------------------------------------------------------------------
-	
-	if (config.has("validate-fasta"))
-		return validateFastA(config.get<std::string>("pdb-fasta"), config.get<std::string>("pdb-dir"), std::thread::hardware_concurrency());
-
-	if (config.has("test-af-id"))
-	{
-		data_service::instance().exists_in_afdb(config.get<std::string>("test-af-id"));
-		return 0;
-	}
 
 	// --------------------------------------------------------------------
 
@@ -665,13 +337,13 @@ int a_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	if (config.operands().empty())
+	if (config.operands().size() < 2)
 	{
 		std::cout << "Input file not specified" << std::endl;
 		exit(1);
 	}
 
-	fs::path xyzin = config.operands().front();
+	fs::path xyzin = config.operands()[1];
 	cif::file f(xyzin);
 	if (f.empty())
 		throw std::runtime_error("invalid cif file " + xyzin.string());
@@ -683,6 +355,9 @@ int a_main(int argc, char *const argv[])
 
 	cif::datablock &db = f.front();
 	cif::mm::structure af_structure(f, 1, cif::mm::StructureOpenOptions::SkipHydrogen);
+
+	if (af_structure.polymers().empty())
+		throw std::runtime_error("Structure file does not seem to contain polymers, perhaps pdbx_poly_seq_scheme is missing?");
 
 	// --------------------------------------------------------------------
 	// atoms for the clash score calculation
@@ -1136,9 +811,9 @@ int a_main(int argc, char *const argv[])
 		{"date", kBuildDate},
 		{"classification", "model annotation"}});
 
-	if (config.operands().size() == 2)
+	if (config.operands().size() >= 3)
 	{
-		fs::path output = config.operands().back();
+		fs::path output = config.operands()[2];
 
 		if (output.has_parent_path() and not fs::exists(output.parent_path()))
 			fs::create_directories(output.parent_path());
