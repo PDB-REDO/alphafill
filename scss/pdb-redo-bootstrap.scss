@@ -22,7 +22,7 @@ $nav-link: #3366cc;
 
 $nav-primary-hover: #d8c7a5;
 
-$theme-colors: (
+$pdb-redo-colors: (
 	"nav-primary": $nav-primary,
 	"nav-secondary": $nav-secondary,
 
@@ -39,6 +39,8 @@ $nav-link-padding-y: math.div($spacer, 2);
 
 // (Required) Import Bootstrap
 @import "bootstrap/scss/bootstrap";
+
+$theme-colors: map-merge($theme-colors, $pdb-redo-colors);
 
 @mixin hover-focus() {
 	&:hover,

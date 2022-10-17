@@ -605,6 +605,8 @@ class affd_rest_controller : public zh::rest_controller
 
 		map_get_request("aff/{id}/optimized/{asymlist}", &affd_rest_controller::get_aff_structure_optimized, "id", "asymlist");
 		map_get_request("aff/{id}/optimized-with-stats/{asymlist}", &affd_rest_controller::get_aff_structure_optimized_with_stats, "id", "asymlist");
+
+		map_post_request("aff", &affd_rest_controller::post_custom_structure, "structure");
 	}
 
 	zh::reply get_aff_structure(const std::string &af_id);
@@ -620,6 +622,10 @@ class affd_rest_controller : public zh::rest_controller
 
 	zh::reply get_aff_structure_optimized(const std::string &af_id, const std::string &asyms);
 	zh::reply get_aff_structure_optimized_with_stats(const std::string &af_id, const std::string &asyms);
+
+	// --------------------------------------------------------------------
+
+	zeep::json::element post_custom_structure(const std::string &data);
 };
 
 zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
@@ -813,11 +819,38 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 
 // --------------------------------------------------------------------
 
+zeep::json::element affd_rest_controller::post_custom_structure(const std::string &data)
+{
+	auto hash = zeep::encode_hex(zeep::sha1(data));
+
+	auto status = data_service::instance().status(hash);
+
+	if (status == CustomStatus::Unknown)
+	{
+		data_service::instance().queue(data, hash);
+		status = CustomStatus::Queued;
+	}
+
+	return {
+		{ "id", "CS-" + hash },
+		{ "status", status }
+	};
+}
+
+// --------------------------------------------------------------------
+
 int server_main(int argc, char *const argv[])
 {
 	using namespace std::literals;
 
 	int result = 0;
+
+	zeep::value_serializer<CustomStatus>::instance("CustomStatus")
+		("unknown", CustomStatus::Unknown)
+		("queued", CustomStatus::Queued)
+		("running", CustomStatus::Running)
+		("finished", CustomStatus::Finished)
+		("error", CustomStatus::Error);
 
 	auto &config = cfg::config::instance();
 

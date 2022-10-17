@@ -407,3 +407,15 @@ bool data_service::exists_in_afdb(const std::string &id) const
 
 	return false;
 }
+
+// --------------------------------------------------------------------
+
+CustomStatus data_service::status(const std::string &hash) const
+{
+	return CustomStatus::Unknown;
+}
+
+void data_service::queue(const std::string &data, const std::string &hash)
+{
+
+}

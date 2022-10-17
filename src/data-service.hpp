@@ -75,6 +75,11 @@ struct structure
 	}
 };
 
+enum class CustomStatus
+{
+	Unknown, Queued, Running, Finished, Error
+};
+
 class data_service
 {
   public:
@@ -92,4 +97,7 @@ class data_service
 	// On demand services
 
 	bool exists_in_afdb(const std::string &id) const;
+
+	CustomStatus status(const std::string &hash) const;
+	void queue(const std::string &data, const std::string &hash);
 };
