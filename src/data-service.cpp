@@ -40,6 +40,7 @@
 
 #include "mrsrc.hpp"
 
+#include "alphafill.hpp"
 #include "data-service.hpp"
 #include "db-connection.hpp"
 #include "https-client.hpp"
@@ -417,7 +418,7 @@ bool data_service::exists_in_afdb(const std::string &id) const
 
 				struct membuf : public std::streambuf
 				{
-					membuf(char * text, size_t length)
+					membuf(char *text, size_t length)
 					{
 						this->setg(text, text, text + length);
 					}
@@ -448,33 +449,64 @@ void data_service::run()
 		if (next == "stop")
 			break;
 
-		std::cout << "Need to process " << next << std::endl;
+		// std::cout << "Need to process " << next << std::endl;
 
-		m_running = next;
-		m_progress = 0;
+		// for (int i = 0; i < 100; ++i)
+		// {
+		// 	m_progress = i / 100.0f;
+		// 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		// }
 
-		for (int i = 0; i < 100; ++i)
+		// m_running.clear();
+		// m_progress = 0;
+
+		std::error_code ec;
+
+		auto xyzin = m_in_dir / next;
+		auto xyzout = m_out_dir / ("CS-" + next + ".cif.gz");
+		auto jsonout = m_out_dir / ("CS-" + next + ".json");
+
+		if (fs::exists(xyzout, ec) and fs::exists(jsonout, ec))
 		{
-			m_progress = i / 100.0f;			
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			// results already exist. Skip this.
+			fs::remove(xyzin, ec);
+			continue;
 		}
 
-		m_running.clear();
-		m_progress = 0;
+		try
+		{
+			if (not fs::exists(xyzin, ec))
+				throw std::runtime_error("Input file does not exist");
+
+			m_running = next;
+			m_progress = 0;
+
+			gxrio::ofstream out(xyzout);
+
+			auto metadata = alphafill(xyzin, out, [this](size_t max, size_t cur)
+			{
+				m_progress = static_cast<float>(cur) / max;
+			});
+
+			std::ofstream metadataFile(jsonout);
+			metadataFile << metadata;
+		}
+		catch (const std::exception &ex)
+		{
+			std::ofstream errorFile(m_out_dir / ("CS-" + next + ".error"));
+			errorFile << ex.what() << std::endl;
+		}
+
+		fs::remove(xyzin, ec);
 	}
 }
 
-fs::path data_service::file_for_hash(const std::string &hash) const
-{
-	return m_out_dir / ("CS-" + hash + ".cif.gz");
-}
-
-std::tuple<CustomStatus,float> data_service::get_status(const std::string &hash) const
+std::tuple<CustomStatus, float> data_service::get_status(const std::string &hash) const
 {
 	CustomStatus status = CustomStatus::Unknown;
 	float progress = m_progress;
 
-	auto file = file_for_hash(hash);
+	auto file = m_out_dir / ("CS-" + hash + ".cif.gz");
 	if (fs::exists(file))
 		status = CustomStatus::Finished;
 	else if (m_running == hash)
@@ -491,13 +523,12 @@ void data_service::queue(const std::string &data, const std::string &hash)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
-	gxrio::ofstream file(file_for_hash(hash));
+	gxrio::ofstream file(m_out_dir / ("CS-" + hash + ".cif.gz"));
 	if (not file.is_open())
 		throw std::runtime_error("Could not create temporary file");
-	
+
 	file.write(data.data(), data.length());
 	file.close();
 
 	m_queue.push(hash);
 }
-

@@ -109,8 +109,6 @@ class data_service
 
 	void queue(const std::string &data, const std::string &hash);
 
-	std::filesystem::path file_for_hash(const std::string &hash) const;
-
   private:
 
 	data_service();

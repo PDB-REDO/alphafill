@@ -34,6 +34,7 @@
 
 #include <zeep/json/element.hpp>
 #include <cfg.hpp>
+#include <gxrio.hpp>
 
 #include "alphafill.hpp"
 #include "blast.hpp"
@@ -282,7 +283,8 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 
 // --------------------------------------------------------------------
 
-int alphafill_main(int argc, char *const argv[])
+zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
+	std::function<void(size_t, size_t)> progress)
 {
 	using namespace std::literals;
 	using namespace cif::literals;
@@ -296,19 +298,13 @@ int alphafill_main(int argc, char *const argv[])
 
 	fs::path ligandsFile = config.get<std::string>("ligands");
 	if (not fs::exists(ligandsFile))
-	{
-		std::cerr << "Ligands file not found" << std::endl;
-		exit(1);
-	}
+		throw std::runtime_error("Ligands file not found");
 
 	LigandsTable ligands(ligandsFile);
 
 	float maxDistance = config.get<float>("clash-distance-cutoff");
 
 	// --------------------------------------------------------------------
-	
-	if (config.has("prepare-pdb-list"))
-		return GeneratePDBList(config.get<std::string>("pdb-dir"), ligands, config.has("output") ? config.get<std::string>("output") : "");
 
 	cif::iset pdbIDsContainingLigands;
 	if (config.has("test-pdb-id"))
@@ -318,10 +314,7 @@ int alphafill_main(int argc, char *const argv[])
 		std::ifstream file(config.get<std::string>("pdb-id-list"));
 
 		if (not file.is_open())
-		{
-			std::cerr << "Could not open pdb-id-list " << config.get<std::string>("pdb-id-list") << std::endl;
-			exit(1);
-		}
+			throw std::runtime_error("Could not open pdb-id-list " + config.get<std::string>("pdb-id-list"));
 
 		std::string line;
 		while (std::getline(file, line))
@@ -337,20 +330,13 @@ int alphafill_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	if (config.operands().size() < 2)
-	{
-		std::cout << "Input file not specified" << std::endl;
-		exit(1);
-	}
-
-	fs::path xyzin = config.operands()[1];
 	cif::file f(xyzin);
 	if (f.empty())
-		throw std::runtime_error("invalid cif file " + xyzin.string());
+		throw std::runtime_error("invalid cif file");
 
 	// This sucks, kinda... The mmcif_af dictionary does not specify
 	// all links required to correctly work with libcifpp...
-	if (f.get_validator() == nullptr or f.get_validator()->name() != "mmdb_pdbx.dic")
+	if (f.get_validator() == nullptr or (f.get_validator()->name() != "mmcif_pdbx.dic" and f.get_validator()->name() != "mmcif_ma.dic"))
 		f.set_validator(&cif::validator_factory::instance()["mmcif_pdbx.dic"]);
 
 	cif::datablock &db = f.front();
@@ -408,14 +394,17 @@ int alphafill_main(int argc, char *const argv[])
 		if (cif::VERBOSE > 0)
 			std::cerr << "Found " << result.size() << " hits" << std::endl;
 
-		std::unique_ptr<cif::Progress> progress;
-		if (cif::VERBOSE < 1)
-			progress.reset(new cif::Progress(result.size() + 1, "matching"));
+		// std::unique_ptr<cif::Progress> progress;
+		// if (cif::VERBOSE < 1)
+		// 	progress.reset(new cif::Progress(result.size() + 1, "matching"));
+
+		size_t n = 0;
 
 		for (auto &hit : result)
 		{
-			if (progress)
-				progress->consumed(1);
+			// if (progress)
+			// 	progress->consumed(1);
+			progress(result.size() + 1, ++n);
 
 			std::smatch m;
 			if (not regex_match(hit.mDefLine, m, kIDRx))
@@ -429,8 +418,8 @@ int alphafill_main(int argc, char *const argv[])
 			std::string pdb_id = m[1].str();
 			std::string chain_id = m[2].str();
 
-			if (progress)
-				progress->message(pdb_id);
+			// if (progress)
+			// 	progress->message(pdb_id);
 
 			if (not (pdbIDsContainingLigands.empty() or pdbIDsContainingLigands.count(pdb_id)))
 				continue;
@@ -811,6 +800,37 @@ int alphafill_main(int argc, char *const argv[])
 		{"date", kBuildDate},
 		{"classification", "model annotation"}});
 
+	f.save(xyzout);
+
+	return result;
+}
+
+// --------------------------------------------------------------------
+
+int alphafill_main(int argc, char *const argv[])
+{
+	auto &config = cfg::config::instance();
+
+	// TODO: move this away
+	if (config.has("prepare-pdb-list"))
+	{
+		fs::path ligandsFile = config.get<std::string>("ligands");
+		if (not fs::exists(ligandsFile))
+			throw std::runtime_error("Ligands file not found");
+
+		LigandsTable ligands(ligandsFile);
+
+		return GeneratePDBList(config.get<std::string>("pdb-dir"), ligands, config.has("output") ? config.get<std::string>("output") : "");
+	}
+
+	if (config.operands().size() < 2)
+	{
+		std::cout << "Input file not specified" << std::endl;
+		exit(1);
+	}
+
+	fs::path xyzin = config.operands()[1];
+
 	if (config.operands().size() >= 3)
 	{
 		fs::path output = config.operands()[2];
@@ -818,17 +838,19 @@ int alphafill_main(int argc, char *const argv[])
 		if (output.has_parent_path() and not fs::exists(output.parent_path()))
 			fs::create_directories(output.parent_path());
 
-		f.save(output);
+		gxrio::ofstream xyzout(output);
+
+		json metadata = alphafill(xyzin, xyzout, [](size_t, size_t) {});
 
 		// if (output.extension() == ".gz")
 		// 	output = output.stem();
 
 		output.replace_extension(".json");
 		std::ofstream outfile(output);
-		outfile << result;
+		outfile << metadata;
 	}
 	else
-		f.save(std::cout);
+		alphafill(xyzin, std::cout, [](size_t, size_t) {});
 
 	return 0;
 }

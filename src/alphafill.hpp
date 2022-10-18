@@ -26,6 +26,12 @@
 
 #pragma once
 
+#include <iostream>
+#include <filesystem>
+#include <functional>
+#include <zeep/json/element.hpp>
 
+zeep::json::element alphafill(const std::filesystem::path &xyzin,
+	std::ostream &out, std::function<void(size_t, size_t)> progress);
 int alphafill_main(int argc, char * const argv[]);
 
