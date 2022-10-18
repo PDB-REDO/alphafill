@@ -1,0 +1,56 @@
+<!DOCTYPE html SYSTEM "about:legacy-compat">
+<html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
+
+<head z:replace="~{head :: head(~{::title}, ~{::link}, ~{::script})}">
+	<title>AlphaFold Filled</title>
+
+	<script z:inline="javascript">
+		const hash = /*[[${hash}]]*/ null;
+	</script>
+
+	<script defer="defer" type="text/javascript" src="scripts/wait.js"></script>
+
+</head>
+
+<style>
+
+.unknown .known {
+	display: none;
+}
+
+.running .queued {
+	display: none;
+}
+
+.queued .running {
+	display: none;
+}
+
+</style>
+
+<body class="site">
+
+	<header z:replace="header::top('home')"></header>
+
+	<div class="container site-content unknown" id="status-container">
+
+		<h1 class="text-center fw-bold">AlphaFill</h1>
+		<h2 class="text-center fw-bold">AlphaFold models enriched with ligands and co-factors</h2>
+
+		<p class="queued known">The entry is currently queued for processing</p>
+		<div class="running known">
+			<p>The entry is currently being processed</p>
+
+			<div class="progress">
+				<div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0"
+					aria-valuemax="100">0%</div>
+			</div>
+		</div>
+
+	</div>
+
+	<footer z:replace="~{footer::content}"></footer>
+
+</body>
+
+</html>

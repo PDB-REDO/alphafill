@@ -366,12 +366,24 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 	if (not request.has_parameter("id"))
 		throw missing_entry_error("<missing-id>");
 
-	const auto &[afId, chunkNr] = parse_af_id(request.get_parameter("id"));
+	const auto &[type, afId, chunkNr] = parse_af_id(request.get_parameter("id"));
+
+	if (type == EntryType::Custom)
+	{
+		const auto &[status, progress] = data_service::instance().get_status(afId);
+		if (status == CustomStatus::Queued or status == CustomStatus::Running)
+		{
+			sub.put("hash", afId);
+			sub.put("status", status);
+			get_server().get_template_processor().create_reply_from_template("wait", sub, reply);
+			return;
+		}
+	}
 
 	sub.put("af_id", afId);
 	sub.put("chunk", chunkNr);
 
-	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metdata_file(afId, 2));
+	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2));
 
 	sub.put("chunked", chunked);
 
@@ -386,8 +398,8 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 		sub.put("chunks", chunks);
 	}
 
-	fs::path jsonFile = file_locator::get_metdata_file(afId, chunkNr);
-	fs::path cifFile = file_locator::get_structure_file(afId, chunkNr);
+	fs::path jsonFile = file_locator::get_metadata_file(type, afId, chunkNr);
+	fs::path cifFile = file_locator::get_structure_file(type, afId, chunkNr);
 
 	if (not fs::exists(jsonFile) /*or not fs::exists(cifFile)*/)
 		throw missing_entry_error(afId);
@@ -526,7 +538,7 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 
 	std::string asymID = request.get_parameter("asym");
 
-	const auto &[afId, chunkNr] = parse_af_id(request.get_parameter("id"));
+	const auto &[type, afId, chunkNr] = parse_af_id(request.get_parameter("id"));
 
 	sub.put("af_id", afId);
 	sub.put("chunk", chunkNr);
@@ -536,7 +548,7 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 	{
 		using namespace cif::literals;
 
-		auto cif = file_locator::get_structure_file(afId, chunkNr);
+		auto cif = file_locator::get_structure_file(type, afId, chunkNr);
 		cif::file cf(cif);
 		if (cf.empty())
 			throw zeep::http::not_found;
@@ -552,7 +564,7 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 	{
 	}
 
-	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metdata_file(afId, 2));
+	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2));
 
 	sub.put("chunked", chunked);
 
@@ -597,6 +609,7 @@ class affd_rest_controller : public zh::rest_controller
 	{
 		map_get_request("aff/{id}", &affd_rest_controller::get_aff_structure, "id");
 		map_get_request("aff/{id}/json", &affd_rest_controller::get_aff_structure_json, "id");
+		map_get_request("aff/{id}/status", &affd_rest_controller::get_aff_status, "id");
 
 		map_get_request("aff/3d-beacon/{id}", &affd_rest_controller::get_aff_3d_beacon, "id");
 
@@ -610,6 +623,8 @@ class affd_rest_controller : public zh::rest_controller
 	}
 
 	zh::reply get_aff_structure(const std::string &af_id);
+	zeep::json::element get_aff_status(const std::string &af_id);
+
 	zeep::json::element get_aff_structure_json(const std::string &af_id);
 	zeep::json::element get_aff_3d_beacon(std::string id);
 
@@ -628,13 +643,34 @@ class affd_rest_controller : public zh::rest_controller
 	zeep::json::element post_custom_structure(const std::string &data);
 };
 
+zeep::json::element affd_rest_controller::get_aff_status(const std::string &af_id)
+{
+	const auto &[type, id, chunkNr] = parse_af_id(af_id);
+
+	zeep::json::element result;
+
+	if (type == EntryType::Custom)
+	{
+		const auto &[status, progress] = data_service::instance().get_status(id);
+
+		result["status"] = status;
+		result["progress"] = progress;
+	}
+	else if (fs::exists(file_locator::get_structure_file(id, chunkNr)))
+		result["status"] = CustomStatus::Finished;
+	else
+		result["status"] = CustomStatus::Unknown;
+
+	return result;
+}
+
 zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
 {
 	zeep::http::reply rep(zeep::http::ok, {1, 1});
 
-	const auto &[id, chunkNr] = parse_af_id(af_id);
+	const auto &[type, id, chunkNr] = parse_af_id(af_id);
 
-	fs::path file = file_locator::get_structure_file(id, chunkNr);
+	fs::path file = file_locator::get_structure_file(type, id, chunkNr);
 
 	if (not fs::exists(file))
 		return zeep::http::reply(zeep::http::not_found, {1, 1});
@@ -749,9 +785,9 @@ zh::reply affd_rest_controller::get_aff_structure_optimized_with_stats(const std
 
 zeep::json::element affd_rest_controller::get_aff_structure_json(const std::string &af_id)
 {
-	const auto &[id, chunkNr] = parse_af_id(af_id);
+	const auto &[type, id, chunkNr] = parse_af_id(af_id);
 
-	fs::path file = file_locator::get_metdata_file(id, chunkNr);
+	fs::path file = file_locator::get_metadata_file(type, id, chunkNr);
 
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
@@ -769,9 +805,9 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 	if (ba::ends_with(af_id, ".json"))
 		af_id.erase(af_id.begin() + af_id.length() - 5, af_id.end());
 
-	const auto &[id, chunkNr] = parse_af_id(af_id);
+	const auto &[type, id, chunkNr] = parse_af_id(af_id);
 
-	fs::path file = file_locator::get_structure_file(id, chunkNr);
+	fs::path file = file_locator::get_structure_file(type, id, chunkNr);
 
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
@@ -796,7 +832,7 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 	if (cf.empty())
 		throw zeep::http::not_found;
 	auto &db = cf.front();
-	auto &struct_ref = db["struct_ref"];
+	// auto &struct_ref = db["struct_ref"];
 	auto &struct_ref_seq = db["struct_ref_seq"];
 
 	int uniprot_start, uniprot_end;
@@ -823,7 +859,7 @@ zeep::json::element affd_rest_controller::post_custom_structure(const std::strin
 {
 	auto hash = zeep::encode_hex(zeep::sha1(data));
 
-	auto status = data_service::instance().status(hash);
+	auto &&[status, progress] = data_service::instance().get_status(hash);
 
 	if (status == CustomStatus::Unknown)
 	{

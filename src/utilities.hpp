@@ -32,6 +32,7 @@
 
 #include "blast.hpp"
 #include "ligands.hpp"
+#include "data-service.hpp"
 
 // --------------------------------------------------------------------
 
@@ -48,6 +49,22 @@ sequence getSequenceForStrand(cif::datablock &db, const std::string &strand);
 class file_locator
 {
   public:
+	static std::filesystem::path get_structure_file(EntryType type, const std::string &id, int chunk_nr)
+	{
+		if (type == EntryType::Custom)
+			return instance().m_custom_dir / (id + ".cif.gz");
+		else
+			return instance().get_structure_file_1(id, chunk_nr);
+	}
+
+	static std::filesystem::path get_metadata_file(EntryType type, const std::string &id, int chunk_nr)
+	{
+		if (type == EntryType::Custom)
+			return instance().m_custom_dir / (id + ".json");
+		else
+			return instance().get_metadata_file_1(id, chunk_nr);
+	}
+
 	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr)
 	{
 		return instance().get_structure_file_1(id, chunk_nr);
@@ -58,9 +75,9 @@ class file_locator
 		return instance().get_pdb_file_1(id);
 	}
 
-	static std::filesystem::path get_metdata_file(const std::string &id, int chunk_nr)
+	static std::filesystem::path get_metadata_file(const std::string &id, int chunk_nr)
 	{
-		return instance().get_metdata_file_1(id, chunk_nr);
+		return instance().get_metadata_file_1(id, chunk_nr);
 	}
 
 	static std::vector<std::filesystem::path> get_all_structure_files(const std::string &id);
@@ -88,7 +105,7 @@ class file_locator
 		return s;
 	}
 
-	std::filesystem::path get_metdata_file_1(const std::string &id, int chunk_nr)
+	std::filesystem::path get_metadata_file_1(const std::string &id, int chunk_nr)
 	{
 		std::string s = get_file(id, chunk_nr, m_metadata_name_pattern);
 
@@ -134,7 +151,7 @@ class file_locator
 		return pattern;
 	}
 
-	const std::filesystem::path m_db_dir, m_pdb_dir;
+	const std::filesystem::path m_db_dir, m_pdb_dir, m_custom_dir;
 	const std::string m_structure_name_pattern;
 	const std::string m_pdb_name_pattern;
 	const std::string m_metadata_name_pattern;

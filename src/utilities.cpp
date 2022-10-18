@@ -41,6 +41,7 @@ namespace fs = std::filesystem;
 file_locator::file_locator(cfg::config &config)
 	: m_db_dir(config.get<std::string>("db-dir"))
 	, m_pdb_dir(config.get<std::string>("pdb-dir"))
+	, m_custom_dir(fs::path(config.get<std::string>("custom-dir")) / "out")
 	, m_structure_name_pattern(config.get<std::string>("structure-name-pattern"))
 	, m_pdb_name_pattern(config.get<std::string>("pdb-name-pattern"))
 	, m_metadata_name_pattern(config.get<std::string>("metadata-name-pattern"))

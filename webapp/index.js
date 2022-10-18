@@ -35,23 +35,11 @@ window.addEventListener('load', () => {
 						return r.json()
 					throw "Failed to upload file";
 				}).then(r => {
-					console.log(r);
+					window.location = `model?id=${r.id}`;
 				}).catch(e => {
 					console.log(e);
 				});
-
-
-
-				// readMyFile(files[0])
-				// 	.then(data => {
-						// const fd = new FormData();
-
-						// fd.append("structure", files[0]);
-
-						// return fetch(form.action)
-					// })
 			}
-
 		 });
 	}
 

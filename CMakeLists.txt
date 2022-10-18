@@ -135,6 +135,7 @@ set(webpack_input
 	${PROJECT_SOURCE_DIR}/webapp/model.js
 	${PROJECT_SOURCE_DIR}/webapp/optimized.js
 	${PROJECT_SOURCE_DIR}/webapp/lists.js
+	${PROJECT_SOURCE_DIR}/webapp/wait.js
 	${PROJECT_SOURCE_DIR}/webapp/molstar.tsx
 	${PROJECT_SOURCE_DIR}/scss/pdb-redo-bootstrap.scss
 )
@@ -203,55 +204,4 @@ if(USE_RSRC)
 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic
 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_ma.dic)
 endif()
-
-
-# add_executable(af-filledd
-# 	${PROJECT_SOURCE_DIR}/src/bsd-closefrom.c
-# 	${PROJECT_SOURCE_DIR}/src/af-filledd.cpp
-# 	${PROJECT_SOURCE_DIR}/src/ligands.cpp
-# 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
-# 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
-# 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
-# 	${PROJECT_SOURCE_DIR}/src/structure.cpp
-# 	${PROJECT_SOURCE_DIR}/src/validate.cpp
-
-# 	# ${PROJECT_SOURCE_DIR}/src/https-client.cpp
-# )
-
-# target_compile_definitions(af-filledd PUBLIC
-# 	HAVE_DIRENT_H=${HAVE_DIRENT_H}
-# 	HAVE_FCNTL_H=${HAVE_FCNTL_H}
-# 	HAVE_DIRFD=${HAVE_DIRFD}
-# 	HAVE_PROC_PID=${HAVE_PROC_PID}
-# 	HAVE_SYSCONF=${HAVE_SYSCONF}
-# )
-
-# target_include_directories(af-filledd PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
-# target_link_libraries(af-filledd
-# 	PRIVATE libconfig::libconfig zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams PkgConfig::PQXX PkgConfig::PQ std::filesystem)
-
-# add_dependencies(af-filledd webpack)
-
-# if(USE_RSRC)
-# 	mrc_target_resources(af-filledd
-# 		${PROJECT_SOURCE_DIR}/docroot/
-# 		${PROJECT_SOURCE_DIR}/db-schema.sql
-# 		${PROJECT_SOURCE_DIR}/scripts/refine.mcr
-# 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic
-# 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_ma.dic
-# 	)
-# endif()
-
-# add_executable(validate-fill
-# 	${PROJECT_SOURCE_DIR}/src/ligands.cpp
-# 	${PROJECT_SOURCE_DIR}/src/validate-fill.cpp
-# 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
-# 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
-# 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
-# 	${PROJECT_SOURCE_DIR}/src/validate.cpp
-# )
-
-# target_include_directories(validate-fill PRIVATE zeep::zeep cifpp::cifpp ${PROJECT_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
-# target_link_libraries(validate-fill
-# 	PRIVATE libconfig::libconfig zeep::zeep cifpp::cifpp Boost::program_options Boost::iostreams PkgConfig::PQXX PkgConfig::PQ std::filesystem)
 

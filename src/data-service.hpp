@@ -26,16 +26,21 @@
 
 #pragma once
 
+#include <atomic>
 #include <filesystem>
 
 #include <zeep/nvp.hpp>
 
+#include "queue.hpp"
+
 // --------------------------------------------------------------------
+
+enum class EntryType { Unknown, AlphaFold, Custom };
 
 /// \brief Return the UniprotID and chunk number for an AlphaFold ID.
 ///
 /// Split an id in the form of AF-UNIPROTID-F<CHUNKNR>
-std::tuple<std::string,int> parse_af_id(std::string af_id);
+std::tuple<EntryType,std::string,int> parse_af_id(std::string af_id);
 
 // --------------------------------------------------------------------
 
@@ -85,6 +90,8 @@ class data_service
   public:
 	static data_service &instance();
 
+	~data_service();
+
 	static int rebuild(const std::string &db_user, const std::filesystem::path &db_dir);
 
 	std::vector<compound> get_compounds(float min_identity) const;
@@ -98,6 +105,23 @@ class data_service
 
 	bool exists_in_afdb(const std::string &id) const;
 
-	CustomStatus status(const std::string &hash) const;
+	std::tuple<CustomStatus,float> get_status(const std::string &hash) const;
+
 	void queue(const std::string &data, const std::string &hash);
+
+	std::filesystem::path file_for_hash(const std::string &hash) const;
+
+  private:
+
+	data_service();
+
+	void run();
+
+	std::filesystem::path m_in_dir;
+	std::filesystem::path m_out_dir;
+	std::thread m_thread;
+	blocking_queue<std::string> m_queue;
+	std::mutex m_mutex;
+	std::string m_running;
+	std::atomic<float> m_progress;
 };

@@ -126,6 +126,8 @@ int main(int argc, char *const argv[])
 			cfg::make_option<std::string>("db-host", "AF DB host"),
 			cfg::make_option<std::string>("db-port", "AF DB port"),
 
+			cfg::make_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill" / "custom").string(), "Directory for custom built entries"),
+
 			cfg::make_hidden_option("test", "Run test code"));
 
 		config.set_ignore_unknown(true);

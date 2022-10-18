@@ -51,21 +51,24 @@ namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
 
-std::regex kAF_ID_Rx(R"((?:AF-)?(.+?)(?:-F(\d+)(?:-model_v1)?)?)");
+std::regex kAF_ID_Rx(R"((?:(AF|CS)-)?(.+?)(?:-F(\d+)(?:-model_v\d)?)?)");
 
-std::tuple<std::string, int> parse_af_id(std::string af_id)
+std::tuple<EntryType, std::string, int> parse_af_id(std::string af_id)
 {
+	EntryType type = EntryType::Unknown;
 	int chunkNr = 1;
 
 	std::smatch m;
 	if (std::regex_match(af_id, m, kAF_ID_Rx))
 	{
-		af_id = m[1];
-		if (m[2].matched)
+		if (m[1].matched and m[1] == "CS")
+			type = EntryType::Custom;
+		af_id = m[2];
+		if (m[3].matched)
 			chunkNr = std::stoi(m[2]);
 	}
 
-	return { af_id, chunkNr };
+	return { type, af_id, chunkNr };
 }
 
 // --------------------------------------------------------------------
@@ -74,6 +77,32 @@ data_service &data_service::instance()
 {
 	static data_service s_instance;
 	return s_instance;
+}
+
+data_service::data_service()
+{
+	auto &config = cfg::config::instance();
+
+	fs::path dir = config.get<std::string>("custom-dir");
+	m_in_dir = dir / "in";
+	m_out_dir = dir / "out";
+
+	if (not fs::is_directory(m_in_dir))
+		fs::create_directories(m_in_dir);
+
+	if (not fs::is_directory(m_out_dir))
+		fs::create_directories(m_out_dir);
+
+	m_thread = std::thread(std::bind(&data_service::run, this));
+
+	for (fs::directory_iterator iter(m_in_dir); iter != fs::directory_iterator(); ++iter)
+		m_queue.push(iter->path().filename());
+}
+
+data_service::~data_service()
+{
+	m_queue.push("stop");
+	m_thread.join();
 }
 
 std::vector<compound> data_service::get_compounds(float min_identity) const
@@ -129,7 +158,7 @@ std::vector<structure> data_service::get_structures(float min_identity, uint32_t
 		    fetch first )" +
 			std::to_string(pageSize) + R"( rows only)"))
 	{
-		const auto &[id, chunk] = parse_af_id(structure_id);
+		const auto &[type, id, chunk] = parse_af_id(structure_id);
 		if (chunked)
 			structures.emplace_back(structure{ id + "-F" + std::to_string(chunk), hit_count, transplant_count, distinct });
 		else
@@ -169,7 +198,7 @@ std::vector<structure> data_service::get_structures_for_compound(float min_ident
 			fetch first )" +
 			std::to_string(pageSize) + R"( rows only)"))
 	{
-		const auto &[id, chunk] = parse_af_id(structure_id);
+		const auto &[type, id, chunk] = parse_af_id(structure_id);
 		if (chunked)
 			structures.emplace_back(structure{ id + "-F" + std::to_string(chunk), hit_count, transplant_count, distinct });
 		else
@@ -233,8 +262,8 @@ void process(blocking_queue<json> &q, cif::Progress &p)
 
 		p.message(id);
 
-		const auto &[uniprot_id, chunk] = parse_af_id(id);
-		bool chunked = fs::exists(file_locator::get_metdata_file(uniprot_id, 2));
+		const auto &[type, uniprot_id, chunk] = parse_af_id(id);
+		bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2));
 
 		pqxx::transaction tx1(db_connection::instance());
 		auto r = tx1.exec1(R"(INSERT INTO af_structure (name, chunked, af_version, created, af_file) VALUES()" +
@@ -410,12 +439,65 @@ bool data_service::exists_in_afdb(const std::string &id) const
 
 // --------------------------------------------------------------------
 
-CustomStatus data_service::status(const std::string &hash) const
+void data_service::run()
 {
-	return CustomStatus::Unknown;
+	for (;;)
+	{
+		std::string next = m_queue.pop();
+
+		if (next == "stop")
+			break;
+
+		std::cout << "Need to process " << next << std::endl;
+
+		m_running = next;
+		m_progress = 0;
+
+		for (int i = 0; i < 100; ++i)
+		{
+			m_progress = i / 100.0f;			
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+
+		m_running.clear();
+		m_progress = 0;
+	}
+}
+
+fs::path data_service::file_for_hash(const std::string &hash) const
+{
+	return m_out_dir / ("CS-" + hash + ".cif.gz");
+}
+
+std::tuple<CustomStatus,float> data_service::get_status(const std::string &hash) const
+{
+	CustomStatus status = CustomStatus::Unknown;
+	float progress = m_progress;
+
+	auto file = file_for_hash(hash);
+	if (fs::exists(file))
+		status = CustomStatus::Finished;
+	else if (m_running == hash)
+		status = CustomStatus::Running;
+	else if (fs::exists(m_in_dir / hash))
+		status = CustomStatus::Queued;
+	else if (fs::exists(m_out_dir / (hash + ".error")))
+		status = CustomStatus::Error;
+
+	return { status, progress };
 }
 
 void data_service::queue(const std::string &data, const std::string &hash)
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
 
+	gxrio::ofstream file(file_for_hash(hash));
+	if (not file.is_open())
+		throw std::runtime_error("Could not create temporary file");
+	
+	file.write(data.data(), data.length());
+	file.close();
+
+	m_queue.push(hash);
 }
+

@@ -19,6 +19,7 @@ module.exports = (env) => {
 			'model': SCRIPTS + "model.js",
 			'optimized': SCRIPTS + "optimized.js",
 			'lists': SCRIPTS + "lists.js",
+			'wait': SCRIPTS + "wait.js",
 		},
 
 		output: {

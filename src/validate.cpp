@@ -1050,14 +1050,14 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 
 // 	const auto &[afID, chunk] = parse_af_id(vm["af-id"].as<std::string>());
 
-// 	cif::file afFile(file_locator::get_structure_file(afID, chunk));
+// 	cif::file afFile(file_locator::get_structure_file(type, afID, chunk));
 // 	cif::mm::structure afStructure(afFile);
 
 // 	auto pdbID = vm["pdb-id"].as<std::string>();
 // 	cif::file pdbFile(file_locator::get_pdb_file(pdbID));
 // 	cif::mm::structure pdbStructure(pdbFile);
 
-// 	std::ifstream metadata(file_locator::get_metdata_file(afID, chunk));
+// 	std::ifstream metadata(file_locator::get_metadata_file(type, afID, chunk));
 
 // 	json info;
 // 	zeep::json::parse_json(metadata, info);
