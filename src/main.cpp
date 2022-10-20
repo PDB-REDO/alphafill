@@ -78,8 +78,10 @@ int main(int argc, char *const argv[])
 			cfg::make_option("help,h", "Display help message"),
 			cfg::make_option("quiet", "Do not produce warnings"),
 
+			cfg::make_option<std::string>("config", "alphafill.conf", "Configuration file to use"),
+
 			cfg::make_option<std::string>("af-dir", "Directory containing the alphafold data"),
-			cfg::make_option<std::string>("db-dir", "Directory containing the af-filled data"),
+			cfg::make_option<std::string>("db-dir", "Directory containing the alphafilled data"),
 			cfg::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 
 			cfg::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
@@ -126,11 +128,11 @@ int main(int argc, char *const argv[])
 			cfg::make_option<std::string>("db-host", "AF DB host"),
 			cfg::make_option<std::string>("db-port", "AF DB port"),
 
-			cfg::make_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill" / "custom").string(), "Directory for custom built entries"),
+			cfg::make_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries"),
 
 			cfg::make_hidden_option("test", "Run test code"));
 
-		config.set_ignore_unknown(true);
+		// config.set_ignore_unknown(true);
 		config.parse(argc, argv);
 
 		if (config.has("version"))

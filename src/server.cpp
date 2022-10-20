@@ -54,8 +54,6 @@ namespace fs = std::filesystem;
 namespace io = boost::iostreams;
 namespace zh = zeep::http;
 
-#define PACKAGE_NAME "af-filledd"
-
 const std::array<uint32_t, 6> kIdentities{70, 60, 50, 40, 30, 25};
 
 const int
@@ -884,7 +882,6 @@ int server_main(int argc, char *const argv[])
 		("error", CustomStatus::Error);
 
 	auto &config = cfg::config::instance();
-	auto &ds = data_service::instance();
 
 	fs::path dbDir = config.get<std::string>("db-dir");
 
@@ -923,12 +920,14 @@ int server_main(int argc, char *const argv[])
 	std::string command = config.operands()[1];
 
 	zh::daemon server([&]()
-		{
+	{
 		// auto sc = new zh::security_context(secret, ibs_user_service::instance());
 		// sc->add_rule("/admin", { "ADMIN" });
 		// sc->add_rule("/admin/**", { "ADMIN" });
 		// sc->add_rule("/media,/media/**", { "ADMIN", "EDITOR" });
 		// sc->add_rule("/", {});
+
+		/* auto &ds = */ data_service::instance();
 
 		auto s = new zeep::http::server(/*sc*/);
 
@@ -949,8 +948,8 @@ int server_main(int argc, char *const argv[])
 		s->add_controller(new affd_html_controller());
 		s->add_controller(new affd_rest_controller());
 
-		return s; },
-		PACKAGE_NAME);
+		return s;
+	}, "alphafill");
 
 	if (command == "start")
 	{

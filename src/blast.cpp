@@ -1315,13 +1315,13 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 		using namespace boost::interprocess;
 
 		//Create a file mapping
-		file_mapping m_file(p.string().c_str(), read_write);
+		file_mapping m_file(p.string().c_str(), read_only);
 
 		// if (not m_file.is_open())
 		// 	throw blast_exception("FastA file " + p.string() + " not open");
 
 		//Map the whole file with read-write permissions in this process
-		mapped_region region(m_file, read_write);
+		mapped_region region(m_file, read_only);
 
 		//Get the address of the mapped region
 		const char *data = reinterpret_cast<const char*>(region.get_address());

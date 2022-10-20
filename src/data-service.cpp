@@ -521,8 +521,6 @@ void data_service::run()
 			m_running = next;
 			m_progress = 0;
 
-			// gxrio::ofstream out(xyzout);
-
 			auto metadata = alphafill(f.front(), data_service_progress{ m_progress });
 
 			f.save(xyzout);
@@ -536,6 +534,7 @@ void data_service::run()
 			errorFile << ex.what() << std::endl;
 		}
 
+		m_running.clear();
 		fs::remove(xyzin, ec);
 	}
 }
