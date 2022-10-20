@@ -156,7 +156,7 @@ std::tuple<std::vector<point>, std::vector<point>> selectAtomsNearResidue(
 			auto pt_a = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
 			auto pt_b = af[af_ix[i]]->get_atom_by_atom_id(atom_id);
 
-			if (not pt_a and pt_b)
+			if (not (pt_a and pt_b))
 				continue;
 
 			ra.push_back(pt_a.get_location());

@@ -66,7 +66,7 @@ std::tuple<EntryType, std::string, int> parse_af_id(std::string af_id)
 			type = EntryType::Custom;
 		af_id = m[2];
 		if (m[3].matched)
-			chunkNr = std::stoi(m[2]);
+			chunkNr = std::stoi(m[3]);
 	}
 
 	return { type, af_id, chunkNr };
@@ -96,8 +96,18 @@ data_service::data_service()
 
 	m_thread = std::thread(std::bind(&data_service::run, this));
 
+	std::regex rx(R"(CS-(.+?)(?:\.cif\.gz)?)");
+
 	for (fs::directory_iterator iter(m_in_dir); iter != fs::directory_iterator(); ++iter)
-		m_queue.push(iter->path().filename());
+	{
+		std::smatch m;
+
+		std::string name = iter->path().filename();
+		if (not std::regex_match(name, m, rx))
+			continue;
+
+		m_queue.push(m[1]);
+	}
 }
 
 data_service::~data_service()
@@ -440,6 +450,32 @@ bool data_service::exists_in_afdb(const std::string &id) const
 
 // --------------------------------------------------------------------
 
+struct data_service_progress : public alphafill_progress_cb
+{
+	data_service_progress(std::atomic<float> &progress)
+		: m_progress(progress)
+	{
+	}
+
+	void set_max(size_t in_max) override
+	{
+		m_max = in_max;
+	}
+
+	void consumed(size_t n = 1) override
+	{
+		++m_cur;
+		m_progress = static_cast<float>(m_cur) / m_max;
+	}
+
+	void message(const std::string &msg) override
+	{
+	}
+
+	std::atomic<float> &m_progress;
+	size_t m_max = 1000, m_cur = 0;
+};
+
 void data_service::run()
 {
 	for (;;)
@@ -462,7 +498,7 @@ void data_service::run()
 
 		std::error_code ec;
 
-		auto xyzin = m_in_dir / next;
+		auto xyzin = m_in_dir / ("CS-" + next + ".cif.gz");
 		auto xyzout = m_out_dir / ("CS-" + next + ".cif.gz");
 		auto jsonout = m_out_dir / ("CS-" + next + ".json");
 
@@ -478,15 +514,18 @@ void data_service::run()
 			if (not fs::exists(xyzin, ec))
 				throw std::runtime_error("Input file does not exist");
 
+			cif::file f(xyzin);
+			if (f.empty())
+				throw std::runtime_error("Cif file seems to be empty or invalid");
+
 			m_running = next;
 			m_progress = 0;
 
-			gxrio::ofstream out(xyzout);
+			// gxrio::ofstream out(xyzout);
 
-			auto metadata = alphafill(xyzin, out, [this](size_t max, size_t cur)
-			{
-				m_progress = static_cast<float>(cur) / max;
-			});
+			auto metadata = alphafill(f.front(), data_service_progress{ m_progress });
+
+			f.save(xyzout);
 
 			std::ofstream metadataFile(jsonout);
 			metadataFile << metadata;
@@ -501,34 +540,64 @@ void data_service::run()
 	}
 }
 
-std::tuple<CustomStatus, float> data_service::get_status(const std::string &hash) const
+status_reply data_service::get_status(const std::string &hash) const
 {
-	CustomStatus status = CustomStatus::Unknown;
-	float progress = m_progress;
+	status_reply reply;
 
-	auto file = m_out_dir / ("CS-" + hash + ".cif.gz");
-	if (fs::exists(file))
-		status = CustomStatus::Finished;
+	auto cif_file = m_out_dir / ("CS-" + hash + ".cif.gz");
+	auto metadata_file = m_out_dir / ("CS-" + hash + ".json");
+
+	if (fs::exists(cif_file) and fs::exists(metadata_file))
+		reply.status = CustomStatus::Finished;
 	else if (m_running == hash)
-		status = CustomStatus::Running;
-	else if (fs::exists(m_in_dir / hash))
-		status = CustomStatus::Queued;
-	else if (fs::exists(m_out_dir / (hash + ".error")))
-		status = CustomStatus::Error;
+	{
+		reply.status = CustomStatus::Running;
+		reply.progress = m_progress;
+	}
+	else if (fs::exists(m_in_dir / ("CS-" + hash + ".cif.gz")))
+		reply.status = CustomStatus::Queued;
+	else if (fs::exists(m_out_dir / ("CS-" + hash + ".error")))
+	{
+		reply.status = CustomStatus::Error;
 
-	return { status, progress };
+		std::ifstream in(m_out_dir / ("CS-" + hash + ".error"));
+
+		std::string line;
+		std::getline(in, line);
+
+		reply.message = line;
+	}
+	else
+		reply.status = CustomStatus::Unknown;
+
+	return reply;
 }
 
 void data_service::queue(const std::string &data, const std::string &hash)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
-	gxrio::ofstream file(m_out_dir / ("CS-" + hash + ".cif.gz"));
-	if (not file.is_open())
+	struct membuf : public std::streambuf
+	{
+		membuf(char *text, size_t length)
+		{
+			this->setg(text, text, text + length);
+		}
+	} buffer(const_cast<char *>(data.data()), data.length());
+
+	gxrio::istream in(&buffer);
+
+	cif::file f(in);
+
+	if (f.empty())
+		throw std::runtime_error("Invalid or empty cif file");
+	
+	gxrio::ofstream out(m_in_dir / ("CS-" + hash + ".cif.gz"));
+	if (not out.is_open())
 		throw std::runtime_error("Could not create temporary file");
 
-	file.write(data.data(), data.length());
-	file.close();
+	f.save(out);
+	out.close();
 
 	m_queue.push(hash);
 }

@@ -44,8 +44,6 @@ set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Filesystem REQUIRED)
-
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers")
 elseif(MSVC)
@@ -77,20 +75,6 @@ if(MSVC)
 
 	get_WIN32_WINNT(ver)
 	add_definitions(-D_WIN32_WINNT=${ver})
-
-	# On Windows, do not install in the system location
-	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND NOT ($ENV{LOCALAPPDATA} STREQUAL ""))
-		message(STATUS "The executable will be installed in $ENV{LOCALAPPDATA}")
-		set(CMAKE_INSTALL_PREFIX "$ENV{LOCALAPPDATA}" CACHE PATH "..." FORCE)
-	endif()
-endif()
-
-if(UNIX AND NOT APPLE)
-	# On Linux, install in the $HOME/.local folder by default
-	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-		message(STATUS "The library and auxiliary files will be installed in $ENV{HOME}/.local")
-		set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/.local" CACHE PATH "..." FORCE)
-	endif()
 endif()
 
 # Create a revision file, containing the current git version info
@@ -113,7 +97,9 @@ if(USE_RSRC)
 	mrc_write_header(${CMAKE_BINARY_DIR}/mrsrc.hpp)
 endif()
 
-find_package(zeep 5.1.6 REQUIRED)
+find_package(Filesystem REQUIRED)
+find_package(gxrio REQUIRED)
+find_package(zeep 5.1.8 REQUIRED)
 find_package(cifpp 5 REQUIRED)
 find_package(Boost COMPONENTS program_options iostreams)
 # find_package(libpqxx 7.2 REQUIRED)
@@ -177,8 +163,9 @@ add_executable(alphafill
 	${PROJECT_SOURCE_DIR}/src/https-client.cpp
 	)
 
-target_include_directories(alphafill PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_include_directories(alphafill PRIVATE ${CMAKE_BINARY_DIR})
+target_include_directories(alphafill PRIVATE
+	${PROJECT_SOURCE_DIR}/include
+	${CMAKE_BINARY_DIR})
 
 target_compile_definitions(alphafill PUBLIC
 	HAVE_DIRENT_H=${HAVE_DIRENT_H}
@@ -191,7 +178,16 @@ target_compile_definitions(alphafill PUBLIC
 add_dependencies(alphafill webpack)
 
 target_link_libraries(alphafill
-	libconfig::libconfig cifpp::cifpp zeep::zeep Boost::program_options Boost::iostreams PkgConfig::PQXX PkgConfig::PQ PkgConfig::SSL PkgConfig::CRYPTO std::filesystem)
+	libconfig::libconfig
+	cifpp::cifpp
+	zeep::zeep
+	Boost::program_options
+	Boost::iostreams
+	PkgConfig::PQXX
+	PkgConfig::PQ
+	PkgConfig::SSL
+	PkgConfig::CRYPTO
+	std::filesystem)
 
 if(USE_RSRC)
 	mrc_target_resources(alphafill

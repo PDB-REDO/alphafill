@@ -370,20 +370,20 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 
 	if (type == EntryType::Custom)
 	{
-		const auto &[status, progress] = data_service::instance().get_status(afId);
-		if (status == CustomStatus::Queued or status == CustomStatus::Running)
+		auto status = data_service::instance().get_status(afId);
+		if (status.status != CustomStatus::Finished)
 		{
 			sub.put("hash", afId);
-			sub.put("status", status);
+			sub.put("status", status.status);
 			get_server().get_template_processor().create_reply_from_template("wait", sub, reply);
 			return;
 		}
 	}
 
-	sub.put("af_id", afId);
+	sub.put("af_id", type == EntryType::Custom ? "CS-" + afId : "AF-" + afId);
 	sub.put("chunk", chunkNr);
 
-	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2));
+	bool chunked = type == EntryType::AlphaFold and (chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2)));
 
 	sub.put("chunked", chunked);
 
@@ -623,7 +623,7 @@ class affd_rest_controller : public zh::rest_controller
 	}
 
 	zh::reply get_aff_structure(const std::string &af_id);
-	zeep::json::element get_aff_status(const std::string &af_id);
+	status_reply get_aff_status(const std::string &af_id);
 
 	zeep::json::element get_aff_structure_json(const std::string &af_id);
 	zeep::json::element get_aff_3d_beacon(std::string id);
@@ -643,23 +643,18 @@ class affd_rest_controller : public zh::rest_controller
 	zeep::json::element post_custom_structure(const std::string &data);
 };
 
-zeep::json::element affd_rest_controller::get_aff_status(const std::string &af_id)
+status_reply affd_rest_controller::get_aff_status(const std::string &af_id)
 {
 	const auto &[type, id, chunkNr] = parse_af_id(af_id);
 
-	zeep::json::element result;
+	status_reply result;
 
 	if (type == EntryType::Custom)
-	{
-		const auto &[status, progress] = data_service::instance().get_status(id);
-
-		result["status"] = status;
-		result["progress"] = progress;
-	}
+		result = data_service::instance().get_status(id);
 	else if (fs::exists(file_locator::get_structure_file(id, chunkNr)))
-		result["status"] = CustomStatus::Finished;
+		result.status = CustomStatus::Finished;
 	else
-		result["status"] = CustomStatus::Unknown;
+		result.status = CustomStatus::Unknown;
 
 	return result;
 }
@@ -859,17 +854,17 @@ zeep::json::element affd_rest_controller::post_custom_structure(const std::strin
 {
 	auto hash = zeep::encode_hex(zeep::sha1(data));
 
-	auto &&[status, progress] = data_service::instance().get_status(hash);
+	auto status = data_service::instance().get_status(hash);
 
-	if (status == CustomStatus::Unknown)
+	if (status.status == CustomStatus::Unknown)
 	{
 		data_service::instance().queue(data, hash);
-		status = CustomStatus::Queued;
+		status.status = CustomStatus::Queued;
 	}
 
 	return {
 		{ "id", "CS-" + hash },
-		{ "status", status }
+		{ "status", status.status }
 	};
 }
 
@@ -889,6 +884,7 @@ int server_main(int argc, char *const argv[])
 		("error", CustomStatus::Error);
 
 	auto &config = cfg::config::instance();
+	auto &ds = data_service::instance();
 
 	fs::path dbDir = config.get<std::string>("db-dir");
 

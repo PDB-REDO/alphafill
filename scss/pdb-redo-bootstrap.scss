@@ -15,6 +15,7 @@
 $font-family-sans-serif: "Verdana", "Arial", "Helvetica", "sans-serif";
 
 $primary: rgb(100, 100, 100);
+$primary-rgb: 100, 100, 100;
 
 $nav-primary: #FF9933;
 $nav-secondary: #ffecbf;
@@ -23,10 +24,9 @@ $nav-link: #3366cc;
 $nav-primary-hover: #d8c7a5;
 
 $pdb-redo-colors: (
+	"primary": $primary,
 	"nav-primary": $nav-primary,
 	"nav-secondary": $nav-secondary,
-
-	"primary": $primary
 );
 
 $navbar-dark-color: $nav-link;
@@ -40,7 +40,7 @@ $nav-link-padding-y: math.div($spacer, 2);
 // (Required) Import Bootstrap
 @import "bootstrap/scss/bootstrap";
 
-$theme-colors: map-merge($theme-colors, $pdb-redo-colors);
+$theme-colors: map-merge($pdb-redo-colors, $theme-colors);
 
 @mixin hover-focus() {
 	&:hover,

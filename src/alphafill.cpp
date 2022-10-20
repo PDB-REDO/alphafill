@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2021 NKI/AVL, Netherlands Cancer Institute
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -32,9 +32,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/date_time.hpp>
 
-#include <zeep/json/element.hpp>
 #include <cfg.hpp>
 #include <gxrio.hpp>
+#include <zeep/json/element.hpp>
 
 #include "alphafill.hpp"
 #include "blast.hpp"
@@ -97,20 +97,21 @@ std::tuple<std::vector<size_t>, std::vector<size_t>> getTrimmedIndicesForHsp(con
 	assert(qix == hsp.mQueryEnd);
 	assert(tix == hsp.mTargetEnd);
 
-	return {ixq, ixt};
+	return { ixq, ixt };
 }
-
 
 // --------------------------------------------------------------------
 
 enum class UniqueType
 {
-	Seen, Unique, MoreAtoms
+	Seen,
+	Unique,
+	MoreAtoms
 };
 
-std::tuple<UniqueType,std::string> isUniqueLigand(const cif::mm::structure &structure, float minDistance, const cif::mm::residue &lig, std::string_view id)
+std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &structure, float minDistance, const cif::mm::residue &lig, std::string_view id)
 {
-	std::tuple<UniqueType,std::string> result{ UniqueType::Unique, "" };
+	std::tuple<UniqueType, std::string> result{ UniqueType::Unique, "" };
 
 	auto minDistanceSq = minDistance * minDistance;
 
@@ -156,10 +157,10 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 	{
 		if (not iter->is_directory())
 			continue;
-		
+
 		if (iter->path().filename().string().length() != 2)
 			continue;
-		
+
 		// Regular PDB layout
 		for (fs::directory_iterator fiter(iter->path()); fiter != fs::directory_iterator(); ++fiter)
 		{
@@ -211,7 +212,7 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 	for (int i = 0; i < nrOfThreads; ++i)
 	{
 		t.emplace_back([&]()
-		{
+			{
 			for (;;)
 			{
 				fs::path f = q.pop();
@@ -255,8 +256,7 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 				{
 					std::cerr << e.what() << std::endl;
 				}
-			}
-		});
+			} });
 	}
 
 	for (auto &file : files)
@@ -266,7 +266,7 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 
 	// signal end
 
-	for (auto &ti: t)
+	for (auto &ti : t)
 		ti.join();
 
 	if (not output.empty())
@@ -283,8 +283,7 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 
 // --------------------------------------------------------------------
 
-zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
-	std::function<void(size_t, size_t)> progress)
+zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progress)
 {
 	using namespace std::literals;
 	using namespace cif::literals;
@@ -330,17 +329,12 @@ zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
 
 	// --------------------------------------------------------------------
 
-	cif::file f(xyzin);
-	if (f.empty())
-		throw std::runtime_error("invalid cif file");
-
 	// This sucks, kinda... The mmcif_af dictionary does not specify
 	// all links required to correctly work with libcifpp...
-	if (f.get_validator() == nullptr or (f.get_validator()->name() != "mmcif_pdbx.dic" and f.get_validator()->name() != "mmcif_ma.dic"))
-		f.set_validator(&cif::validator_factory::instance()["mmcif_pdbx.dic"]);
+	if (db.get_validator() == nullptr or (db.get_validator()->name() != "mmcif_pdbx.dic" and db.get_validator()->name() != "mmcif_ma.dic"))
+		db.set_validator(&cif::validator_factory::instance()["mmcif_pdbx.dic"]);
 
-	cif::datablock &db = f.front();
-	cif::mm::structure af_structure(f, 1, cif::mm::StructureOpenOptions::SkipHydrogen);
+	cif::mm::structure af_structure(db, 1, cif::mm::StructureOpenOptions::SkipHydrogen);
 
 	if (af_structure.polymers().empty())
 		throw std::runtime_error("Structure file does not seem to contain polymers, perhaps pdbx_poly_seq_scheme is missing?");
@@ -366,15 +360,15 @@ zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
 	auto now = boost::posix_time::second_clock::universal_time();
 
 	json result = {
-		{"id", afID},
-		{"file", xyzin.string()},
-		{"date", to_iso_extended_string(now.date())},
-		{"alphafill_version", kVersionNumber}};
+		{ "id", afID },
+		{ "date", to_iso_extended_string(now.date()) },
+		{ "alphafill_version", kVersionNumber }
+	};
 
 	json &hits = result["hits"] = json::array();
 
 	// keep a LRU cache of mmCIF parsed files
-	std::list<std::tuple<std::string,std::shared_ptr<cif::file>>> mmCifFiles;
+	std::list<std::tuple<std::string, std::shared_ptr<cif::file>>> mmCifFiles;
 
 	for (auto r : db["entity_poly"])
 	{
@@ -394,17 +388,11 @@ zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
 		if (cif::VERBOSE > 0)
 			std::cerr << "Found " << result.size() << " hits" << std::endl;
 
-		// std::unique_ptr<cif::Progress> progress;
-		// if (cif::VERBOSE < 1)
-		// 	progress.reset(new cif::Progress(result.size() + 1, "matching"));
-
-		size_t n = 0;
+		progress.set_max(result.size() + 1);
 
 		for (auto &hit : result)
 		{
-			// if (progress)
-			// 	progress->consumed(1);
-			progress(result.size() + 1, ++n);
+			progress.consumed();
 
 			std::smatch m;
 			if (not regex_match(hit.mDefLine, m, kIDRx))
@@ -418,15 +406,14 @@ zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
 			std::string pdb_id = m[1].str();
 			std::string chain_id = m[2].str();
 
-			// if (progress)
-			// 	progress->message(pdb_id);
+			progress.message(pdb_id);
 
-			if (not (pdbIDsContainingLigands.empty() or pdbIDsContainingLigands.count(pdb_id)))
+			if (not(pdbIDsContainingLigands.empty() or pdbIDsContainingLigands.count(pdb_id)))
 				continue;
 
 			if (cif::VERBOSE > 0)
 				std::cerr << "pdb id: " << pdb_id << '\t' << "chain id: " << chain_id << std::endl;
-			
+
 			try
 			{
 				auto ci = mmCifFiles.begin();
@@ -437,10 +424,10 @@ zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
 
 					if (c_id != pdb_id)
 						continue;
-					
+
 					if (ci == mmCifFiles.begin())
 						break;
-					
+
 					mmCifFiles.emplace_front(c_id, c_file);
 					mmCifFiles.erase(ci);
 
@@ -561,7 +548,7 @@ zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
 
 					if (af_ca_trimmed.size() < af_ix_trimmed.size() and cif::VERBOSE > 0)
 						std::cerr << "Nr of missing CA: " << (af_ix_trimmed.size() - af_ca_trimmed.size()) << std::endl;
-					
+
 					if (af_ca_trimmed.empty())
 					{
 						if (cif::VERBOSE > 0)
@@ -572,11 +559,12 @@ zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
 					double rmsd = Align(af_structure, pdb_structure, af_ca_trimmed, pdb_ca_trimmed);
 
 					json r_hsp{
-						{"pdb_id", pdb_id},
-						{"pdb_asym_id", pdb_res.front()->get_asym_id()},
-						{"identity", hsp.identity()},
-						{"alignment_length", hsp.length()},
-						{"rmsd", rmsd}};
+						{ "pdb_id", pdb_id },
+						{ "pdb_asym_id", pdb_res.front()->get_asym_id() },
+						{ "identity", hsp.identity() },
+						{ "alignment_length", hsp.length() },
+						{ "rmsd", rmsd }
+					};
 
 					for (auto &res : pdb_structure.non_polymers())
 					{
@@ -692,17 +680,15 @@ zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
 						auto entity_id = af_structure.create_non_poly_entity(comp_id);
 						auto asym_id = af_structure.create_non_poly(entity_id, res.atoms());
 
-						r_hsp["transplants"].push_back({
-							{"compound_id", comp_id},
+						r_hsp["transplants"].push_back({ { "compound_id", comp_id },
 							// {"entity_id", entity_id},
-							{"asym_id", asym_id},
-							{"pdb_asym_id", res.get_asym_id()},
-							{"pdb_auth_asym_id", res.get_auth_asym_id()},
-							{"pdb_auth_seq_id", res.get_auth_seq_id()},
-							{"rmsd", rmsd},
-							{"analogue_id", analogue},
-							{"clash", clashInfo}
-						});
+							{ "asym_id", asym_id },
+							{ "pdb_asym_id", res.get_asym_id() },
+							{ "pdb_auth_asym_id", res.get_auth_asym_id() },
+							{ "pdb_auth_seq_id", res.get_auth_seq_id() },
+							{ "rmsd", rmsd },
+							{ "analogue_id", analogue },
+							{ "clash", clashInfo } });
 
 						if (not res.get_pdb_ins_code().empty())
 							r_hsp["transplants"].back().emplace("pdb_auth_ins_code", res.get_pdb_ins_code());
@@ -745,30 +731,29 @@ zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
 
 								auto conn_type = conn["conn_type_id"].as<std::string>();
 
-								af_struct_conn.emplace({
-									{"id", af_struct_conn.get_unique_id(conn_type)},
-									{"conn_type_id", conn_type},
-									{"ptnr1_label_asym_id", asym_id},
-									{"ptnr1_label_comp_id", res.get_compound_id()},
-									{"ptnr1_label_seq_id", "."},
-									{"ptnr1_label_atom_id", atom.get_label_atom_id()},
-									{"ptnr1_label_alt_id", atom.get_label_alt_id()},
-									{"ptnr1_symmetry", "1_555"},
-									{"ptnr2_label_asym_id", a_a.get_label_asym_id()},
-									{"ptnr2_label_comp_id", a_a.get_label_comp_id()},
-									{"ptnr2_label_seq_id", a_a.get_label_seq_id()},
-									{"ptnr2_label_atom_id", a_a.get_label_atom_id()},
-									{"ptnr2_label_alt_id", a_a.get_label_alt_id()},
-									{"ptnr1_auth_asym_id", asym_id},
-									{"ptnr1_auth_comp_id", res.get_compound_id()},
-									{"ptnr1_auth_seq_id", "1"},
-									{"ptnr1_auth_atom_id", atom.get_auth_atom_id()},
-									{"ptnr2_auth_asym_id", a_a.get_label_asym_id()},
-									{"ptnr2_auth_comp_id", a_a.get_label_comp_id()},
-									{"ptnr2_auth_seq_id", a_a.get_label_seq_id()},
-									{"ptnr2_auth_atom_id", a_a.get_auth_atom_id()},
-									{"ptnr2_symmetry", "1_555"},
-									{"pdbx_dist_value", distance(a_a, atom)}});
+								af_struct_conn.emplace({ { "id", af_struct_conn.get_unique_id(conn_type) },
+									{ "conn_type_id", conn_type },
+									{ "ptnr1_label_asym_id", asym_id },
+									{ "ptnr1_label_comp_id", res.get_compound_id() },
+									{ "ptnr1_label_seq_id", "." },
+									{ "ptnr1_label_atom_id", atom.get_label_atom_id() },
+									{ "ptnr1_label_alt_id", atom.get_label_alt_id() },
+									{ "ptnr1_symmetry", "1_555" },
+									{ "ptnr2_label_asym_id", a_a.get_label_asym_id() },
+									{ "ptnr2_label_comp_id", a_a.get_label_comp_id() },
+									{ "ptnr2_label_seq_id", a_a.get_label_seq_id() },
+									{ "ptnr2_label_atom_id", a_a.get_label_atom_id() },
+									{ "ptnr2_label_alt_id", a_a.get_label_alt_id() },
+									{ "ptnr1_auth_asym_id", asym_id },
+									{ "ptnr1_auth_comp_id", res.get_compound_id() },
+									{ "ptnr1_auth_seq_id", "1" },
+									{ "ptnr1_auth_atom_id", atom.get_auth_atom_id() },
+									{ "ptnr2_auth_asym_id", a_a.get_label_asym_id() },
+									{ "ptnr2_auth_comp_id", a_a.get_label_comp_id() },
+									{ "ptnr2_auth_seq_id", a_a.get_label_seq_id() },
+									{ "ptnr2_auth_atom_id", a_a.get_auth_atom_id() },
+									{ "ptnr2_symmetry", "1_555" },
+									{ "pdbx_dist_value", distance(a_a, atom) } });
 							}
 						}
 
@@ -793,19 +778,39 @@ zeep::json::element alphafill(const fs::path &xyzin, std::ostream &xyzout,
 	af_structure.cleanup_empty_categories();
 
 	auto &software = af_structure.get_category("software");
-	software.emplace({
-		{"pdbx_ordinal", software.size() + 1},// TODO: should we check this ordinal number???
-		{"name", "alphafill"},
-		{"version", kVersionNumber},
-		{"date", kBuildDate},
-		{"classification", "model annotation"}});
-
-	f.save(xyzout);
+	software.emplace({ { "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
+		{ "name", "alphafill" },
+		{ "version", kVersionNumber },
+		{ "date", kBuildDate },
+		{ "classification", "model annotation" } });
 
 	return result;
 }
 
 // --------------------------------------------------------------------
+
+struct my_progress : public alphafill_progress_cb
+{
+	void set_max(size_t in_max) override
+	{
+		if (cif::VERBOSE < 1)
+			m_progress.reset(new cif::Progress(in_max + 1, "matching"));
+	}
+
+	void consumed(size_t n) override
+	{
+		if (m_progress)
+			m_progress->consumed(n);
+	}
+
+	void message(const std::string &msg) override
+	{
+		if (m_progress)
+			m_progress->message(msg);
+	}
+
+	std::unique_ptr<cif::Progress> m_progress;
+};
 
 int alphafill_main(int argc, char *const argv[])
 {
@@ -831,6 +836,10 @@ int alphafill_main(int argc, char *const argv[])
 
 	fs::path xyzin = config.operands()[1];
 
+	cif::file f(xyzin);
+	if (f.empty())
+		throw std::runtime_error("Empty cif file?");
+
 	if (config.operands().size() >= 3)
 	{
 		fs::path output = config.operands()[2];
@@ -838,19 +847,22 @@ int alphafill_main(int argc, char *const argv[])
 		if (output.has_parent_path() and not fs::exists(output.parent_path()))
 			fs::create_directories(output.parent_path());
 
+		json metadata = alphafill(f.front(), my_progress{});
+
 		gxrio::ofstream xyzout(output);
+		f.save(xyzout);
 
-		json metadata = alphafill(xyzin, xyzout, [](size_t, size_t) {});
-
-		// if (output.extension() == ".gz")
-		// 	output = output.stem();
+		metadata["file"] = xyzin.string();
 
 		output.replace_extension(".json");
 		std::ofstream outfile(output);
 		outfile << metadata;
 	}
 	else
-		alphafill(xyzin, std::cout, [](size_t, size_t) {});
+	{
+		alphafill(f.front(), my_progress{});
+		f.save(std::cout);
+	}
 
 	return 0;
 }

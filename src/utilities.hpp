@@ -52,7 +52,7 @@ class file_locator
 	static std::filesystem::path get_structure_file(EntryType type, const std::string &id, int chunk_nr)
 	{
 		if (type == EntryType::Custom)
-			return instance().m_custom_dir / (id + ".cif.gz");
+			return instance().m_custom_dir / ("CS-" + id + ".cif.gz");
 		else
 			return instance().get_structure_file_1(id, chunk_nr);
 	}
@@ -60,7 +60,7 @@ class file_locator
 	static std::filesystem::path get_metadata_file(EntryType type, const std::string &id, int chunk_nr)
 	{
 		if (type == EntryType::Custom)
-			return instance().m_custom_dir / (id + ".json");
+			return instance().m_custom_dir / ("CS-" + id + ".json");
 		else
 			return instance().get_metadata_file_1(id, chunk_nr);
 	}

@@ -26,12 +26,20 @@
 
 #pragma once
 
-#include <iostream>
-#include <filesystem>
 #include <functional>
 #include <zeep/json/element.hpp>
 
-zeep::json::element alphafill(const std::filesystem::path &xyzin,
-	std::ostream &out, std::function<void(size_t, size_t)> progress);
+#include <cif++.hpp>
+
+struct alphafill_progress_cb
+{
+	virtual ~alphafill_progress_cb() = default;
+
+	virtual void set_max(size_t in_max) = 0;
+	virtual void consumed(size_t n = 1) = 0;
+	virtual void message(const std::string &msg) = 0;
+};
+
+zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progress);
 int alphafill_main(int argc, char * const argv[]);
 

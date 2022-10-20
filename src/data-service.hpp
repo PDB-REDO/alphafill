@@ -85,6 +85,21 @@ enum class CustomStatus
 	Unknown, Queued, Running, Finished, Error
 };
 
+struct status_reply
+{
+	CustomStatus status;
+	std::optional<float> progress;
+	std::optional<std::string> message;
+
+	template<typename Archive>
+	void serialize(Archive &ar, unsigned long)
+	{
+		ar & zeep::make_nvp("status", status)
+		   & zeep::make_nvp("progress", progress)
+		   & zeep::make_nvp("message", message);
+	}
+};
+
 class data_service
 {
   public:
@@ -105,7 +120,7 @@ class data_service
 
 	bool exists_in_afdb(const std::string &id) const;
 
-	std::tuple<CustomStatus,float> get_status(const std::string &hash) const;
+	status_reply get_status(const std::string &hash) const;
 
 	void queue(const std::string &data, const std::string &hash);
 

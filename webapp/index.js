@@ -3,20 +3,11 @@ import "regenerator-runtime/runtime";
 
 import 'bootstrap';
 
-// function readMyFile(file) {
-//     return new Promise((resolve) => {
-//         const fr = new FileReader();
-//         fr.onload = e => resolve(e.target.result);
-//         fr.readAsText(file);
-//     })
-// }
-
 window.addEventListener('load', () => {
 
 	const uploadBtn = document.getElementById('upload-btn');
 	if (uploadBtn) {
-		uploadBtn.addEventListener('click', () => {
-			
+		uploadBtn.addEventListener('click', (evt) => {
 			const customFile = document.getElementById('custom-file');
 			const files = customFile.files;
 
@@ -26,21 +17,30 @@ window.addEventListener('load', () => {
 
 				fd.append("structure", files[0]);
 
+				var resultOK = false;
+
 				fetch("v1/aff", {
 					'Accept': 'application/json',
 					'method': "POST",
 					'body': fd
 				}).then(r => {
-					if (r.ok)
-						return r.json()
-					throw "Failed to upload file";
+					resultOK = r.ok;
+					return r.json()
 				}).then(r => {
-					window.location = `model?id=${r.id}`;
+					if (resultOK) {
+						window.location = `model?id=${r.id}`;
+					}
+					else if (typeof(r.error) === "string") {
+						alert(r.error);
+					}
+					else {
+						throw "Failed to upload file";
+					}
 				}).catch(e => {
-					console.log(e);
+					alert(e);
 				});
 			}
-		 });
+		});
 	}
 
 });
