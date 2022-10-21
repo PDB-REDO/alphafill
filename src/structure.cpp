@@ -113,12 +113,17 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	std::vector<std::string> toBeRemoved;
 	std::set_difference(existingAsyms.begin(), existingAsyms.end(), requestedAsyms.begin(), requestedAsyms.end(), std::back_insert_iterator(toBeRemoved));
 
+	auto validator = db.get_validator();
+	db.set_validator(nullptr);
+
 	for (auto &asymID : toBeRemoved)
 	{
 		struct_asym.erase("id"_key == asymID);
 		atom_site.erase("label_asym_id"_key == asymID);
 		struct_conn.erase("ptnr1_label_asym_id"_key == asymID or "ptnr2_label_asym_id"_key == asymID);
 	}
+
+	db.set_validator(validator);
 
 	cif::mm::structure structure(db);
 	structure.cleanup_empty_categories();
