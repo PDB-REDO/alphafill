@@ -1274,12 +1274,12 @@ BlastQuery<WORDSIZE>::BlastQuery(const std::string &inQuery, bool inFilter, doub
 	, mDbLength(0)
 	, mSearchSpace(0)
 {
-	if (mQuery.length() >= kMaxSequenceLength)
-		throw blast_exception("Query length exceeds maximum");
-
 	mUnfiltered.erase(remove_if(mUnfiltered.begin(), mUnfiltered.end(), [](char aa) -> bool
 						  { return ResidueNr(aa) >= kResCount; }),
 		mUnfiltered.end());
+
+	if (mUnfiltered.length() >= kMaxSequenceLength)
+		throw blast_exception("Query length exceeds maximum");
 
 	std::string query(mUnfiltered);
 	if (inFilter)

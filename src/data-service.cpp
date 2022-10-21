@@ -30,6 +30,9 @@
 #include <regex>
 #include <thread>
 
+#include <unistd.h>
+#include <sys/wait.h>
+
 #include <boost/algorithm/string.hpp>
 
 #include <cfg.hpp>
@@ -478,6 +481,8 @@ struct data_service_progress : public alphafill_progress_cb
 
 void data_service::run()
 {
+	using namespace std::literals;
+
 	for (;;)
 	{
 		std::string next = m_queue.pop();
@@ -521,13 +526,55 @@ void data_service::run()
 			m_running = next;
 			m_progress = 0;
 
+			fs::remove(xyzin, ec);
+
 			auto metadata = alphafill(f.front(), data_service_progress{ m_progress });
 
 			f.save(xyzout);
 
 			std::ofstream metadataFile(jsonout);
 			metadataFile << metadata;
+
+
+			// int pid = fork();
+
+			// if (pid < 0)
+			// 	throw std::runtime_error("Could not fork: "s + std::strerror(errno));
+
+			// if (pid == 0)	// child
+			// {
+			// 	try
+			// 	{
+			// 		auto metadata = alphafill(f.front(), data_service_progress{ m_progress });
+
+			// 		f.save(xyzout);
+
+			// 		std::ofstream metadataFile(jsonout);
+			// 		metadataFile << metadata;
+
+			// 		exit(0);
+			// 	}
+			// 	catch (const std::exception &ex)
+			// 	{
+			// 		std::ofstream errorFile(m_out_dir / ("CS-" + next + ".error"));
+			// 		errorFile << ex.what() << std::endl;
+			// 		exit(1);
+			// 	}
+			// }
+
+			// int status = 0;
+			// int err = waitpid(pid, &status, 0);
+
+			// if (err != 0)
+			// 	throw std::runtime_error("Wait failed with error "s + std::strerror(errno));
+
+			// if (WIFEXITED(status) and WEXITSTATUS(status) != 0)
+			// 	throw std::runtime_error("Alphafill terminated with exit status " + std::to_string(WEXITSTATUS(status)));
+		
+			// if (WIFSIGNALED(status))
+			// 	throw std::runtime_error("Alphafill terminated with signal " + std::to_string(WTERMSIG(status)));
 		}
+
 		catch (const std::exception &ex)
 		{
 			std::ofstream errorFile(m_out_dir / ("CS-" + next + ".error"));
@@ -535,7 +582,9 @@ void data_service::run()
 		}
 
 		m_running.clear();
-		fs::remove(xyzin, ec);
+
+		if (fs::exists(xyzin, ec))
+			fs::remove(xyzin, ec);
 	}
 }
 

@@ -340,16 +340,6 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 		throw std::runtime_error("Structure file does not seem to contain polymers, perhaps pdbx_poly_seq_scheme is missing?");
 
 	// --------------------------------------------------------------------
-	// atoms for the clash score calculation
-	std::vector<CAtom> polyAtoms;
-
-	for (auto &res : af_structure.polymers().front())
-	{
-		for (auto &atom : res.atoms())
-			polyAtoms.emplace_back(atom);
-	}
-
-	// --------------------------------------------------------------------
 	// fetch the (single) chain
 
 	const std::regex kIDRx(R"(^>(\w{4,8})_(\w)( .*)?)");
@@ -372,7 +362,10 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 
 	for (auto r : db["entity_poly"])
 	{
-		auto &&[id, seq] = r.get<std::string, std::string>("entity_id", "pdbx_seq_one_letter_code");
+		auto &&[id, seq] = r.get<std::string, std::string>("entity_id", "pdbx_seq_one_letter_code_can");
+
+		// strip all spaces from the sequence, to be able to check length later on
+		seq.erase(remove_if(seq.begin(), seq.end(), [](char aa) { return std::isspace(aa); }), seq.end());
 
 		if (cif::VERBOSE > 0)
 			std::cerr << "Blasting:" << std::endl
@@ -489,7 +482,6 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 				// 	exit(1);
 				// }
 
-				auto af_res = get_residuesForChain(af_structure, "A");
 				auto pdb_res = get_residuesForChain(pdb_structure, chain_id);
 
 				if (pdb_res.size() == 0)
@@ -528,244 +520,267 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 
 					assert(af_ix_trimmed.size() == pdb_ix_trimmed.size());
 
-					std::vector<point> af_ca_trimmed, pdb_ca_trimmed;
-					for (size_t i = 0; i < af_ix_trimmed.size(); ++i)
+					// Loop over each asym containing this entity poly
+					for (auto &&[ af_asym_id ] : db["struct_asym"].find<std::string>("entity_id"_key == id, "id"))
 					{
-						assert(af_ix_trimmed[i] < af_res.size());
-						assert(pdb_ix_trimmed[i] < pdb_res.size());
+						auto af_res = get_residuesForChain(af_structure, af_asym_id);
+						if (af_res.size() != seq.length())
+							throw std::runtime_error("Something is wrong with the input file, the number of residues for chain A is not equal to the number in pdbx_seq_one_letter_code_can");
 
-						auto af_ca = af_res[af_ix_trimmed[i]]->get_atom_by_atom_id("CA");
-						if (not af_ca)
-							continue;
+						std::vector<point> af_ca_trimmed, pdb_ca_trimmed;
+						for (size_t i = 0; i < af_ix_trimmed.size(); ++i)
+						{
+							assert(af_ix_trimmed[i] < af_res.size());
+							assert(pdb_ix_trimmed[i] < pdb_res.size());
 
-						auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->get_atom_by_atom_id("CA");
-						if (not pdb_ca)
-							continue;
+							if (af_ix_trimmed[i] >= af_res.size())
+								throw std::runtime_error("Mismatch between pdbx_seq_one_letter_code_can and actual residues in input file");
+							if (af_ix_trimmed[i] >= af_res.size() or pdb_ix_trimmed[i] >= pdb_res.size())
+								throw std::runtime_error("Something is wrong with the data");
 
-						af_ca_trimmed.push_back(af_ca.get_location());
-						pdb_ca_trimmed.push_back(pdb_ca.get_location());
-					}
+							auto af_ca = af_res[af_ix_trimmed[i]]->get_atom_by_atom_id("CA");
+							if (not af_ca)
+								continue;
 
-					if (af_ca_trimmed.size() < af_ix_trimmed.size() and cif::VERBOSE > 0)
-						std::cerr << "Nr of missing CA: " << (af_ix_trimmed.size() - af_ca_trimmed.size()) << std::endl;
+							auto pdb_ca = pdb_res[pdb_ix_trimmed[i]]->get_atom_by_atom_id("CA");
+							if (not pdb_ca)
+								continue;
 
-					if (af_ca_trimmed.empty())
-					{
-						if (cif::VERBOSE > 0)
-							std::cerr << "No CA atoms mapped, skipping" << std::endl;
-						continue;
-					}
+							af_ca_trimmed.push_back(af_ca.get_location());
+							pdb_ca_trimmed.push_back(pdb_ca.get_location());
+						}
 
-					double rmsd = Align(af_structure, pdb_structure, af_ca_trimmed, pdb_ca_trimmed);
+						if (af_ca_trimmed.size() < af_ix_trimmed.size() and cif::VERBOSE > 0)
+							std::cerr << "Nr of missing CA: " << (af_ix_trimmed.size() - af_ca_trimmed.size()) << std::endl;
 
-					json r_hsp{
-						{ "pdb_id", pdb_id },
-						{ "pdb_asym_id", pdb_res.front()->get_asym_id() },
-						{ "identity", hsp.identity() },
-						{ "alignment_length", hsp.length() },
-						{ "rmsd", rmsd }
-					};
-
-					for (auto &res : pdb_structure.non_polymers())
-					{
-						auto comp_id = res.get_compound_id();
-
-						Ligand ligand = ligands[comp_id];
-
-						if (not ligand)
-							continue;
-
-						// Find the atoms nearby in the AF chain for this residue
-						auto &&[pdb_near_r, af_near_r] = selectAtomsNearResidue(
-							pdb_res, pdb_ix_trimmed,
-							af_res, af_ix_trimmed, res.atoms(), maxLigandBackboneDistance, ligand);
-
-						if (pdb_near_r.size() == 0)
+						if (af_ca_trimmed.empty())
 						{
 							if (cif::VERBOSE > 0)
-								std::cerr << "There are no atoms found near residue " << res << std::endl;
+								std::cerr << "No CA atoms mapped, skipping" << std::endl;
 							continue;
 						}
 
-						if (cif::VERBOSE > 1)
-							std::cerr << "Found " << pdb_near_r.size() << " atoms nearby" << std::endl;
+						double rmsd = Align(af_structure, pdb_structure, af_ca_trimmed, pdb_ca_trimmed);
 
-						// realign based on these nearest atoms.
-						if (pdb_near_r.size() > 3)
-							rmsd = Align(af_structure, pdb_structure, af_near_r, pdb_near_r);
-						else if (cif::VERBOSE > 0)
+						json r_hsp{
+							{ "pdb_id", pdb_id },
+							{ "pdb_asym_id", pdb_res.front()->get_asym_id() },
+							{ "identity", hsp.identity() },
+							{ "alignment_length", hsp.length() },
+							{ "rmsd", rmsd }
+						};
+
+						for (auto &res : pdb_structure.non_polymers())
 						{
-							rmsd = 0;
-							if (cif::VERBOSE > 0)
-								std::cerr << "There are not enough atoms found near residue " << res << " to fine tune rotation" << std::endl;
-						}
+							auto comp_id = res.get_compound_id();
 
-						auto analogue = ligand.analogueID();
-						if (analogue.empty())
-							analogue = comp_id;
+							Ligand ligand = ligands[comp_id];
 
-						// check to see if the ligand is unique enough
-						const auto &[unique, replace_id] = isUniqueLigand(af_structure, minSeparationDistance, res, analogue);
+							if (not ligand)
+								continue;
 
-						switch (unique)
-						{
-							case UniqueType::Seen:
+							// Find the atoms nearby in the AF chain for this residue
+							auto &&[pdb_near_r, af_near_r] = selectAtomsNearResidue(
+								pdb_res, pdb_ix_trimmed,
+								af_res, af_ix_trimmed, res.atoms(), maxLigandBackboneDistance, ligand);
+
+							if (pdb_near_r.size() == 0)
 							{
 								if (cif::VERBOSE > 0)
-									std::cerr << "Residue " << res << " is not unique enough" << std::endl;
+									std::cerr << "There are no atoms found near residue " << res << std::endl;
 								continue;
 							}
 
-							case UniqueType::MoreAtoms:
+							if (cif::VERBOSE > 1)
+								std::cerr << "Found " << pdb_near_r.size() << " atoms nearby" << std::endl;
+
+							// realign based on these nearest atoms.
+							if (pdb_near_r.size() > 3)
+								rmsd = Align(af_structure, pdb_structure, af_near_r, pdb_near_r);
+							else if (cif::VERBOSE > 0)
 							{
+								rmsd = 0;
 								if (cif::VERBOSE > 0)
-								{
-									auto &rep_res = af_structure.get_residue(replace_id);
-									std::cerr << "Residue " << res << " has more atoms than the first transplant " << rep_res << std::endl;
-
-									af_structure.remove_residue(rep_res);
-								}
-								break;
+									std::cerr << "There are not enough atoms found near residue " << res << " to fine tune rotation" << std::endl;
 							}
 
-							case UniqueType::Unique:
-								break;
-						}
+							auto analogue = ligand.analogueID();
+							if (analogue.empty())
+								analogue = comp_id;
 
-						// Calculate clash score for new ligand
+							// check to see if the ligand is unique enough
+							const auto &[unique, replace_id] = isUniqueLigand(af_structure, minSeparationDistance, res, analogue);
 
-						std::vector<CAtom> resAtoms;
-
-						for (auto &atom : res.atoms())
-						{
-							if (ligand.drops(atom.get_label_atom_id()))
-								continue;
-
-							cif::atom_type_traits att(atom.get_type());
-
-							int formal_charge = atom.get_charge();
-
-							if (formal_charge == 0 and att.is_metal() and res.atoms().size() == 1)
+							switch (unique)
 							{
-								auto compound = cif::compound_factory::instance().create(comp_id);
-								if (compound)
-									formal_charge = compound->formal_charge();
-							}
-
-							try
-							{
-								resAtoms.emplace_back(att.type(), atom.get_location(), formal_charge, atom.get_label_seq_id(), atom.get_label_atom_id());
-							}
-							catch (const std::exception &ex)
-							{
-								auto compound = cif::compound_factory::instance().create(att.symbol());
-								if (compound)
-									formal_charge = compound->formal_charge();
-								else
-									formal_charge = 0;
-
-								resAtoms.emplace_back(att.type(), atom.get_location(), formal_charge, atom.get_label_seq_id(), atom.get_label_atom_id());
-							}
-						}
-
-						auto &&[polyAtomCount, clashInfo] = CalculateClashScore(polyAtoms, resAtoms, maxDistance);
-
-						if (polyAtomCount == 0)
-						{
-							if (cif::VERBOSE > 0)
-								std::cerr << "Residue " << res << " skipped because there are no atoms nearby in the polymer" << std::endl;
-							continue;
-						}
-
-						auto entity_id = af_structure.create_non_poly_entity(comp_id);
-						auto asym_id = af_structure.create_non_poly(entity_id, res.atoms());
-
-						r_hsp["transplants"].push_back({ { "compound_id", comp_id },
-							// {"entity_id", entity_id},
-							{ "asym_id", asym_id },
-							{ "pdb_asym_id", res.get_asym_id() },
-							{ "pdb_auth_asym_id", res.get_auth_asym_id() },
-							{ "pdb_auth_seq_id", res.get_auth_seq_id() },
-							{ "rmsd", rmsd },
-							{ "analogue_id", analogue },
-							{ "clash", clashInfo } });
-
-						if (not res.get_pdb_ins_code().empty())
-							r_hsp["transplants"].back().emplace("pdb_auth_ins_code", res.get_pdb_ins_code());
-						else
-							r_hsp["transplants"].back().emplace("pdb_auth_ins_code", nullptr);
-
-						// copy any struct_conn record that might be needed
-
-						auto &pdb_struct_conn = pdb_structure.get_category("struct_conn");
-						auto &af_struct_conn = af_structure.get_category("struct_conn");
-
-						for (auto atom : res.atoms())
-						{
-							for (auto conn : pdb_struct_conn.find(
-									 ("ptnr1_label_asym_id"_key == atom.get_label_asym_id() and "ptnr1_label_atom_id"_key == atom.get_label_atom_id()) or
-									 ("ptnr2_label_asym_id"_key == atom.get_label_asym_id() and "ptnr2_label_atom_id"_key == atom.get_label_atom_id())))
-							{
-								std::string a_type, a_comp;
-								if (conn["ptnr1_label_asym_id"].as<std::string>() == atom.get_label_asym_id() and
-									conn["ptnr1_label_atom_id"].as<std::string>() == atom.get_label_atom_id())
-								{
-									a_type = conn["ptnr2_label_atom_id"].as<std::string>();
-									a_comp = conn["ptnr2_label_comp_id"].as<std::string>();
-								}
-								else
-								{
-									a_type = conn["ptnr1_label_atom_id"].as<std::string>();
-									a_comp = conn["ptnr1_label_comp_id"].as<std::string>();
-								}
-
-								// locate the corresponding atom in the af structure
-								auto a_a = af_structure.get_atom_by_position_and_type(atom.get_location(), a_type, a_comp);
-
-								if (not a_a)
+								case UniqueType::Seen:
 								{
 									if (cif::VERBOSE > 0)
-										std::cerr << "Could not create a connection to " << atom << std::endl;
+										std::cerr << "Residue " << res << " is not unique enough" << std::endl;
 									continue;
 								}
 
-								auto conn_type = conn["conn_type_id"].as<std::string>();
+								case UniqueType::MoreAtoms:
+								{
+									if (cif::VERBOSE > 0)
+									{
+										auto &rep_res = af_structure.get_residue(replace_id);
+										std::cerr << "Residue " << res << " has more atoms than the first transplant " << rep_res << std::endl;
 
-								af_struct_conn.emplace({ { "id", af_struct_conn.get_unique_id(conn_type) },
-									{ "conn_type_id", conn_type },
-									{ "ptnr1_label_asym_id", asym_id },
-									{ "ptnr1_label_comp_id", res.get_compound_id() },
-									{ "ptnr1_label_seq_id", "." },
-									{ "ptnr1_label_atom_id", atom.get_label_atom_id() },
-									{ "ptnr1_label_alt_id", atom.get_label_alt_id() },
-									{ "ptnr1_symmetry", "1_555" },
-									{ "ptnr2_label_asym_id", a_a.get_label_asym_id() },
-									{ "ptnr2_label_comp_id", a_a.get_label_comp_id() },
-									{ "ptnr2_label_seq_id", a_a.get_label_seq_id() },
-									{ "ptnr2_label_atom_id", a_a.get_label_atom_id() },
-									{ "ptnr2_label_alt_id", a_a.get_label_alt_id() },
-									{ "ptnr1_auth_asym_id", asym_id },
-									{ "ptnr1_auth_comp_id", res.get_compound_id() },
-									{ "ptnr1_auth_seq_id", "1" },
-									{ "ptnr1_auth_atom_id", atom.get_auth_atom_id() },
-									{ "ptnr2_auth_asym_id", a_a.get_label_asym_id() },
-									{ "ptnr2_auth_comp_id", a_a.get_label_comp_id() },
-									{ "ptnr2_auth_seq_id", a_a.get_label_seq_id() },
-									{ "ptnr2_auth_atom_id", a_a.get_auth_atom_id() },
-									{ "ptnr2_symmetry", "1_555" },
-									{ "pdbx_dist_value", distance(a_a, atom) } });
+										af_structure.remove_residue(rep_res);
+									}
+									break;
+								}
+
+								case UniqueType::Unique:
+									break;
 							}
+
+							// Calculate clash score for new ligand
+
+							std::vector<CAtom> resAtoms;
+
+							for (auto &atom : res.atoms())
+							{
+								if (ligand.drops(atom.get_label_atom_id()))
+									continue;
+
+								cif::atom_type_traits att(atom.get_type());
+
+								int formal_charge = atom.get_charge();
+
+								if (formal_charge == 0 and att.is_metal() and res.atoms().size() == 1)
+								{
+									auto compound = cif::compound_factory::instance().create(comp_id);
+									if (compound)
+										formal_charge = compound->formal_charge();
+								}
+
+								try
+								{
+									resAtoms.emplace_back(att.type(), atom.get_location(), formal_charge, atom.get_label_seq_id(), atom.get_label_atom_id());
+								}
+								catch (const std::exception &ex)
+								{
+									auto compound = cif::compound_factory::instance().create(att.symbol());
+									if (compound)
+										formal_charge = compound->formal_charge();
+									else
+										formal_charge = 0;
+
+									resAtoms.emplace_back(att.type(), atom.get_location(), formal_charge, atom.get_label_seq_id(), atom.get_label_atom_id());
+								}
+							}
+
+							// --------------------------------------------------------------------
+							// atoms for the clash score calculation
+							std::vector<CAtom> polyAtoms;
+
+							for (auto res : af_res)
+							{
+								for (auto &atom : res->atoms())
+									polyAtoms.emplace_back(atom);
+							}
+
+							auto &&[polyAtomCount, clashInfo] = CalculateClashScore(polyAtoms, resAtoms, maxDistance);
+
+							if (polyAtomCount == 0)
+							{
+								if (cif::VERBOSE > 0)
+									std::cerr << "Residue " << res << " skipped because there are no atoms nearby in the polymer" << std::endl;
+								continue;
+							}
+
+							auto entity_id = af_structure.create_non_poly_entity(comp_id);
+							auto asym_id = af_structure.create_non_poly(entity_id, res.atoms());
+
+							r_hsp["transplants"].push_back({ { "compound_id", comp_id },
+								// {"entity_id", entity_id},
+								{ "asym_id", asym_id },
+								{ "pdb_asym_id", res.get_asym_id() },
+								{ "pdb_auth_asym_id", res.get_auth_asym_id() },
+								{ "pdb_auth_seq_id", res.get_auth_seq_id() },
+								{ "rmsd", rmsd },
+								{ "analogue_id", analogue },
+								{ "clash", clashInfo } });
+
+							if (not res.get_pdb_ins_code().empty())
+								r_hsp["transplants"].back().emplace("pdb_auth_ins_code", res.get_pdb_ins_code());
+							else
+								r_hsp["transplants"].back().emplace("pdb_auth_ins_code", nullptr);
+
+							// copy any struct_conn record that might be needed
+
+							auto &pdb_struct_conn = pdb_structure.get_category("struct_conn");
+							auto &af_struct_conn = af_structure.get_category("struct_conn");
+
+							for (auto atom : res.atoms())
+							{
+								for (auto conn : pdb_struct_conn.find(
+										("ptnr1_label_asym_id"_key == atom.get_label_asym_id() and "ptnr1_label_atom_id"_key == atom.get_label_atom_id()) or
+										("ptnr2_label_asym_id"_key == atom.get_label_asym_id() and "ptnr2_label_atom_id"_key == atom.get_label_atom_id())))
+								{
+									std::string a_type, a_comp;
+									if (conn["ptnr1_label_asym_id"].as<std::string>() == atom.get_label_asym_id() and
+										conn["ptnr1_label_atom_id"].as<std::string>() == atom.get_label_atom_id())
+									{
+										a_type = conn["ptnr2_label_atom_id"].as<std::string>();
+										a_comp = conn["ptnr2_label_comp_id"].as<std::string>();
+									}
+									else
+									{
+										a_type = conn["ptnr1_label_atom_id"].as<std::string>();
+										a_comp = conn["ptnr1_label_comp_id"].as<std::string>();
+									}
+
+									// locate the corresponding atom in the af structure
+									auto a_a = af_structure.get_atom_by_position_and_type(atom.get_location(), a_type, a_comp);
+
+									if (not a_a)
+									{
+										if (cif::VERBOSE > 0)
+											std::cerr << "Could not create a connection to " << atom << std::endl;
+										continue;
+									}
+
+									auto conn_type = conn["conn_type_id"].as<std::string>();
+
+									af_struct_conn.emplace({ { "id", af_struct_conn.get_unique_id(conn_type) },
+										{ "conn_type_id", conn_type },
+										{ "ptnr1_label_asym_id", asym_id },
+										{ "ptnr1_label_comp_id", res.get_compound_id() },
+										{ "ptnr1_label_seq_id", "." },
+										{ "ptnr1_label_atom_id", atom.get_label_atom_id() },
+										{ "ptnr1_label_alt_id", atom.get_label_alt_id() },
+										{ "ptnr1_symmetry", "1_555" },
+										{ "ptnr2_label_asym_id", a_a.get_label_asym_id() },
+										{ "ptnr2_label_comp_id", a_a.get_label_comp_id() },
+										{ "ptnr2_label_seq_id", a_a.get_label_seq_id() },
+										{ "ptnr2_label_atom_id", a_a.get_label_atom_id() },
+										{ "ptnr2_label_alt_id", a_a.get_label_alt_id() },
+										{ "ptnr1_auth_asym_id", asym_id },
+										{ "ptnr1_auth_comp_id", res.get_compound_id() },
+										{ "ptnr1_auth_seq_id", "1" },
+										{ "ptnr1_auth_atom_id", atom.get_auth_atom_id() },
+										{ "ptnr2_auth_asym_id", a_a.get_label_asym_id() },
+										{ "ptnr2_auth_comp_id", a_a.get_label_comp_id() },
+										{ "ptnr2_auth_seq_id", a_a.get_label_seq_id() },
+										{ "ptnr2_auth_atom_id", a_a.get_auth_atom_id() },
+										{ "ptnr2_symmetry", "1_555" },
+										{ "pdbx_dist_value", distance(a_a, atom) } });
+								}
+							}
+
+							// now fix up the newly created residue
+							ligand.modify(af_structure, asym_id);
+
+							if (cif::VERBOSE > 0)
+								std::cerr << "Created asym " << asym_id << " for " << res << std::endl;
 						}
 
-						// now fix up the newly created residue
-						ligand.modify(af_structure, asym_id);
-
-						if (cif::VERBOSE > 0)
-							std::cerr << "Created asym " << asym_id << " for " << res << std::endl;
+						if (not r_hsp["transplants"].empty())
+							hits.push_back(std::move(r_hsp));
 					}
-
-					if (not r_hsp["transplants"].empty())
-						hits.push_back(std::move(r_hsp));
 				}
 			}
 			catch (const std::exception &e)

@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include <vector>
 #include <filesystem>
 #include <string>
 #include <thread>
+#include <vector>
 
 // --------------------------------------------------------------------
 
@@ -23,22 +23,27 @@ extern const uint8_t kResidueNrTable[];
 
 inline constexpr uint8_t ResidueNr(char inAA)
 {
-  int result = 23;
+	int result = 23;
 
-  inAA |= 040;
-  if (inAA >= 'a' and inAA <= 'z')
-    result = kResidueNrTable[inAA - 'a'];
+	inAA |= 040;
+	if (inAA >= 'a' and inAA <= 'z')
+		result = kResidueNrTable[inAA - 'a'];
 
-  return result;
+	return result;
 }
 
 inline constexpr bool is_gap(char aa)
 {
-  return aa == ' ' or aa == '.' or aa == '-';
+	return aa == ' ' or aa == '.' or aa == '-';
 }
 
-sequence encode(const std::string& s);
-std::string decode(const sequence& s);
+inline constexpr bool is_gap(uint8_t aa)
+{
+	return aa == '-';
+}
+
+sequence encode(const std::string &s);
+std::string decode(const sequence &s);
 
 // --------------------------------------------------------------------
 
@@ -46,7 +51,9 @@ class blast_exception : public std::runtime_error
 {
   public:
 	blast_exception(std::string msg)
-		: std::runtime_error(msg.c_str()) {}
+		: std::runtime_error(msg.c_str())
+	{
+	}
 };
 
 // --------------------------------------------------------------------
@@ -98,10 +105,12 @@ struct BlastHit
 
 	BlastHit(const std::string &inDefLine, const sequence &inTarget)
 		: mDefLine(inDefLine)
-		, mTarget(inTarget) {}
+		, mTarget(inTarget)
+	{
+	}
 
-	BlastHit(const BlastHit& hit) = default;
-	BlastHit(BlastHit&& hit) = default;
+	BlastHit(const BlastHit &hit) = default;
+	BlastHit(BlastHit &&hit) = default;
 };
 
 // --------------------------------------------------------------------
@@ -137,4 +146,3 @@ inline std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, con
 {
 	return BlastP(inDatabank, inQuery, "BLOSUM62", 3, 10, true, true, 11, 1, inReportLimit, std::thread::hardware_concurrency());
 }
-

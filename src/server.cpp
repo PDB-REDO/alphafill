@@ -380,6 +380,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 
 	sub.put("af_id", type == EntryType::Custom ? "CS-" + afId : "AF-" + afId);
 	sub.put("chunk", chunkNr);
+	sub.put("type", type);
 
 	bool chunked = type == EntryType::AlphaFold and (chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2)));
 
@@ -880,6 +881,11 @@ int server_main(int argc, char *const argv[])
 		("running", CustomStatus::Running)
 		("finished", CustomStatus::Finished)
 		("error", CustomStatus::Error);
+
+	zeep::value_serializer<EntryType>::instance("EntryType")
+		("unknown", EntryType::Unknown)
+		("alphafold", EntryType::AlphaFold)
+		("custom", EntryType::Custom);
 
 	auto &config = cfg::config::instance();
 
