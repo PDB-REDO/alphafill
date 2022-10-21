@@ -691,7 +691,11 @@ zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
 		rep.set_content(os.str(), "text/plain");
 	}
 
-	rep.set_header("content-disposition", "attachement; filename = \"AF-" + id + "-F" + std::to_string(chunkNr) + "-model_v1.cif\"");
+	std::string filename = type == EntryType::Custom ?
+		"CS-" + id + ".cif" :
+		"AF-" + id + "-F" + std::to_string(chunkNr) + "-model_v1.cif";
+
+	rep.set_header("content-disposition", "attachement; filename = \"" + filename + '\"');
 
 	return rep;
 }

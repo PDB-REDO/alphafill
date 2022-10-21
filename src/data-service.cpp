@@ -647,7 +647,7 @@ void data_service::queue(const std::string &data, const std::string &hash)
 
 	gxrio::istream in(&buffer);
 
-	cif::file f(in);
+	cif::file f = cif::pdb::read(in);
 
 	if (f.empty())
 		throw std::runtime_error("Invalid or empty cif file");
