@@ -507,6 +507,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 
 		std::string title = file.front()["entity"].find1<std::string>("id"_key == 1, "pdbx_description");
 		sub.put("title", title);
+		sub.put("cif-db-name", file.front().name());
 	}
 	catch (const std::exception &e)
 	{
