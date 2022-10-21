@@ -105,10 +105,17 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	auto &struct_asym = db["struct_asym"];
 	auto &atom_site = db["atom_site"];
 	auto &struct_conn = db["struct_conn"];
+	auto &entity_poly = db["entity_poly"];
 
 	std::set<std::string> existingAsyms;
-	for (const auto &[asymID] : struct_asym.rows<std::string>("id"))
+	for (const auto &[asymID, entityID] : struct_asym.rows<std::string,std::string>("id", "entity_id"))
+	{
+		// check if this is a nonpoly entity
+		if (entity_poly.exists("entity_id"_key == entityID))
+			continue;
+
 		existingAsyms.insert(asymID);
+	}
 
 	std::vector<std::string> toBeRemoved;
 	std::set_difference(existingAsyms.begin(), existingAsyms.end(), requestedAsyms.begin(), requestedAsyms.end(), std::back_insert_iterator(toBeRemoved));
