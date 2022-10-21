@@ -360,6 +360,8 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 	// keep a LRU cache of mmCIF parsed files
 	std::list<std::tuple<std::string, std::shared_ptr<cif::file>>> mmCifFiles;
 
+	progress.set_max_0(db["entity_poly"].size());
+
 	for (auto r : db["entity_poly"])
 	{
 		auto &&[id, seq] = r.get<std::string, std::string>("entity_id", "pdbx_seq_one_letter_code_can");
@@ -381,7 +383,7 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 		if (cif::VERBOSE > 0)
 			std::cerr << "Found " << result.size() << " hits" << std::endl;
 
-		progress.set_max(result.size() + 1);
+		progress.set_max_1(result.size());
 
 		for (auto &hit : result)
 		{
@@ -806,7 +808,11 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 
 struct my_progress : public alphafill_progress_cb
 {
-	void set_max(size_t in_max) override
+	void set_max_0(size_t in_max) override
+	{
+	}
+
+	void set_max_1(size_t in_max) override
 	{
 		if (cif::VERBOSE < 1)
 			m_progress.reset(new cif::Progress(in_max + 1, "matching"));

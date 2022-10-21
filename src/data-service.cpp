@@ -460,15 +460,27 @@ struct data_service_progress : public alphafill_progress_cb
 	{
 	}
 
-	void set_max(size_t in_max) override
+	void set_max_0(size_t in_max) override
 	{
-		m_max = in_max;
+		m_max_0 = in_max;
+	}
+
+
+	void set_max_1(size_t in_max) override
+	{
+		m_max_1 = in_max;
+		++m_cur_0;
+		m_cur_1 = 0;
 	}
 
 	void consumed(size_t n = 1) override
 	{
-		++m_cur;
-		m_progress = static_cast<float>(m_cur) / m_max;
+		++m_cur_1;
+
+		float p0 = static_cast<float>(m_cur_0 - 1) / m_max_0;
+		float p1 = static_cast<float>(m_cur_1) / m_max_1;
+
+		m_progress = p0 + p1 / m_max_0;
 	}
 
 	void message(const std::string &msg) override
@@ -476,7 +488,7 @@ struct data_service_progress : public alphafill_progress_cb
 	}
 
 	std::atomic<float> &m_progress;
-	size_t m_max = 1000, m_cur = 0;
+	size_t m_max_0 = 1, m_max_1 = 1000, m_cur_0 = 0, m_cur_1;
 };
 
 void data_service::run()

@@ -35,7 +35,8 @@ struct alphafill_progress_cb
 {
 	virtual ~alphafill_progress_cb() = default;
 
-	virtual void set_max(size_t in_max) = 0;
+	virtual void set_max_0(size_t in_max) = 0;
+	virtual void set_max_1(size_t in_max) = 0;
 	virtual void consumed(size_t n = 1) = 0;
 	virtual void message(const std::string &msg) = 0;
 };
