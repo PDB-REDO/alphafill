@@ -71,7 +71,7 @@ int main(int argc, char *const argv[])
 
 		auto &config = cfg::config::instance();
 		config.init(
-			"alphafill command [options] (where command is one of 'server', 'process', 'validate' or 'prepare-pdb-list'",
+			"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate' or 'prepare-pdb-list'",
 			cfg::make_option("version", "Show version number"),
 			cfg::make_option("verbose,v", "Show verbose output"),
 
@@ -106,7 +106,7 @@ int main(int argc, char *const argv[])
 			cfg::make_option<std::string>("metadata-name-pattern", "Pattern for locating metadata files"),
 			cfg::make_option<std::string>("pdb-name-pattern", "Pattern for locating PDB files"),
 
-			cfg::make_option<size_t>("threads,t", 1, "Number of threads to use, zero means all available cores"),
+			cfg::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
 
 			cfg::make_hidden_option("validate-fasta", "Validate the FastA file (check if all sequence therein are the same as in the corresponding PDB files)"),
 			cfg::make_hidden_option("prepare-pdb-list", "Generate a list with PDB ID's that contain any of the ligands"),

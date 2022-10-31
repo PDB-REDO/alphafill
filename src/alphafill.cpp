@@ -209,7 +209,10 @@ int GeneratePDBList()
 
 	std::vector<std::string> result;
 
-	int nrOfThreads = std::thread::hardware_concurrency();
+	int nrOfThreads = config.get<int>("threads");
+	if (nrOfThreads == 0)
+		nrOfThreads = std::thread::hardware_concurrency();
+
 	blocking_queue<fs::path> q;
 	std::mutex guard;
 
