@@ -27,11 +27,6 @@
 #include <filesystem>
 #include <iostream>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/iostreams/copy.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
-
 #include <zeep/crypto.hpp>
 #include <zeep/http/daemon.hpp>
 #include <zeep/http/html-controller.hpp>
@@ -41,6 +36,7 @@
 
 #include <cif++.hpp>
 #include <cfg.hpp>
+#include <gxrio.hpp>
 
 #include "data-service.hpp"
 #include "db-connection.hpp"
@@ -49,9 +45,7 @@
 #include "structure.hpp"
 #include "utilities.hpp"
 
-namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
-namespace io = boost::iostreams;
 namespace zh = zeep::http;
 
 const std::array<uint32_t, 6> kIdentities{70, 60, 50, 40, 30, 25};
@@ -364,31 +358,50 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 	if (not request.has_parameter("id"))
 		throw missing_entry_error("<missing-id>");
 
-	const auto &[type, afId, chunkNr] = parse_af_id(request.get_parameter("id"));
+	const std::string af_id = request.get_parameter("id");
+	auto status = data_service::instance().get_status(af_id);
 
-	if (type == EntryType::Custom)
+	switch (status.status)
 	{
-		auto status = data_service::instance().get_status(afId);
-		if (status.status != CustomStatus::Finished)
-		{
-			sub.put("hash", afId);
+		case CustomStatus::Unknown:
+			if (data_service::instance().exists_in_afdb(af_id))
+			{
+				data_service::instance().queue_af_id(af_id);
+				sub.put("hash", af_id);
+				sub.put("status", status.status);
+				get_server().get_template_processor().create_reply_from_template("wait", sub, reply);
+				return;
+			}
+
+			throw missing_entry_error(af_id);
+		
+		case CustomStatus::Finished:
+			break;
+		
+		default:
+			sub.put("hash", af_id);
 			sub.put("status", status.status);
 			get_server().get_template_processor().create_reply_from_template("wait", sub, reply);
 			return;
-		}
 	}
+	
+	const auto &[type, afId, chunkNr, version] = parse_af_id(af_id);
 
-	sub.put("af_id", type == EntryType::Custom ? "CS-" + afId : "AF-" + afId);
+	fs::path jsonFile = file_locator::get_metadata_file(type, afId, chunkNr, version);
+	fs::path cifFile = file_locator::get_structure_file(type, afId, chunkNr, version);
+
+	sub.put("af_id", af_id);
 	sub.put("chunk", chunkNr);
 	sub.put("type", type);
+	sub.put("version", version);
 
-	bool chunked = type == EntryType::AlphaFold and (chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2)));
+	bool chunked = type == EntryType::AlphaFold and (chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2, version)));
 
 	sub.put("chunked", chunked);
 
 	if (chunked)
 	{
-		auto allChunks = file_locator::get_all_structure_files(afId);
+		auto allChunks = file_locator::get_all_structure_files(afId, version);
 		json chunks;
 
 		for (size_t i = 0; i < allChunks.size(); ++i)
@@ -396,9 +409,6 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 		
 		sub.put("chunks", chunks);
 	}
-
-	fs::path jsonFile = file_locator::get_metadata_file(type, afId, chunkNr);
-	fs::path cifFile = file_locator::get_structure_file(type, afId, chunkNr);
 
 	if (not fs::exists(jsonFile) /*or not fs::exists(cifFile)*/)
 		throw missing_entry_error(afId);
@@ -538,17 +548,18 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 
 	std::string asymID = request.get_parameter("asym");
 
-	const auto &[type, afId, chunkNr] = parse_af_id(request.get_parameter("id"));
+	const auto &[type, afId, chunkNr, version] = parse_af_id(request.get_parameter("id"));
 
 	sub.put("af_id", afId);
 	sub.put("chunk", chunkNr);
 	sub.put("asym_id", asymID);
+	sub.put("version", version);
 
 	try
 	{
 		using namespace cif::literals;
 
-		auto cif = file_locator::get_structure_file(type, afId, chunkNr);
+		auto cif = file_locator::get_structure_file(type, afId, chunkNr, version);
 		cif::file cf(cif);
 		if (cf.empty())
 			throw zeep::http::not_found;
@@ -564,13 +575,13 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 	{
 	}
 
-	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2));
+	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2, version));
 
 	sub.put("chunked", chunked);
 
 	if (chunked)
 	{
-		auto allChunks = file_locator::get_all_structure_files(afId);
+		auto allChunks = file_locator::get_all_structure_files(afId, version);
 		json chunks;
 
 		for (size_t i = 0; i < allChunks.size(); ++i)
@@ -645,16 +656,12 @@ class affd_rest_controller : public zh::rest_controller
 
 status_reply affd_rest_controller::get_aff_status(const std::string &af_id)
 {
-	const auto &[type, id, chunkNr] = parse_af_id(af_id);
+	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
 
-	status_reply result;
+	status_reply result = data_service::instance().get_status(af_id);
 
-	if (type == EntryType::Custom)
-		result = data_service::instance().get_status(id);
-	else if (fs::exists(file_locator::get_structure_file(id, chunkNr)))
+	if (result.status == CustomStatus::Unknown and fs::exists(file_locator::get_structure_file(id, chunkNr, version)))
 		result.status = CustomStatus::Finished;
-	else
-		result.status = CustomStatus::Unknown;
 
 	return result;
 }
@@ -663,9 +670,9 @@ zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
 {
 	zeep::http::reply rep(zeep::http::ok, {1, 1});
 
-	const auto &[type, id, chunkNr] = parse_af_id(af_id);
+	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
 
-	fs::path file = file_locator::get_structure_file(type, id, chunkNr);
+	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
 		return zeep::http::reply(zeep::http::not_found, {1, 1});
@@ -677,24 +684,18 @@ zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
 	}
 	else
 	{
-		std::ifstream is(file, std::ios::binary);
-		if (not is.is_open())
+		gxrio::ifstream in(file);
+
+		if (not in.is_open())
 			return zeep::http::reply(zeep::http::not_found, {1, 1});
-
-		io::filtering_stream<io::input> in;
-		in.push(io::gzip_decompressor());
-		in.push(is);
-
+		
 		std::ostringstream os;
-		io::copy(in, os);
+		os << in.rdbuf();
 
 		rep.set_content(os.str(), "text/plain");
 	}
 
-	std::string filename = type == EntryType::Custom ?
-		"CS-" + id + ".cif" :
-		"AF-" + id + "-F" + std::to_string(chunkNr) + "-model_v1.cif";
-
+	std::string filename = af_id + ".cif";
 	rep.set_header("content-disposition", "attachement; filename = \"" + filename + '\"');
 
 	return rep;
@@ -704,21 +705,25 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 {
 	zeep::http::reply rep(zeep::http::ok, {1, 1});
 
-	std::set<std::string> requestedAsyms;
-	ba::split(requestedAsyms, asyms, ba::is_any_of(","));
+	auto requestedAsyms = cif::split(asyms, ",");
+	std::set<std::string> requestedAsymSet{ requestedAsyms.begin(), requestedAsyms.end() };
 
 	std::unique_ptr<std::iostream> s(new std::stringstream);
-	io::filtering_stream<io::output> out;
 
 	if (get_header("accept-encoding").find("gzip") != std::string::npos)
 	{
-		out.push(io::gzip_compressor());
+		gxrio::basic_ogzip_streambuf<char, std::char_traits<char>> buffer;
+		buffer.init(s->rdbuf());
+		std::ostream os(&buffer);
+
+		stripCifFile(af_id, requestedAsymSet, identity, os);
+
+		buffer.close();
+
 		rep.set_header("content-encoding", "gzip");
 	}
-
-	out.push(*s.get());
-
-	stripCifFile(af_id, requestedAsyms, identity, out);
+	else
+		stripCifFile(af_id, requestedAsymSet, identity, *s);
 
 	rep.set_content(s.release(), "text/plain");
 	// rep.set_header("content-disposition", "attachement; filename = \"AF-" + id + "-F1-model_v1.cif\"");
@@ -730,21 +735,23 @@ zh::reply affd_rest_controller::get_aff_structure_optimized(const std::string &a
 {
 	zeep::http::reply rep(zeep::http::ok, {1, 1});
 
-	std::set<std::string> requestedAsyms;
-	ba::split(requestedAsyms, asyms, ba::is_any_of(","));
+	auto requestedAsyms = cif::split(asyms, ",");
+	std::set<std::string> requestedAsymSet{ requestedAsyms.begin(), requestedAsyms.end() };
 
 	std::unique_ptr<std::iostream> s(new std::stringstream);
-	io::filtering_stream<io::output> out;
 
 	if (get_header("accept-encoding").find("gzip") != std::string::npos)
 	{
-		out.push(io::gzip_compressor());
+		gxrio::basic_ogzip_streambuf<char, std::char_traits<char>> buffer;
+		buffer.init(s->rdbuf());
+		std::ostream os(&buffer);
+
+		optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsymSet, os);
+
 		rep.set_header("content-encoding", "gzip");
 	}
-
-	out.push(*s.get());
-
-	optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsyms, out);
+	else
+		optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsymSet, *s);
 
 	rep.set_content(s.release(), "text/plain");
 
@@ -755,27 +762,29 @@ zh::reply affd_rest_controller::get_aff_structure_optimized_with_stats(const std
 {
 	zeep::http::reply rep(zeep::http::ok, {1, 1});
 
-	std::set<std::string> requestedAsyms;
-	ba::split(requestedAsyms, asyms, ba::is_any_of(","));
+	auto requestedAsyms = cif::split(asyms, ",");
+	std::set<std::string> requestedAsymSet{ requestedAsyms.begin(), requestedAsyms.end() };
 
 	std::ostringstream os;
 
-	auto stats = optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsyms, os);
+	auto stats = optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsymSet, os);
 
 	stats["model"] = os.str();
 
 	std::unique_ptr<std::iostream> s(new std::stringstream);
-	io::filtering_stream<io::output> out;
 
 	if (get_header("accept-encoding").find("gzip") != std::string::npos)
 	{
-		out.push(io::gzip_compressor());
+		gxrio::basic_ogzip_streambuf<char, std::char_traits<char>> buffer;
+		buffer.init(s->rdbuf());
+		std::ostream os(&buffer);
+
+		os << stats;
+
 		rep.set_header("content-encoding", "gzip");
 	}
-
-	out.push(*s.get());
-
-	out << stats;
+	else
+		*s << stats;
 
 	rep.set_content(s.release(), "application/json");
 
@@ -784,9 +793,9 @@ zh::reply affd_rest_controller::get_aff_structure_optimized_with_stats(const std
 
 zeep::json::element affd_rest_controller::get_aff_structure_json(const std::string &af_id)
 {
-	const auto &[type, id, chunkNr] = parse_af_id(af_id);
+	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
 
-	fs::path file = file_locator::get_metadata_file(type, id, chunkNr);
+	fs::path file = file_locator::get_metadata_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
@@ -801,12 +810,12 @@ zeep::json::element affd_rest_controller::get_aff_structure_json(const std::stri
 
 zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 {
-	if (ba::ends_with(af_id, ".json"))
+	if (cif::ends_with(af_id, ".json"))
 		af_id.erase(af_id.begin() + af_id.length() - 5, af_id.end());
 
-	const auto &[type, id, chunkNr] = parse_af_id(af_id);
+	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
 
-	fs::path file = file_locator::get_structure_file(type, id, chunkNr);
+	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
@@ -856,18 +865,18 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 
 zeep::json::element affd_rest_controller::post_custom_structure(const std::string &data)
 {
-	auto hash = zeep::encode_hex(zeep::sha1(data));
+	auto id = "CS-" + zeep::encode_hex(zeep::sha1(data));
 
-	auto status = data_service::instance().get_status(hash);
+	auto status = data_service::instance().get_status(id);
 
 	if (status.status == CustomStatus::Unknown)
 	{
-		data_service::instance().queue(data, hash);
+		data_service::instance().queue(data, id);
 		status.status = CustomStatus::Queued;
 	}
 
 	return {
-		{ "id", "CS-" + hash },
+		{ "id", id },
 		{ "status", status.status }
 	};
 }
@@ -910,7 +919,7 @@ int server_main(int argc, char *const argv[])
 			db_user = config.get<std::string>(opt);
 	}
 
-	db_connection::init(ba::join(vConn, " "));
+	db_connection::init(cif::join(vConn, " "));
 
 	// --------------------------------------------------------------------
 

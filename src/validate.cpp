@@ -28,11 +28,9 @@
 #include <iomanip>
 #include <thread>
 
-#include <cif++.hpp>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/date_time.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
+
+#include <cif++.hpp>
 
 #include <zeep/json/element.hpp>
 #include <zeep/json/parser.hpp>
@@ -44,7 +42,6 @@
 #include "validate.hpp"
 
 namespace fs = std::filesystem;
-namespace ba = boost::algorithm;
 
 using json = zeep::json::element;
 
@@ -968,13 +965,13 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 				  << std::string(80, '-') << std::endl
 				  << std::endl
 				  << "PDB ID's with mismatches" << std::endl
-				  << ba::join(mismatch, ", ") << std::endl
+				  << cif::join(mismatch, ", ") << std::endl
 				  << std::endl
 				  << "PDB ID's with differing sequence length" << std::endl
-				  << ba::join(unequal_length, ", ") << std::endl
+				  << cif::join(unequal_length, ", ") << std::endl
 				  << std::endl
 				  << "PDB ID's with mismatches that do not involve X" << std::endl
-				  << ba::join(not_x_related, ", ") << std::endl
+				  << cif::join(not_x_related, ", ") << std::endl
 				  << std::endl;
 	}
 
@@ -1048,7 +1045,7 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 
 // 	// --------------------------------------------------------------------
 
-// 	const auto &[afID, chunk] = parse_af_id(vm["af-id"].as<std::string>());
+// 	const auto &[afID, chunk, version] = parse_af_id(vm["af-id"].as<std::string>());
 
 // 	cif::file afFile(file_locator::get_structure_file(type, afID, chunk));
 // 	cif::mm::structure afStructure(afFile);

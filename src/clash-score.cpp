@@ -27,11 +27,7 @@
 #include <fstream>
 #include <iomanip>
 
-#include <cif++/CifUtils.hpp>
-#include <cif++/Structure.hpp>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/date_time.hpp>
+#include <cif++.hpp>
 
 #include <zeep/json/element.hpp>
 
@@ -39,9 +35,7 @@
 #include "queue.hpp"
 #include "revision.hpp"
 
-namespace po = boost::program_options;
 namespace fs = std::filesystem;
-namespace ba = boost::algorithm;
 
 using json = zeep::json::element;
 

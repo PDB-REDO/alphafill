@@ -46,20 +46,20 @@ file_locator::file_locator(cfg::config &config)
 	, m_pdb_name_pattern(config.get<std::string>("pdb-name-pattern"))
 	, m_metadata_name_pattern(config.get<std::string>("metadata-name-pattern"))
 {
-	if (not fs::is_directory(m_db_dir))
-		throw std::runtime_error("AlphfaFill data directory does not exist");
-	if (not fs::is_directory(m_pdb_dir))
-		throw std::runtime_error("PDB directory does not exist");
+	// if (not fs::is_directory(m_db_dir))
+	// 	throw std::runtime_error("AlphfaFill data directory does not exist");
+	// if (not fs::is_directory(m_pdb_dir))
+	// 	throw std::runtime_error("PDB directory does not exist");
 }
 
-std::vector<std::filesystem::path> file_locator::get_all_structure_files(const std::string &id)
+std::vector<std::filesystem::path> file_locator::get_all_structure_files(const std::string &id, int version)
 {
 	std::vector<fs::path> result;
 
 	int i = 1;
 	for (;;)
 	{
-		fs::path chunk = instance().get_structure_file(id, i);
+		fs::path chunk = instance().get_structure_file(id, i, version);
 		if (not fs::exists(chunk))
 			break;
 		

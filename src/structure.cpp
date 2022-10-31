@@ -63,9 +63,9 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 {
 	using namespace cif::literals;
 
-	const auto &[type, id, chunkNr] = parse_af_id(af_id);
+	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
 
-	fs::path file = file_locator::get_structure_file(type, id, chunkNr);
+	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
@@ -75,7 +75,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	{
 		using json = zeep::json::element;
 
-		fs::path jsonFile = file_locator::get_metadata_file(type, id, chunkNr);
+		fs::path jsonFile = file_locator::get_metadata_file(type, id, chunkNr, version);
 
 		if (not fs::exists(jsonFile))
 			throw zeep::http::not_found;
@@ -151,8 +151,8 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 	auto &db_y = yin.front();
 
 	json info;
-	const auto &[type, afID, chunkNr] = parse_af_id(db_i.name());
-	std::ifstream infoFile(file_locator::get_metadata_file(type, afID, chunkNr));
+	const auto &[type, afID, chunkNr, version] = parse_af_id(db_i.name());
+	std::ifstream infoFile(file_locator::get_metadata_file(type, afID, chunkNr, version));
 	zeep::json::parse_json(infoFile, info);
 
 	// statistics before

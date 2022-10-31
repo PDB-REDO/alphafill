@@ -84,7 +84,7 @@ std::string Ligand::map(const std::string &atomID) const
 
 	if (mModifications != nullptr)
 	{
-		for (const auto &[atom2] : mModifications->find<std::string>("atom1"_key == atomID, "atom2"))
+		for (const auto &atom2 : mModifications->find<std::string>("atom1"_key == atomID, "atom2"))
 		{
 			result = atom2;
 			break;

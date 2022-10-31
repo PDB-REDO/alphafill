@@ -29,8 +29,6 @@
 
 #include <cif++.hpp>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/date_time.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 
 #include <zeep/json/element.hpp>
@@ -42,9 +40,7 @@
 #include "ligands.hpp"
 #include "validate.hpp"
 
-namespace po = boost::program_options;
 namespace fs = std::filesystem;
-namespace ba = boost::algorithm;
 
 using json = zeep::json::element;
 
@@ -247,9 +243,9 @@ int a_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	const auto &[afID, chunk] = parse_af_id(vm["af-id"].as<std::string>());
+	const auto &[afID, chunk, version] = parse_af_id(vm["af-id"].as<std::string>());
 
-	cif::file afFile(file_locator::get_structure_file(type, afID, chunk));
+	cif::file afFile(file_locator::get_structure_file(type, afID, chunk, version));
 	cif::mm::structure afStructure(afFile);
 
 	auto pdbID = vm["pdb-id"].as<std::string>();

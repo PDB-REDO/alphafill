@@ -49,25 +49,25 @@ sequence getSequenceForStrand(cif::datablock &db, const std::string &strand);
 class file_locator
 {
   public:
-	static std::filesystem::path get_structure_file(EntryType type, const std::string &id, int chunk_nr)
+	static std::filesystem::path get_structure_file(EntryType type, const std::string &id, int chunk_nr, int version)
 	{
 		if (type == EntryType::Custom)
 			return instance().m_custom_dir / ("CS-" + id + ".cif.gz");
 		else
-			return instance().get_structure_file_1(id, chunk_nr);
+			return instance().get_structure_file_1(id, chunk_nr, version);
 	}
 
-	static std::filesystem::path get_metadata_file(EntryType type, const std::string &id, int chunk_nr)
+	static std::filesystem::path get_metadata_file(EntryType type, const std::string &id, int chunk_nr, int version)
 	{
 		if (type == EntryType::Custom)
 			return instance().m_custom_dir / ("CS-" + id + ".json");
 		else
-			return instance().get_metadata_file_1(id, chunk_nr);
+			return instance().get_metadata_file_1(id, chunk_nr, version);
 	}
 
-	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr)
+	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr, int version)
 	{
-		return instance().get_structure_file_1(id, chunk_nr);
+		return instance().get_structure_file_1(id, chunk_nr, version);
 	}
 
 	static std::filesystem::path get_pdb_file(const std::string &id)
@@ -75,12 +75,12 @@ class file_locator
 		return instance().get_pdb_file_1(id);
 	}
 
-	static std::filesystem::path get_metadata_file(const std::string &id, int chunk_nr)
+	static std::filesystem::path get_metadata_file(const std::string &id, int chunk_nr, int version)
 	{
-		return instance().get_metadata_file_1(id, chunk_nr);
+		return instance().get_metadata_file_1(id, chunk_nr, version);
 	}
 
-	static std::vector<std::filesystem::path> get_all_structure_files(const std::string &id);
+	static std::vector<std::filesystem::path> get_all_structure_files(const std::string &id, int version);
 
   private:
 
@@ -94,18 +94,21 @@ class file_locator
 	file_locator(const file_locator &) = delete;
 	file_locator &operator=(const file_locator &) = delete;
 
-	std::filesystem::path get_structure_file_1(const std::string &id, int chunk_nr)
+	std::filesystem::path get_structure_file_1(const std::string &id, int chunk_nr, int version)
 	{
 		std::string s = get_file(id, chunk_nr, m_structure_name_pattern);
 
 		std::string::size_type i;
 		while ((i = s.find("${db-dir}")) != std::string::npos)
 			s.replace(i, strlen("${db-dir}"), m_db_dir);
-		
+
+		while ((i = s.find("${version}")) != std::string::npos)
+			s.replace(i, strlen("${version}"), std::to_string(version));
+
 		return s;
 	}
 
-	std::filesystem::path get_metadata_file_1(const std::string &id, int chunk_nr)
+	std::filesystem::path get_metadata_file_1(const std::string &id, int chunk_nr, int version)
 	{
 		std::string s = get_file(id, chunk_nr, m_metadata_name_pattern);
 
@@ -113,6 +116,9 @@ class file_locator
 		while ((i = s.find("${db-dir}")) != std::string::npos)
 			s.replace(i, strlen("${db-dir}"), m_db_dir);
 		
+		while ((i = s.find("${version}")) != std::string::npos)
+			s.replace(i, strlen("${version}"), std::to_string(version));
+
 		return s;
 	}
 

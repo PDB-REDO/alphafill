@@ -44,3 +44,4 @@ struct alphafill_progress_cb
 zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progress);
 int alphafill_main(int argc, char * const argv[]);
 
+int GeneratePDBList();

@@ -30,10 +30,8 @@
 #include <regex>
 #include <thread>
 
-#include <unistd.h>
 #include <sys/wait.h>
-
-#include <boost/algorithm/string.hpp>
+#include <unistd.h>
 
 #include <cfg.hpp>
 #include <cif++.hpp>
@@ -50,29 +48,57 @@
 #include "queue.hpp"
 #include "utilities.hpp"
 
-namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
 
-std::regex kAF_ID_Rx(R"((?:(AF|CS)-)?(.+?)(?:-F(\d+)(?:-model_v\d)?)?)");
+std::regex kAF_ID_Rx(R"((?:(AF|CS)-)?(.+?)(?:-F(\d+)(?:-model_v(\d))?)?)");
 
-std::tuple<EntryType, std::string, int> parse_af_id(std::string af_id)
+std::tuple<EntryType, std::string, int, int> parse_af_id(std::string af_id)
 {
+	auto &data_service = data_service::instance();
+
 	EntryType type = EntryType::Unknown;
-	int chunkNr = 1;
+	int chunkNr = 1, version = 2;
+	std::string id;
 
 	std::smatch m;
 	if (std::regex_match(af_id, m, kAF_ID_Rx))
 	{
-		if (m[1].matched and m[1] == "CS")
-			type = EntryType::Custom;
-		af_id = m[2];
+		id = m[2];
+
 		if (m[3].matched)
 			chunkNr = std::stoi(m[3]);
+
+		if (m[4].matched)
+			version = std::stoi(m[4]);
+
+		if (m[1].matched)
+		{
+			if (m[1] == "CS")
+				type = EntryType::Custom;
+			else if (m[1] == "AF")
+				type = EntryType::AlphaFold;
+		}
+		else
+		{
+			// No prefix was given, try to see if we can find this ID in our cache
+			if (fs::exists(file_locator::get_metadata_file(af_id, chunkNr, 2)))
+			{
+				type = EntryType::AlphaFold;
+				version = 2;
+			}
+			else if (fs::exists(file_locator::get_metadata_file(af_id, chunkNr, 3)))
+			{
+				type = EntryType::AlphaFold;
+				version = 3;
+			}
+			else if (data_service.get_status(af_id).status != CustomStatus::Unknown)
+				type = EntryType::Custom;
+		}
 	}
 
-	return { type, af_id, chunkNr };
+	return { type, id, chunkNr, version };
 }
 
 // --------------------------------------------------------------------
@@ -172,7 +198,7 @@ std::vector<structure> data_service::get_structures(float min_identity, uint32_t
 		    fetch first )" +
 			std::to_string(pageSize) + R"( rows only)"))
 	{
-		const auto &[type, id, chunk] = parse_af_id(structure_id);
+		const auto &[type, id, chunk, version] = parse_af_id(structure_id);
 		if (chunked)
 			structures.emplace_back(structure{ id + "-F" + std::to_string(chunk), hit_count, transplant_count, distinct });
 		else
@@ -212,7 +238,7 @@ std::vector<structure> data_service::get_structures_for_compound(float min_ident
 			fetch first )" +
 			std::to_string(pageSize) + R"( rows only)"))
 	{
-		const auto &[type, id, chunk] = parse_af_id(structure_id);
+		const auto &[type, id, chunk, version] = parse_af_id(structure_id);
 		if (chunked)
 			structures.emplace_back(structure{ id + "-F" + std::to_string(chunk), hit_count, transplant_count, distinct });
 		else
@@ -276,8 +302,8 @@ void process(blocking_queue<json> &q, cif::Progress &p)
 
 		p.message(id);
 
-		const auto &[type, uniprot_id, chunk] = parse_af_id(id);
-		bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2));
+		const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
+		bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
 
 		pqxx::transaction tx1(db_connection::instance());
 		auto r = tx1.exec1(R"(INSERT INTO af_structure (name, chunked, af_version, created, af_file) VALUES()" +
@@ -335,7 +361,7 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 
 	std::string s(schema.data(), schema.size());
 
-	ba::replace_all(s, "$OWNER", db_user);
+	cif::replace_all(s, "$OWNER", db_user);
 
 	tx.exec0(s);
 	tx.commit();
@@ -402,6 +428,8 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 
 bool data_service::exists_in_afdb(const std::string &id) const
 {
+	bool result = false;
+
 	auto &config = cfg::config::instance();
 
 	std::string url = config.get<std::string>("alphafold-3d-beacon");
@@ -419,36 +447,63 @@ bool data_service::exists_in_afdb(const std::string &id) const
 
 		url = rep_j["structures"][0]["model_url"].as<std::string>();
 
-		rep = simple_request(url, { { "Accept-Encoding", "gzip" } });
+		rep = head_request(url, { { "Accept-Encoding", "gzip" } });
 
-		if (rep.get_status() == zeep::http::ok)
-		{
-			std::string enc = rep.get_header("Content-Encoding");
-
-			if (enc == "gzip")
-			{
-				const std::string &content = rep.get_content();
-
-				struct membuf : public std::streambuf
-				{
-					membuf(char *text, size_t length)
-					{
-						this->setg(text, text, text + length);
-					}
-				} buffer(const_cast<char *>(content.data()), content.length());
-
-				gxrio::istream in(&buffer);
-
-				std::string line;
-				while (getline(in, line))
-					std::cout << line << std::endl;
-			}
-		}
-		else
-			std::cout << zeep::http::get_status_description(rep.get_status()) << std::endl;
+		result = rep.get_status() == zeep::http::ok;
 	}
 
-	return false;
+	return result;
+}
+
+std::string data_service::fetch_from_afdb(const std::string &id) const
+{
+	auto &config = cfg::config::instance();
+
+	std::string url = config.get<std::string>("alphafold-3d-beacon");
+
+	std::string::size_type i;
+	while ((i = url.find("${id}")) != std::string::npos)
+		url.replace(i, strlen("${id}"), id);
+
+	auto rep = simple_request(url);
+
+	if (rep.get_status() != zeep::http::ok)
+		throw std::runtime_error("The ID " + id + " was not found at AlphaFold");
+
+	zeep::json::element rep_j;
+	zeep::json::parse_json(rep.get_content(), rep_j);
+
+	url = rep_j["structures"][0]["model_url"].as<std::string>();
+
+	rep = simple_request(url, { { "Accept-Encoding", "gzip" } });
+
+	if (rep.get_status() != zeep::http::ok)
+		throw std::runtime_error("Error requesting alphafold structure file: " + zeep::http::get_status_description(rep.get_status()));
+
+	std::string enc = rep.get_header("Content-Encoding");
+
+	if (enc != "gzip")
+		throw std::runtime_error("Unexpected content encoding from server: " + enc);
+
+	const std::string &content = rep.get_content();
+
+	struct membuf : public std::streambuf
+	{
+		membuf(char *text, size_t length)
+		{
+			this->setg(text, text, text + length);
+		}
+	} buffer(const_cast<char *>(content.data()), content.length());
+
+	gxrio::istream in(&buffer);
+
+	std::ostringstream result;
+
+	std::string line;
+	while (getline(in, line))
+		result << line << std::endl;
+
+	return result.str();
 }
 
 // --------------------------------------------------------------------
@@ -464,7 +519,6 @@ struct data_service_progress : public alphafill_progress_cb
 	{
 		m_max_0 = in_max;
 	}
-
 
 	void set_max_1(size_t in_max) override
 	{
@@ -515,9 +569,11 @@ void data_service::run()
 
 		std::error_code ec;
 
-		auto xyzin = m_in_dir / ("CS-" + next + ".cif.gz");
-		auto xyzout = m_out_dir / ("CS-" + next + ".cif.gz");
-		auto jsonout = m_out_dir / ("CS-" + next + ".json");
+		auto xyzin = m_in_dir / (next + ".cif.gz");
+
+		const auto &[type, afId, chunkNr, version] = parse_af_id(next);
+		fs::path jsonout = file_locator::get_metadata_file(type, afId, chunkNr, version);
+		fs::path xyzout = file_locator::get_structure_file(type, afId, chunkNr, version);
 
 		if (fs::exists(xyzout, ec) and fs::exists(jsonout, ec))
 		{
@@ -535,7 +591,7 @@ void data_service::run()
 			if (f.empty())
 				throw std::runtime_error("Cif file seems to be empty or invalid");
 
-			m_running = next;
+			m_running = afId;
 			m_progress = 0;
 
 			fs::remove(xyzin, ec);
@@ -546,7 +602,6 @@ void data_service::run()
 
 			std::ofstream metadataFile(jsonout);
 			metadataFile << metadata;
-
 
 			// int pid = fork();
 
@@ -582,7 +637,7 @@ void data_service::run()
 
 			// if (WIFEXITED(status) and WEXITSTATUS(status) != 0)
 			// 	throw std::runtime_error("Alphafill terminated with exit status " + std::to_string(WEXITSTATUS(status)));
-		
+
 			// if (WIFSIGNALED(status))
 			// 	throw std::runtime_error("Alphafill terminated with signal " + std::to_string(WTERMSIG(status)));
 		}
@@ -600,40 +655,79 @@ void data_service::run()
 	}
 }
 
-status_reply data_service::get_status(const std::string &hash) const
+status_reply data_service::get_status(const std::string &af_id) const
 {
 	status_reply reply;
 
-	auto cif_file = m_out_dir / ("CS-" + hash + ".cif.gz");
-	auto metadata_file = m_out_dir / ("CS-" + hash + ".json");
+	EntryType type = EntryType::Unknown;
+	int chunkNr = 1, version = 2;
+	std::string id;
 
-	if (fs::exists(cif_file) and fs::exists(metadata_file))
+	std::smatch m;
+	if (std::regex_match(af_id, m, kAF_ID_Rx))
+	{
+		id = m[2];
+
+		if (m[3].matched)
+			chunkNr = std::stoi(m[3]);
+
+		if (m[4].matched)
+			version = std::stoi(m[4]);
+
+		if (m[1].matched)
+		{
+			if (m[1] == "CS")
+				type = EntryType::Custom;
+			else if (m[1] == "AF")
+				type = EntryType::AlphaFold;
+		}
+	}
+
+	fs::path jsonFile = file_locator::get_metadata_file(type, id, chunkNr, version);
+	fs::path cifFile = file_locator::get_structure_file(type, id, chunkNr, version);
+
+	// See if this ID might have been processed already
+	if ((not fs::exists(jsonFile) or not fs::exists(cifFile)) and not m[4].matched)
+	{
+		jsonFile = file_locator::get_metadata_file(type, id, chunkNr, 3);
+		cifFile = file_locator::get_structure_file(type, id, chunkNr, 3);
+	}
+
+	if (fs::exists(jsonFile) and fs::exists(cifFile))
 		reply.status = CustomStatus::Finished;
-	else if (m_running == hash)
-	{
-		reply.status = CustomStatus::Running;
-		reply.progress = m_progress;
-	}
-	else if (fs::exists(m_in_dir / ("CS-" + hash + ".cif.gz")))
-		reply.status = CustomStatus::Queued;
-	else if (fs::exists(m_out_dir / ("CS-" + hash + ".error")))
-	{
-		reply.status = CustomStatus::Error;
-
-		std::ifstream in(m_out_dir / ("CS-" + hash + ".error"));
-
-		std::string line;
-		std::getline(in, line);
-
-		reply.message = line;
-	}
 	else
-		reply.status = CustomStatus::Unknown;
+	{
+		auto cif_file = m_out_dir / (af_id + ".cif.gz");
+		auto metadata_file = m_out_dir / (af_id + ".json");
+
+		if (fs::exists(cif_file) and fs::exists(metadata_file))
+			reply.status = CustomStatus::Finished;
+		else if (m_running == id)
+		{
+			reply.status = CustomStatus::Running;
+			reply.progress = m_progress;
+		}
+		else if (fs::exists(m_in_dir / (af_id + ".cif.gz")))
+			reply.status = CustomStatus::Queued;
+		else if (fs::exists(m_out_dir / (af_id + ".error")))
+		{
+			reply.status = CustomStatus::Error;
+
+			std::ifstream in(m_out_dir / (af_id + ".error"));
+
+			std::string line;
+			std::getline(in, line);
+
+			reply.message = line;
+		}
+		else
+			reply.status = CustomStatus::Unknown;
+	}
 
 	return reply;
 }
 
-void data_service::queue(const std::string &data, const std::string &hash)
+void data_service::queue(const std::string &data, const std::string &id)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -651,13 +745,34 @@ void data_service::queue(const std::string &data, const std::string &hash)
 
 	if (f.empty())
 		throw std::runtime_error("Invalid or empty cif file");
-	
-	gxrio::ofstream out(m_in_dir / ("CS-" + hash + ".cif.gz"));
+
+	gxrio::ofstream out(m_in_dir / (id + ".cif.gz"));
 	if (not out.is_open())
 		throw std::runtime_error("Could not create temporary file");
 
 	f.save(out);
 	out.close();
 
-	m_queue.push(hash);
+	m_queue.push(id);
+}
+
+void data_service::queue_af_id(const std::string &id)
+{
+	std::string data = fetch_from_afdb(id);
+
+	auto outfile = file_locator::get_metadata_file(id, 1, 3);
+
+	gxrio::ofstream out(m_in_dir / ("AF-" + id + "-F1-model_v3.cif.gz"));
+	if (not out.is_open())
+		throw std::runtime_error("Could not create temporary file");
+
+	out << data;
+	out.close();
+
+	// create output directory, if needed.
+	assert(not outfile.empty());
+	if (not fs::exists(outfile.parent_path()))
+		fs::create_directories(outfile.parent_path());
+
+	m_queue.push("AF-" + id + "-F1-model_v3");
 }

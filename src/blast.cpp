@@ -13,8 +13,6 @@
 #include <map>
 #include <atomic>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
@@ -23,7 +21,6 @@
 #include "blast.hpp"
 #include "matrix.hpp"
 
-namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
@@ -119,7 +116,7 @@ Matrix::Matrix(const std::string &inName, int32_t inGapOpen, int32_t inGapExtend
 	mData.mName = nullptr;
 	for (const MMatrixData *data = kMMatrixData; data->mName != nullptr; ++data)
 	{
-		if (ba::iequals(inName, data->mName) and
+		if (cif::iequals(inName, data->mName) and
 			inGapOpen == data->mGapOpen and
 			inGapExtend == data->mGapExtend)
 		{
@@ -2015,7 +2012,7 @@ void BlastQuery<WORDSIZE>::AddHit(HitPtr inHit, std::vector<HitPtr> &inHitList) 
 //
 //	std::string query(inQuery), queryID("query"), queryDef;
 //
-//	if (ba::starts_with(inQuery, ">"))
+//	if (cif::starts_with(inQuery, ">"))
 //	{
 //		boost::smatch m;
 //		if (regex_search(inQuery, m, kFastARE, boost::match_not_dot_newline))
@@ -2105,7 +2102,7 @@ std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, const std:
 
 	std::string query(inQuery), queryID("query"), queryDef;
 
-	if (ba::starts_with(inQuery, ">"))
+	if (cif::starts_with(inQuery, ">"))
 	{
 		std::smatch m;
 		if (regex_search(inQuery, m, kFastARE))

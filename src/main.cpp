@@ -202,10 +202,12 @@ int main(int argc, char *const argv[])
 			result = alphafill_main(argc - 1, argv + 1);
 		else if (command == "validate")
 			std::cerr << "unimplemented" << std::endl;
+		else if (command == "prepare-pdb-list")
+			result = GeneratePDBList();
 		else 
 		{
 			std::cerr << "Usage: alphafill command [options...]" << std::endl
-					  << "  where command is one of: 'server', 'process', 'validate'" << std::endl;
+					  << "  where command is one of: 'server', 'process', 'validate', 'prepare-pdb-list'" << std::endl;
 			
 			exit(1);
 		}

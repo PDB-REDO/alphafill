@@ -9,7 +9,7 @@ var timer;
 
 function update() {
 	var resultOK = true;
-	fetch(`v1/aff/CS-${hash}/status`)
+	fetch(`v1/aff/${hash}/status`)
 		.then(r => {
 			resultOK = r.ok;
 			return r.json();
@@ -34,7 +34,7 @@ function update() {
 						progressBar.style.width = (r.progress * 100) + "%";
 						break;
 					case "finished":
-						window.location = `model?id=CS-${hash}`;
+						window.location = `model?id=${hash}`;
 						clearTimeout(timer);
 						break;
 					case "unknown":

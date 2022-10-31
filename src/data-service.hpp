@@ -39,8 +39,8 @@ enum class EntryType { Unknown, AlphaFold, Custom };
 
 /// \brief Return the UniprotID and chunk number for an AlphaFold ID.
 ///
-/// Split an id in the form of AF-UNIPROTID-F<CHUNKNR>
-std::tuple<EntryType,std::string,int> parse_af_id(std::string af_id);
+/// Split an id in the form of AF-UNIPROTID-F<CHUNKNR>-model_v<VERSION>
+std::tuple<EntryType,std::string,int,int> parse_af_id(std::string af_id);
 
 // --------------------------------------------------------------------
 
@@ -119,10 +119,12 @@ class data_service
 	// On demand services
 
 	bool exists_in_afdb(const std::string &id) const;
+	std::string fetch_from_afdb(const std::string &id) const;
 
-	status_reply get_status(const std::string &hash) const;
+	status_reply get_status(const std::string &id) const;
 
-	void queue(const std::string &data, const std::string &hash);
+	void queue(const std::string &data, const std::string &id);
+	void queue_af_id(const std::string &id);
 
   private:
 

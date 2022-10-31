@@ -29,9 +29,6 @@
 
 #include <cif++.hpp>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/date_time.hpp>
-
 #include <cfg.hpp>
 #include <gxrio.hpp>
 #include <zeep/json/element.hpp>
@@ -47,7 +44,6 @@
 #include "data-service.hpp"
 
 namespace fs = std::filesystem;
-namespace ba = boost::algorithm;
 
 using json = zeep::json::element;
 
@@ -147,11 +143,20 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 // --------------------------------------------------------------------
 
-int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &output)
+int GeneratePDBList()
 {
+	auto &config = cfg::config::instance();
+
+	fs::path ligandsFile = config.get<std::string>("ligands");
+	if (not fs::exists(ligandsFile))
+		throw std::runtime_error("Ligands file not found");
+
+	LigandsTable ligands(ligandsFile);
+
 	std::cerr << "collecting files ";
 
 	std::vector<fs::path> files;
+	fs::path pdbDir = config.get<std::string>("pdb-dir");
 
 	for (fs::directory_iterator iter(pdbDir); iter != fs::directory_iterator(); ++iter)
 	{
@@ -170,7 +175,7 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 			fs::path file = fiter->path();
 
 			std::string name = file.filename().string();
-			if (not ba::ends_with(name, ".cif.gz"))
+			if (not cif::ends_with(name, ".cif.gz"))
 				continue;
 
 			files.push_back(file);
@@ -185,7 +190,7 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 			fs::path file = fiter->path();
 
 			std::string name = file.filename().string();
-			if (not ba::ends_with(name, "_final.cif"))
+			if (not cif::ends_with(name, "_final.cif"))
 				continue;
 
 			files.push_back(file);
@@ -237,7 +242,7 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 						continue;
 
 					bool none = true;
-					for (const auto &[comp_id] : pdb_chem_comp->rows<std::string>("id"))
+					for (const auto &comp_id : pdb_chem_comp->rows<std::string>("id"))
 					{
 						if (ligands[comp_id])
 						{
@@ -269,14 +274,24 @@ int GeneratePDBList(fs::path pdbDir, LigandsTable &ligands, const std::string &o
 	for (auto &ti : t)
 		ti.join();
 
-	if (not output.empty())
+	if (config.operands().size() >= 2)
 	{
-		std::ofstream outfile(output);
+		std::ofstream outfile(config.operands()[1]);
+		if (not outfile.is_open())
+			throw std::runtime_error("Could not open output file");
+		for (auto &id : result)
+			outfile << id << std::endl;
+	}
+	else if (config.has("pdb-id-list"))
+	{
+		std::ofstream outfile(config.get<std::string>("pdb-id-list"));
+		if (not outfile.is_open())
+			throw std::runtime_error("Could not open output file");
 		for (auto &id : result)
 			outfile << id << std::endl;
 	}
 	else
-		std::cout << ba::join(result, ", ") << std::endl;
+		std::cout << cif::join(result, ", ") << std::endl;
 
 	return 0;
 }
@@ -457,7 +472,7 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 					continue;
 
 				bool none = true;
-				for (const auto &[comp_id] : pdb_chem_comp->rows<std::string>("id"))
+				for (const auto &comp_id : pdb_chem_comp->rows<std::string>("id"))
 				{
 					if (ligands[comp_id])
 					{
@@ -523,7 +538,7 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 					assert(af_ix_trimmed.size() == pdb_ix_trimmed.size());
 
 					// Loop over each asym containing this entity poly
-					for (auto &&[ af_asym_id ] : db["struct_asym"].find<std::string>("entity_id"_key == id, "id"))
+					for (const auto &af_asym_id : db["struct_asym"].find<std::string>("entity_id"_key == id, "id"))
 					{
 						auto af_res = get_residuesForChain(af_structure, af_asym_id);
 						if (af_res.size() != seq.length())
@@ -836,18 +851,6 @@ struct my_progress : public alphafill_progress_cb
 int alphafill_main(int argc, char *const argv[])
 {
 	auto &config = cfg::config::instance();
-
-	// TODO: move this away
-	if (config.has("prepare-pdb-list"))
-	{
-		fs::path ligandsFile = config.get<std::string>("ligands");
-		if (not fs::exists(ligandsFile))
-			throw std::runtime_error("Ligands file not found");
-
-		LigandsTable ligands(ligandsFile);
-
-		return GeneratePDBList(config.get<std::string>("pdb-dir"), ligands, config.has("output") ? config.get<std::string>("output") : "");
-	}
 
 	if (config.operands().size() < 2)
 	{

@@ -101,7 +101,7 @@ find_package(Filesystem REQUIRED)
 find_package(gxrio REQUIRED)
 find_package(zeep 5.1.8 REQUIRED)
 find_package(cifpp 5 REQUIRED)
-find_package(Boost COMPONENTS program_options iostreams)
+
 # find_package(libpqxx 7.2 REQUIRED)
 add_git_submodule(libconfig EXCLUDE_FROM_ALL)
 
@@ -181,8 +181,6 @@ target_link_libraries(alphafill
 	libconfig::libconfig
 	cifpp::cifpp
 	zeep::zeep
-	Boost::program_options
-	Boost::iostreams
 	PkgConfig::PQXX
 	PkgConfig::PQ
 	PkgConfig::SSL

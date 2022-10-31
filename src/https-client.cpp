@@ -34,6 +34,7 @@
 #include <zeep/streambuf.hpp>
 
 #include <cfg.hpp>
+#include <cif++/text.hpp>
 
 #include "https-client.hpp"
 
@@ -221,7 +222,7 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 	req.get_headers().push_back({ "Host", host });
 	auto req_buffer = req.to_buffers();
 
-	auto reader = [&](auto &socket)
+	auto reader = [&,is_head=cif::iequals(req.get_method(), "HEAD")](auto &socket)
 	{
 		zh::reply result;
 		zh::reply_parser p;
@@ -237,7 +238,7 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 
 			auto r = p.parse(sb);
 
-			if (r == true or error == boost::asio::error::eof)
+			if (r == true or error == boost::asio::error::eof or (sb.in_avail() == 0 and is_head))
 			{
 				result = p.get_reply();
 				break;
@@ -289,6 +290,30 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 
 		return reader(sock);
 	}
+}
+
+zh::reply head_request(std::string url, std::vector<zeep::http::header> headers)
+{
+	const std::regex rx(R"((https?)://([^:/]+)(?::(\d+))?/.+)");
+	std::smatch m;
+
+	zh::reply result;
+
+	if (not std::regex_match(url, m, rx))
+		return {};
+
+	// connect
+
+	std::string host = m[2];
+	std::string port = m[1];
+
+	// prepare a request
+
+	headers.push_back({ "Host", host });
+
+	zh::request req{ "HEAD", url, { 1, 0 }, std::move(headers) };
+
+	return send_request(req, host, port);
 }
 
 zh::reply simple_request(std::string url, std::vector<zeep::http::header> headers)

@@ -32,5 +32,6 @@
 #include <zeep/json/element.hpp>
 
 zeep::http::reply simple_request(std::string url, std::vector<zeep::http::header> headers = {});
+zeep::http::reply head_request(std::string url, std::vector<zeep::http::header> headers = {});
 
 zeep::http::reply post_request(std::string url, std::vector<zeep::http::header> headers, zeep::json::element&& payload);
