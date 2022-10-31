@@ -71,7 +71,7 @@ int main(int argc, char *const argv[])
 
 		auto &config = cfg::config::instance();
 		config.init(
-
+			"alphafill command [options] (where command is one of 'server', 'process', 'validate' or 'prepare-pdb-list'",
 			cfg::make_option("version", "Show version number"),
 			cfg::make_option("verbose,v", "Show verbose output"),
 
@@ -130,7 +130,8 @@ int main(int argc, char *const argv[])
 
 			cfg::make_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries"),
 
-			cfg::make_hidden_option("test", "Run test code"));
+			cfg::make_hidden_option("test", "Run test code")
+			);
 
 		// config.set_ignore_unknown(true);
 		config.parse(argc, argv);
