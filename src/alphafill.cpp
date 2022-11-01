@@ -392,7 +392,7 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 					  << seq << std::endl
 					  << std::endl;
 
-		size_t threads = config.get<size_t>("threads");
+		int threads = config.get<int>("threads");
 		if (threads == 0)
 			threads = std::thread::hardware_concurrency();
 
