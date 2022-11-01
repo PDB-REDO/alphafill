@@ -214,12 +214,12 @@ int GeneratePDBList()
 		nrOfThreads = std::thread::hardware_concurrency();
 
 	blocking_queue<fs::path> q;
-	std::mutex guard;
-
 	std::vector<std::thread> t;
+	std::vector<std::vector<std::string>> t_result(nrOfThreads);
+
 	for (int i = 0; i < nrOfThreads; ++i)
 	{
-		t.emplace_back([&]()
+		t.emplace_back([&,ix=i]()
 			{
 			for (;;)
 			{
@@ -257,8 +257,7 @@ int GeneratePDBList()
 					if (none)
 						continue;
 
-					std::unique_lock lock(guard);
-					result.push_back(db.name());
+					t_result[ix].push_back(db.name());
 				}
 				catch(const std::exception& e)
 				{
@@ -276,6 +275,11 @@ int GeneratePDBList()
 
 	for (auto &ti : t)
 		ti.join();
+
+	// combine results
+	for (auto tr : t_result)
+		result.insert(result.end(), tr.begin(), tr.end());
+	sort(result.begin(), result.end());
 
 	if (config.operands().size() >= 2)
 	{
