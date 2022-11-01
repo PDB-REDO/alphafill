@@ -100,7 +100,7 @@ endif()
 find_package(Filesystem REQUIRED)
 find_package(gxrio REQUIRED)
 find_package(zeep 5.1.8 REQUIRED)
-find_package(cifpp 5 REQUIRED)
+find_package(cifpp 5.0.1 REQUIRED)
 find_package(libconfig REQUIRED)
 
 # find_package(libpqxx 7.2 REQUIRED)
