@@ -30,41 +30,38 @@
 #include <mutex>
 #include <queue>
 
-template <typename T>
+template <typename T, size_t N = 100>
 class blocking_queue
 {
   public:
 	void push(T const &value)
 	{
-		{
-			std::lock_guard<std::mutex> lock(m_guard);
-			m_queue.push(value);
-		}
-		m_signal.notify_one();
-	}
+		std::unique_lock<std::mutex> lock(m_guard);
 
-	void push(T &&value)
-	{
-		{
-			std::lock_guard<std::mutex> lock(m_guard);
-			m_queue.push(std::move(value));
-		}
-		m_signal.notify_one();
+		while (m_queue.size() >= N)
+			m_full_signal.wait(lock);
+
+		m_queue.push(value);
+
+		m_empty_signal.notify_one();
 	}
 
 	T pop()
 	{
 		std::unique_lock<std::mutex> lock(m_guard);
 		while (m_queue.empty())
-			m_signal.wait(lock);
+			m_empty_signal.wait(lock);
 
 		auto value = m_queue.front();
 		m_queue.pop();
+
+		m_full_signal.notify_one();
+
 		return value;
 	}
 
   private:
 	std::queue<T> m_queue;
 	mutable std::mutex m_guard;
-	std::condition_variable m_signal;
+	std::condition_variable m_empty_signal, m_full_signal;
 };

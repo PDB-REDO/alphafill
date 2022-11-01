@@ -147,17 +147,15 @@ int GeneratePDBList()
 {
 	auto &config = cfg::config::instance();
 
+	fs::path pdbDir = config.get<std::string>("pdb-dir");
+
 	fs::path ligandsFile = config.get<std::string>("ligands");
 	if (not fs::exists(ligandsFile))
 		throw std::runtime_error("Ligands file not found");
 
 	LigandsTable ligands(ligandsFile);
 
-	std::cerr << "collecting files ";
-
-	std::vector<fs::path> files;
-	fs::path pdbDir = config.get<std::string>("pdb-dir");
-
+	size_t N = 0;
 	for (fs::directory_iterator iter(pdbDir); iter != fs::directory_iterator(); ++iter)
 	{
 		if (not iter->is_directory())
@@ -166,48 +164,10 @@ int GeneratePDBList()
 		if (iter->path().filename().string().length() != 2)
 			continue;
 
-		// Regular PDB layout
-		for (fs::directory_iterator fiter(iter->path()); fiter != fs::directory_iterator(); ++fiter)
-		{
-			if (not fiter->is_regular_file())
-				continue;
-
-			fs::path file = fiter->path();
-
-			std::string name = file.filename().string();
-			if (not cif::ends_with(name, ".cif.gz"))
-				continue;
-
-			files.push_back(file);
-
-			if (files.size() % 10000 == 0)
-				std::cerr << '.';
-		}
-
-		// PDB-REDO layout
-		for (fs::recursive_directory_iterator fiter(iter->path()); fiter != fs::recursive_directory_iterator(); ++fiter)
-		{
-			fs::path file = fiter->path();
-
-			std::string name = file.filename().string();
-			if (not cif::ends_with(name, "_final.cif"))
-				continue;
-
-			files.push_back(file);
-
-			if (files.size() % 10000 == 0)
-				std::cerr << '.';
-		}
+		++N;
 	}
 
-	std::cerr << " done!" << std::endl
-			  << "need to process " << files.size() << " files" << std::endl;
-
-	std::sort(files.begin(), files.end());
-
-	cif::Progress progress(files.size(), "Parsing PDB files");
-
-	std::vector<std::string> result;
+	cif::Progress progress(N, "Generating PDB-ID list");
 
 	int nrOfThreads = config.get<int>("threads");
 	if (nrOfThreads == 0)
@@ -219,7 +179,7 @@ int GeneratePDBList()
 
 	for (int i = 0; i < nrOfThreads; ++i)
 	{
-		t.emplace_back([&,ix=i]()
+		t.emplace_back([&, ix = i]()
 			{
 			for (;;)
 			{
@@ -236,8 +196,6 @@ int GeneratePDBList()
 					cif::file file(f);
 					if (file.empty())
 						throw std::runtime_error("invalid cif file " + f.string());
-
-					progress.consumed(1);
 
 					auto &db = file.front();
 					auto pdb_chem_comp = db.get("chem_comp");
@@ -266,17 +224,53 @@ int GeneratePDBList()
 			} });
 	}
 
-	for (auto &file : files)
-		q.push(file);
+	for (fs::directory_iterator iter(pdbDir); iter != fs::directory_iterator(); ++iter)
+	{
+		if (not iter->is_directory())
+			continue;
 
-	q.push({});
+		if (iter->path().filename().string().length() != 2)
+			continue;
+
+		// Regular PDB layout
+		for (fs::directory_iterator fiter(iter->path()); fiter != fs::directory_iterator(); ++fiter)
+		{
+			if (not fiter->is_regular_file())
+				continue;
+
+			fs::path file = fiter->path();
+
+			std::string name = file.filename().string();
+			if (not cif::ends_with(name, ".cif.gz"))
+				continue;
+
+			q.push(file);
+		}
+
+		// PDB-REDO layout
+		for (fs::recursive_directory_iterator fiter(iter->path()); fiter != fs::recursive_directory_iterator(); ++fiter)
+		{
+			fs::path file = fiter->path();
+
+			std::string name = file.filename().string();
+			if (not cif::ends_with(name, "_final.cif"))
+				continue;
+
+			q.push(file);
+		}
+
+		progress.consumed(1);
+	}
 
 	// signal end
+	q.push({});
 
 	for (auto &ti : t)
 		ti.join();
 
 	// combine results
+	std::vector<std::string> result;
+
 	for (auto tr : t_result)
 		result.insert(result.end(), tr.begin(), tr.end());
 	sort(result.begin(), result.end());
@@ -389,7 +383,9 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 		auto &&[id, seq] = r.get<std::string, std::string>("entity_id", "pdbx_seq_one_letter_code_can");
 
 		// strip all spaces from the sequence, to be able to check length later on
-		seq.erase(remove_if(seq.begin(), seq.end(), [](char aa) { return std::isspace(aa); }), seq.end());
+		seq.erase(remove_if(seq.begin(), seq.end(), [](char aa)
+					  { return std::isspace(aa); }),
+			seq.end());
 
 		if (cif::VERBOSE > 0)
 			std::cerr << "Blasting:" << std::endl
@@ -741,8 +737,8 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 							for (auto atom : res.atoms())
 							{
 								for (auto conn : pdb_struct_conn.find(
-										("ptnr1_label_asym_id"_key == atom.get_label_asym_id() and "ptnr1_label_atom_id"_key == atom.get_label_atom_id()) or
-										("ptnr2_label_asym_id"_key == atom.get_label_asym_id() and "ptnr2_label_atom_id"_key == atom.get_label_atom_id())))
+										 ("ptnr1_label_asym_id"_key == atom.get_label_asym_id() and "ptnr1_label_atom_id"_key == atom.get_label_atom_id()) or
+										 ("ptnr2_label_asym_id"_key == atom.get_label_asym_id() and "ptnr2_label_atom_id"_key == atom.get_label_atom_id())))
 								{
 									std::string a_type, a_comp;
 									if (conn["ptnr1_label_asym_id"].as<std::string>() == atom.get_label_asym_id() and
