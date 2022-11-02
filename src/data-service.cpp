@@ -695,34 +695,26 @@ status_reply data_service::get_status(const std::string &af_id) const
 
 	if (fs::exists(jsonFile) and fs::exists(cifFile))
 		reply.status = CustomStatus::Finished;
-	else
+	else if (m_running == id)
 	{
-		auto cif_file = m_out_dir / (af_id + ".cif.gz");
-		auto metadata_file = m_out_dir / (af_id + ".json");
-
-		if (fs::exists(cif_file) and fs::exists(metadata_file))
-			reply.status = CustomStatus::Finished;
-		else if (m_running == id)
-		{
-			reply.status = CustomStatus::Running;
-			reply.progress = m_progress;
-		}
-		else if (fs::exists(m_in_dir / (af_id + ".cif.gz")))
-			reply.status = CustomStatus::Queued;
-		else if (fs::exists(m_out_dir / (af_id + ".error")))
-		{
-			reply.status = CustomStatus::Error;
-
-			std::ifstream in(m_out_dir / (af_id + ".error"));
-
-			std::string line;
-			std::getline(in, line);
-
-			reply.message = line;
-		}
-		else
-			reply.status = CustomStatus::Unknown;
+		reply.status = CustomStatus::Running;
+		reply.progress = m_progress;
 	}
+	else if (fs::exists(m_in_dir / (af_id + ".cif.gz")))
+		reply.status = CustomStatus::Queued;
+	else if (fs::exists(m_out_dir / (af_id + ".error")))
+	{
+		reply.status = CustomStatus::Error;
+
+		std::ifstream in(m_out_dir / (af_id + ".error"));
+
+		std::string line;
+		std::getline(in, line);
+
+		reply.message = line;
+	}
+	else
+		reply.status = CustomStatus::Unknown;
 
 	return reply;
 }

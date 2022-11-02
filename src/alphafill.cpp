@@ -457,8 +457,12 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 					mmCifFiles.emplace_front(pdb_id, cf);
 
 					// PDB-REDO files don't have the correct audit_conform records, sometimes
-					if (cf->get_validator()->name() == "mmcif_ddl" or cf->get_validator()->name() == "mmcif_ddl.dic")
+					if (cf->get_validator() == nullptr or
+						cf->get_validator()->name() == "mmcif_ddl" or
+						cf->get_validator()->name() == "mmcif_ddl.dic")
+					{
 						cf->load_dictionary("mmcif_pdbx");
+					}
 
 					ci = mmCifFiles.begin();
 
