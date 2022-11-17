@@ -33,9 +33,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <cfg.hpp>
+#include <cfp/cfp.hpp>
 #include <cif++.hpp>
-#include <gxrio.hpp>
 
 #include <zeep/json/parser.hpp>
 
@@ -111,7 +110,7 @@ data_service &data_service::instance()
 
 data_service::data_service()
 {
-	auto &config = cfg::config::instance();
+	auto &config = cfp::config::instance();
 
 	fs::path dir = config.get<std::string>("custom-dir");
 	m_in_dir = dir / "in";
@@ -430,7 +429,7 @@ bool data_service::exists_in_afdb(const std::string &id) const
 {
 	bool result = false;
 
-	auto &config = cfg::config::instance();
+	auto &config = cfp::config::instance();
 
 	std::string url = config.get<std::string>("alphafold-3d-beacon");
 
@@ -457,7 +456,7 @@ bool data_service::exists_in_afdb(const std::string &id) const
 
 std::string data_service::fetch_from_afdb(const std::string &id) const
 {
-	auto &config = cfg::config::instance();
+	auto &config = cfp::config::instance();
 
 	std::string url = config.get<std::string>("alphafold-3d-beacon");
 
@@ -495,7 +494,7 @@ std::string data_service::fetch_from_afdb(const std::string &id) const
 		}
 	} buffer(const_cast<char *>(content.data()), content.length());
 
-	gxrio::istream in(&buffer);
+	cif::gzio::istream in(&buffer);
 
 	std::ostringstream result;
 
@@ -731,14 +730,14 @@ void data_service::queue(const std::string &data, const std::string &id)
 		}
 	} buffer(const_cast<char *>(data.data()), data.length());
 
-	gxrio::istream in(&buffer);
+	cif::gzio::istream in(&buffer);
 
 	cif::file f = cif::pdb::read(in);
 
 	if (f.empty())
 		throw std::runtime_error("Invalid or empty cif file");
 
-	gxrio::ofstream out(m_in_dir / (id + ".cif.gz"));
+	cif::gzio::ofstream out(m_in_dir / (id + ".cif.gz"));
 	if (not out.is_open())
 		throw std::runtime_error("Could not create temporary file");
 
@@ -754,7 +753,7 @@ void data_service::queue_af_id(const std::string &id)
 
 	auto outfile = file_locator::get_metadata_file(id, 1, 3);
 
-	gxrio::ofstream out(m_in_dir / ("AF-" + id + "-F1-model_v3.cif.gz"));
+	cif::gzio::ofstream out(m_in_dir / ("AF-" + id + "-F1-model_v3.cif.gz"));
 	if (not out.is_open())
 		throw std::runtime_error("Could not create temporary file");
 

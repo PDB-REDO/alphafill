@@ -29,8 +29,7 @@
 
 #include <cif++.hpp>
 
-#include <cfg.hpp>
-#include <gxrio.hpp>
+#include <cfp/cfp.hpp>
 #include <zeep/json/element.hpp>
 
 #include "alphafill.hpp"
@@ -145,7 +144,7 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 int GeneratePDBList()
 {
-	auto &config = cfg::config::instance();
+	auto &config = cfp::config::instance();
 
 	fs::path pdbDir = config.get<std::string>("pdb-dir");
 
@@ -304,7 +303,7 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 	using namespace std::literals;
 	using namespace cif::literals;
 
-	auto &config = cfg::config::instance();
+	auto &config = cfp::config::instance();
 
 	std::string fasta = config.get<std::string>("pdb-fasta");
 	fs::path pdbDir = config.get<std::string>("pdb-dir");
@@ -857,7 +856,7 @@ struct my_progress : public alphafill_progress_cb
 
 int alphafill_main(int argc, char *const argv[])
 {
-	auto &config = cfg::config::instance();
+	auto &config = cfp::config::instance();
 
 	if (config.operands().size() < 2)
 	{
@@ -880,7 +879,7 @@ int alphafill_main(int argc, char *const argv[])
 
 		json metadata = alphafill(f.front(), my_progress{});
 
-		gxrio::ofstream xyzout(output);
+		cif::gzio::ofstream xyzout(output);
 		f.save(xyzout);
 
 		metadata["file"] = xyzin.string();

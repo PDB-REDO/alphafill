@@ -98,10 +98,9 @@ if(USE_RSRC)
 endif()
 
 find_package(Filesystem REQUIRED)
-find_package(gxrio REQUIRED)
 find_package(zeep 5.1.8 REQUIRED)
-find_package(cifpp 5.0.1 REQUIRED)
-find_package(libconfig REQUIRED)
+find_package(cifpp 5.0.4 REQUIRED)
+find_package(libcfp REQUIRED)
 
 # find_package(libpqxx 7.2 REQUIRED)
 
@@ -178,7 +177,7 @@ target_compile_definitions(alphafill PUBLIC
 add_dependencies(alphafill webpack)
 
 target_link_libraries(alphafill
-	libconfig::libconfig
+	libcfp::libcfp
 	cifpp::cifpp
 	zeep::zeep
 	PkgConfig::PQXX

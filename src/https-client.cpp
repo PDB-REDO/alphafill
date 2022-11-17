@@ -33,7 +33,7 @@
 #include <zeep/http/message-parser.hpp>
 #include <zeep/streambuf.hpp>
 
-#include <cfg.hpp>
+#include <cfp/cfp.hpp>
 #include <cif++/text.hpp>
 
 #include "https-client.hpp"
@@ -63,7 +63,7 @@ class client_base
 
 	client_base(const std::string &url)
 		: m_req({ "GET", url })
-		, m_verbose(cfg::config::instance().has("m_verbose"))
+		, m_verbose(cfp::config::instance().has("m_verbose"))
 	{
 	}
 
@@ -245,7 +245,7 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 			}
 			else if (error)
 			{
-				if (cfg::config::instance().has("verbose"))
+				if (cfp::config::instance().has("verbose"))
 					std::cerr << error << std::endl;
 				break;
 			}

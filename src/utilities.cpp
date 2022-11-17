@@ -29,7 +29,7 @@
 #include <iostream>
 
 #include <cif++.hpp>
-#include <cfg.hpp>
+#include <cfp/cfp.hpp>
 
 #include "revision.hpp"
 #include "utilities.hpp"
@@ -38,7 +38,7 @@ namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
 
-file_locator::file_locator(cfg::config &config)
+file_locator::file_locator(cfp::config &config)
 	: m_db_dir(config.get<std::string>("db-dir"))
 	, m_pdb_dir(config.get<std::string>("pdb-dir"))
 	, m_custom_dir(fs::path(config.get<std::string>("custom-dir")) / "out")

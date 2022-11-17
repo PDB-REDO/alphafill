@@ -28,7 +28,7 @@
 #include <regex>
 
 #include <cif++.hpp>
-#include <cfg.hpp>
+#include <cfp/cfp.hpp>
 
 #include "blast.hpp"
 #include "ligands.hpp"
@@ -86,11 +86,11 @@ class file_locator
 
 	static file_locator &instance()
 	{
-		static file_locator s_instance(cfg::config::instance());
+		static file_locator s_instance(cfp::config::instance());
 		return s_instance;
 	}
 
-	file_locator(cfg::config &config);
+	file_locator(cfp::config &config);
 	file_locator(const file_locator &) = delete;
 	file_locator &operator=(const file_locator &) = delete;
 

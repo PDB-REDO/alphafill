@@ -35,8 +35,7 @@
 #include <zeep/json/parser.hpp>
 
 #include <cif++.hpp>
-#include <cfg.hpp>
-#include <gxrio.hpp>
+#include <cfp/cfp.hpp>
 
 #include "data-service.hpp"
 #include "db-connection.hpp"
@@ -684,7 +683,7 @@ zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
 	}
 	else
 	{
-		gxrio::ifstream in(file);
+		cif::gzio::ifstream in(file);
 
 		if (not in.is_open())
 			return zeep::http::reply(zeep::http::not_found, {1, 1});
@@ -712,7 +711,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 
 	if (get_header("accept-encoding").find("gzip") != std::string::npos)
 	{
-		gxrio::basic_ogzip_streambuf<char, std::char_traits<char>> buffer;
+		cif::gzio::basic_ogzip_streambuf<char, std::char_traits<char>> buffer;
 		buffer.init(s->rdbuf());
 		std::ostream os(&buffer);
 
@@ -742,7 +741,7 @@ zh::reply affd_rest_controller::get_aff_structure_optimized(const std::string &a
 
 	if (get_header("accept-encoding").find("gzip") != std::string::npos)
 	{
-		gxrio::basic_ogzip_streambuf<char, std::char_traits<char>> buffer;
+		cif::gzio::basic_ogzip_streambuf<char, std::char_traits<char>> buffer;
 		buffer.init(s->rdbuf());
 		std::ostream os(&buffer);
 
@@ -775,7 +774,7 @@ zh::reply affd_rest_controller::get_aff_structure_optimized_with_stats(const std
 
 	if (get_header("accept-encoding").find("gzip") != std::string::npos)
 	{
-		gxrio::basic_ogzip_streambuf<char, std::char_traits<char>> buffer;
+		cif::gzio::basic_ogzip_streambuf<char, std::char_traits<char>> buffer;
 		buffer.init(s->rdbuf());
 		std::ostream os(&buffer);
 
@@ -901,7 +900,7 @@ int server_main(int argc, char *const argv[])
 		("alphafold", EntryType::AlphaFold)
 		("custom", EntryType::Custom);
 
-	auto &config = cfg::config::instance();
+	auto &config = cfp::config::instance();
 
 	fs::path dbDir = config.get<std::string>("db-dir");
 
