@@ -449,24 +449,32 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 
 				if (ci == mmCifFiles.end())
 				{
-					fs::path pdb_path = pdbFileForID(pdbDir, pdb_id);
-
-					auto cf = std::make_shared<cif::file>(pdb_path.string());
-
-					mmCifFiles.emplace_front(pdb_id, cf);
-
-					// PDB-REDO files don't have the correct audit_conform records, sometimes
-					if (cf->get_validator() == nullptr or
-						cf->get_validator()->name() == "mmcif_ddl" or
-						cf->get_validator()->name() == "mmcif_ddl.dic")
+					try
 					{
-						cf->load_dictionary("mmcif_pdbx");
+						fs::path pdb_path = pdbFileForID(pdbDir, pdb_id);
+
+						auto cf = std::make_shared<cif::file>(pdb_path.string());
+
+						mmCifFiles.emplace_front(pdb_id, cf);
+
+						// PDB-REDO files don't have the correct audit_conform records, sometimes
+						if (cf->get_validator() == nullptr or
+							cf->get_validator()->name() == "mmcif_ddl" or
+							cf->get_validator()->name() == "mmcif_ddl.dic")
+						{
+							cf->load_dictionary("mmcif_pdbx");
+						}
+
+						ci = mmCifFiles.begin();
+
+						if (mmCifFiles.size() > 5)
+							mmCifFiles.pop_back();
 					}
-
-					ci = mmCifFiles.begin();
-
-					if (mmCifFiles.size() > 5)
-						mmCifFiles.pop_back();
+					catch (const std::exception &ex)
+					{
+						std::cerr << ex.what() << std::endl;
+						continue;
+					}
 				}
 
 				auto &pdb_f = *std::get<1>(*ci);

@@ -5,12 +5,12 @@
 <html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
 
 <head z:replace="~{head :: head(~{::title}, ~{::link}, ~{::script})}">
-	<title z:text="|AlphaFold Filled - Model ${chunked ? af_id + '-F' + chunk : af_id}|"></title>
+	<title z:text="|AlphaFold Filled - Model ${af_id}|"></title>
 
 	<link rel="stylesheet" type="text/css" href="css/molstar.css" />
 
 	<script z:inline="javascript">
-		const AF_ID = /*[[${chunked ? af_id + '-F' + chunk : af_id}]]*/ null;
+		const AF_ID = /*[[${af_id}]]*/ null;
 		const CHUNKED = /*[[${chunked}]]*/ false;
 		const IDENTITY = /*[[${identity}]]*/ 25;
 		const TYPE = /*[[${type}]]*/ null;
@@ -24,7 +24,7 @@
 	<header z:replace="header::top('model')"></header>
 
 	<div class="container site-content">
-		<h2 z:if="${type=='alphafold'}" z:text="|${chunked ? af_id + '-F' + chunk : af_id}|"></h2>
+		<h2 z:if="${type=='alphafold'}" z:text="${af_id}"></h2>
 		<h2 z:if="${type=='custom'}" z:text="|Your structure with id ${cif-db-name}|"></h2>
 		<h5 z:text="${title}"></h5>
 		<div z:if="${chunked}" class="alert alert-info" role="alert">
@@ -38,13 +38,13 @@
 		<table z:if="${type=='alphafold'}" class="table table-sm mt-4">
 			<tr>
 				<td>Structure file</td>
-				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}|"
-						z:text="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}|"></a></td>
+				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}|"
+						z:text="|https://alphafill.eu/v1/aff/${af_id}|"></a></td>
 			</tr>
 			<tr>
 				<td>Metadata</td>
-				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}/json|"
-						z:text="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}/json|"></a></td>
+				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}/json|"
+						z:text="|https://alphafill.eu/v1/aff/${af_id}/json|"></a></td>
 			</tr>
 			<tr>
 				<td>Original AlphaFold model</td>

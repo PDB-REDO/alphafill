@@ -39,6 +39,14 @@
 			</p>
 		</div>
 
+		<div z:if="${error}" class="error_entry alert alert-danger" role="alert">
+			<h4>Error processing</h4>
+
+			<p>There was an error processing entry <span z:text="${error-id}"></span>.
+				The error message is <pre><span z:text="${error}"></span></pre>
+			</p>
+		</div>
+
 		<h4>AlphaFill</h4>
 		<p><em>AlphaFill</em> is an algorithm based on sequence and structure similarity that “transplants” missing
 			ligands, cofactors and (metal) ions to the AlphaFold models. By adding the molecular context to these

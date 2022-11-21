@@ -377,6 +377,18 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 		case CustomStatus::Finished:
 			break;
 		
+		case CustomStatus::Error:
+		{
+			const auto &[type, afId, chunkNr, version] = parse_af_id(af_id);
+			std::ifstream errmsg(file_locator::get_error_file(type, afId, chunkNr, version));
+
+			sub.put("error-id", af_id);
+			sub.put("error", status.message.value_or("<< message is missing >>"));
+			
+			get_server().get_template_processor().create_reply_from_template("index", sub, reply);
+			return;
+		}
+
 		default:
 			sub.put("hash", af_id);
 			sub.put("status", status.status);

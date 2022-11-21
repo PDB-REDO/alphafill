@@ -82,17 +82,17 @@ std::tuple<EntryType, std::string, int, int> parse_af_id(std::string af_id)
 		else
 		{
 			// No prefix was given, try to see if we can find this ID in our cache
-			if (fs::exists(file_locator::get_metadata_file(af_id, chunkNr, 2)))
+			if (fs::exists(file_locator::get_metadata_file(id, chunkNr, 2)))
 			{
 				type = EntryType::AlphaFold;
 				version = 2;
 			}
-			else if (fs::exists(file_locator::get_metadata_file(af_id, chunkNr, 3)))
+			else if (fs::exists(file_locator::get_metadata_file(id, chunkNr, 3)))
 			{
 				type = EntryType::AlphaFold;
 				version = 3;
 			}
-			else if (data_service.get_status(af_id).status != CustomStatus::Unknown)
+			else if (data_service.get_status(id).status != CustomStatus::Unknown)
 				type = EntryType::Custom;
 		}
 	}
@@ -544,6 +544,21 @@ struct data_service_progress : public alphafill_progress_cb
 	size_t m_max_0 = 1, m_max_1 = 1000, m_cur_0 = 0, m_cur_1;
 };
 
+// recursively print exception whats:
+void print_what(std::ostream &os, const std::exception &e)
+{
+	os << e.what() << std::endl;
+	try
+	{
+		std::rethrow_if_nested(e);
+	}
+	catch (const std::exception &nested)
+	{
+		os << " >> ";
+		print_what(os, nested);
+	}
+}
+
 void data_service::run()
 {
 	using namespace std::literals;
@@ -592,6 +607,9 @@ void data_service::run()
 
 			m_running = afId;
 			m_progress = 0;
+
+			if (cif::VERBOSE > 0)
+				std::cerr << "Running ID " << m_running << std::endl;
 
 			fs::remove(xyzin, ec);
 
@@ -643,8 +661,8 @@ void data_service::run()
 
 		catch (const std::exception &ex)
 		{
-			std::ofstream errorFile(m_out_dir / ("CS-" + next + ".error"));
-			errorFile << ex.what() << std::endl;
+			std::ofstream errorFile(m_out_dir / (next + ".error"));
+			print_what(errorFile, ex);
 		}
 
 		m_running.clear();
@@ -707,10 +725,10 @@ status_reply data_service::get_status(const std::string &af_id) const
 
 		std::ifstream in(m_out_dir / (af_id + ".error"));
 
-		std::string line;
-		std::getline(in, line);
+		std::stringstream s;
+		s << in.rdbuf();
 
-		reply.message = line;
+		reply.message = s.str();
 	}
 	else
 		reply.status = CustomStatus::Unknown;

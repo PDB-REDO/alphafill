@@ -65,6 +65,14 @@ class file_locator
 			return instance().get_metadata_file_1(id, chunk_nr, version);
 	}
 
+	static std::filesystem::path get_error_file(EntryType type, const std::string &id, int chunk_nr, int version)
+	{
+		if (type == EntryType::Custom)
+			return instance().m_custom_dir / ("CS-" + id + ".json");
+		else
+			return instance().m_custom_dir / ("AF-" + id + "-F" + std::to_string(chunk_nr) + "-model_v" + std::to_string(version) + ".json");
+	}
+
 	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr, int version)
 	{
 		return instance().get_structure_file_1(id, chunk_nr, version);
