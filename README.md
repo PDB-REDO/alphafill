@@ -1,16 +1,16 @@
-AlphaFill
-=========
+# AlphaFill
 
 **AlphaFill** is an algorithm based on sequence and structure similarity that “transplants”
 missing compounds to the [AlphaFold models](https://alphafold.ebi.ac.uk/). By adding the molecular context to the protein structures, the
 models can be more easily appreciated in terms of function and structure integrity.
 
-Building
---------
+## Building
+
 In order to build alphafill, you need to have a modern C++ compiler (c++17), a recent version of [cmake](https://cmake.org/) and the following libraries installed:
 
 - [Libzeep](https://github.com/mhekkel/libzeep) version 5.1.5 or higher
-- [libcif++](https://github.com/PDB-REDO/libcifpp) version 3.0.0 or higher
+- [libcif++](https://github.com/PDB-REDO/libcifpp) version 5.0.4 or higher
+- [libmcfp](https://github.com/mhekkel/libmcfp)
 - libpq, the PostgreSQL library
 - [libpqxx](http://www.pqxx.org/) version 7.2 or higher
 
@@ -18,26 +18,26 @@ And then you also need [yarn](https://yarnpkg.com/) to package the data for the 
 
 Once all the requirements are met, building is as simple as:
 
-```
+```bash
 git clone https://github.com/PDB-REDO/alphafill
 cd alphafill
-yarn		# will fetch all node modules
+yarn  # will fetch all node modules
 mkdir build
 cd build
 cmake ..
 cmake --build .
 cmake --install .
 ```
+
 The building method is not OS-specific and has been tested on Ubuntu LTS 20:04. Typical compilation time is in the rorder of minutes.
 
-Configuration
--------------
+## Configuration
 
 ### alphafill
 
 For alphafill you need a copy of either PDB-REDO or PDB in mmCIF format. You also need a FastA formatted file for all sequences in this databank and an af-ligands.cif file. The latter is supplied with the code. Using these, you can construct a pdb-id-list file using the command:
 
-```
+```bash
 alphafill --pdb-dir=${PDB_DIR} --pdb-fasta=${PDB_FASTA} --prepare-pdb-list --output pdb-id-list.txt
 ```
 
@@ -47,12 +47,14 @@ All basic option can be store in a file called alphafill.conf which can be locat
 
 Running alpafill is then as easy as:
 
-```
+```bash
 alphafill /srv/data/afdb/cif/AF-XXX.cif.gz /srv/data/af-filled/AF-XXX.cif.gz
 ```
+
 Typical running time is less than 2 minutes but varies depending on the number of transplants.
 
 ### af-filledd
+
 Before running the web application, you need to create a PostgreSQL database first. The owner and name can then be recorded in a af-filledd.conf file similar to the config file of alphafill. The location of your filled structures should be recorded as well as the db-dir option.
 
 The database can be filled with the `--rebuild-db` option. If you built the code with resources using [mrc](https://github.com/mhekkel/mrc) this will take care of setting up the tables as well, otherwise you have to create the tables running the db-schema.sql file.
