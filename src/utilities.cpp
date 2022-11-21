@@ -28,42 +28,38 @@
 #include <fstream>
 #include <iostream>
 
-#include <cif++/Cif++.hpp>
-#include <cif++/CifUtils.hpp>
-#include <cif++/Compound.hpp>
+#include <cif++.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include "revision.hpp"
 #include "utilities.hpp"
 
 namespace fs = std::filesystem;
-namespace po = boost::program_options;
 
 // --------------------------------------------------------------------
 
-std::unique_ptr<file_locator> file_locator::s_instance;
-
-void file_locator::init(boost::program_options::variables_map &vm)
+file_locator::file_locator(mcfp::config &config)
+	: m_db_dir(config.get<std::string>("db-dir"))
+	, m_pdb_dir(config.get<std::string>("pdb-dir"))
+	, m_custom_dir(fs::path(config.get<std::string>("custom-dir")) / "out")
+	, m_structure_name_pattern(config.get<std::string>("structure-name-pattern"))
+	, m_pdb_name_pattern(config.get<std::string>("pdb-name-pattern"))
+	, m_metadata_name_pattern(config.get<std::string>("metadata-name-pattern"))
 {
-	fs::path dbDir = vm["db-dir"].as<std::string>();
-	if (not fs::is_directory(dbDir))
-		throw std::runtime_error("AlphfaFill data directory does not exist");
-
-	fs::path pdbDir = vm["pdb-dir"].as<std::string>();
-	if (not fs::is_directory(pdbDir))
-		throw std::runtime_error("PDB directory does not exist");
-
-	s_instance.reset(new file_locator(dbDir, pdbDir, vm["structure-name-pattern"].as<std::string>(),
-		vm["pdb-name-pattern"].as<std::string>(), vm["metadata-name-pattern"].as<std::string>()));
+	// if (not fs::is_directory(m_db_dir))
+	// 	throw std::runtime_error("AlphfaFill data directory does not exist");
+	// if (not fs::is_directory(m_pdb_dir))
+	// 	throw std::runtime_error("PDB directory does not exist");
 }
 
-std::vector<std::filesystem::path> file_locator::get_all_structure_files(const std::string &id)
+std::vector<std::filesystem::path> file_locator::get_all_structure_files(const std::string &id, int version)
 {
 	std::vector<fs::path> result;
 
 	int i = 1;
 	for (;;)
 	{
-		fs::path chunk = s_instance->get_structure_file(id, i);
+		fs::path chunk = instance().get_structure_file(id, i, version);
 		if (not fs::exists(chunk))
 			break;
 		
@@ -76,154 +72,117 @@ std::vector<std::filesystem::path> file_locator::get_all_structure_files(const s
 
 // --------------------------------------------------------------------
 
-po::variables_map load_options(int argc, char *const argv[],
-	po::options_description &visible_options,
-	po::options_description &hidden_options, po::positional_options_description &positional_options,
-	const char *config_file_name)
+fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id)
 {
-	visible_options.add_options()
-		("af-dir", po::value<std::string>(), "Directory containing the alphafold data")
-		("db-dir", po::value<std::string>(), "Directory containing the af-filled data")
-		("pdb-dir", po::value<std::string>(), "Directory containing the mmCIF files for the PDB")
+	for (auto &ch : pdb_id)
+		ch = std::tolower(ch);
 
-		("ligands", po::value<std::string>()->default_value("af-ligands.cif"), "File in CIF format describing the ligands and their modifications")
+	// try a PDB-REDO layout first
+	fs::path pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif");
+	if (not fs::exists(pdb_path))
+		pdb_path = pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz");
 
-		("compounds", po::value<std::string>(), "Location of the components.cif file from CCD")
-		("components", po::value<std::string>(), "Location of the components.cif file from CCD, alias")
-		("extra-compounds", po::value<std::string>(), "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file")
-		("mmcif-dictionary", po::value<std::string>(), "Path to the mmcif_pdbx.dic file to use instead of default")
+	if (not fs::exists(pdb_path))
+		throw std::runtime_error("PDB file for " + pdb_id + " not found");
 
-		("structure-name-pattern", po::value<std::string>(), "Pattern for locating structure files")
-		("metadata-name-pattern", po::value<std::string>(), "Pattern for locating metadata files")
-		("pdb-name-pattern", po::value<std::string>(), "Pattern for locating PDB files")
-
-		("yasara", po::value<std::string>()->default_value("/opt/yasara/yasara"), "Location of the yasara executable")
-
-		("config", po::value<std::string>(), "Config file")
-
-		("help,h", "Display help message")
-		("version", "Print version")
-		("verbose,v", "Verbose output")
-		("quiet", "Do not produce warnings");
-
-	hidden_options.add_options()
-		("debug,d", po::value<int>(), "Debug level (for even more verbose output)");
-
-	po::options_description cmdline_options;
-	cmdline_options.add(visible_options).add(hidden_options);
-
-	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv)
-				  .options(cmdline_options)
-				  .positional(positional_options)
-				  .run(),
-		vm);
-
-	fs::path configFile = config_file_name;
-	if (vm.count("config"))
-		configFile = vm["config"].as<std::string>();
-
-	if (not fs::exists(configFile) and getenv("HOME") != nullptr)
-		configFile = fs::path(getenv("HOME")) / ".config" / configFile;
-
-	if (fs::exists(configFile))
-	{
-		std::ifstream cfgFile(configFile);
-		if (cfgFile.is_open())
-			po::store(po::parse_config_file(cfgFile, visible_options, true), vm);
-	}
-
-	po::notify(vm);
-
-	// --------------------------------------------------------------------
-
-	if (vm.count("version"))
-	{
-		write_version_string(std::cout, vm.count("verbose"));
-		exit(0);
-	}
-
-	if (vm.count("help"))
-	{
-		std::cout << visible_options << std::endl;
-		exit(0);
-	}
-
-	if (vm.count("quiet"))
-		cif::VERBOSE = -1;
-
-	if (vm.count("verbose"))
-		cif::VERBOSE = 1;
-
-	if (vm.count("debug"))
-		cif::VERBOSE = vm["debug"].as<int>();
-
-	if (vm.count("db-dir") == 0)
-	{
-		std::cout << "AlphaFill data directory not specified" << std::endl;
-		exit(1);
-	}
-
-	if (vm.count("pdb-dir") == 0)
-	{
-		std::cout << "PDB directory not specified" << std::endl;
-		exit(1);
-	}
-
-	// --------------------------------------------------------------------
-	// Load extra CCD definitions, if any
-
-	if (vm.count("compounds"))
-		cif::addFileResource("components.cif", vm["compounds"].as<std::string>());
-	else if (vm.count("components"))
-		cif::addFileResource("components.cif", vm["components"].as<std::string>());
-
-	if (vm.count("extra-compounds"))
-		mmcif::CompoundFactory::instance().pushDictionary(vm["extra-compounds"].as<std::string>());
-
-	// And perhaps a private mmcif_pdbx dictionary
-
-	if (vm.count("mmcif-dictionary"))
-		cif::addFileResource("mmcif_pdbx_v50.dic", vm["mmcif-dictionary"].as<std::string>());
-
-	return vm;
+	return pdb_path;
 }
 
-// --------------------------------------------------------------------
-
-// recursively print exception whats:
-void print_what(const std::exception &e)
+std::vector<cif::mm::residue *> get_residuesForChain(cif::mm::structure &structure, const std::string &chain_id)
 {
-	std::cerr << e.what() << std::endl;
-	try
-	{
-		std::rethrow_if_nested(e);
-	}
-	catch (const std::exception &nested)
-	{
-		std::cerr << " >> ";
-		print_what(nested);
-	}
-}
+	std::vector<cif::mm::residue *> result;
 
-// --------------------------------------------------------------------
-
-int main(int argc, char *const argv[])
-{
-	int result = 0;
-
-	try
+	for (auto &poly : structure.polymers())
 	{
-#if defined(DATA_DIR)
-		cif::addDataDirectory(DATA_DIR);
-#endif
-		result = a_main(argc, argv);
-	}
-	catch (const std::exception &ex)
-	{
-		print_what(ex);
-		exit(1);
+		if (poly.get_asym_id() != chain_id)
+			continue;
+
+		for (auto &res : poly)
+			result.emplace_back(&res);
 	}
 
 	return result;
+}
+
+using cif::point;
+
+std::tuple<std::vector<point>, std::vector<point>> selectAtomsNearResidue(
+	const std::vector<cif::mm::residue *> &pdb, const std::vector<size_t> &pdb_ix,
+	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
+	const std::vector<cif::mm::atom> &residue, float maxDistance, const Ligand &ligand)
+{
+	std::vector<point> ra, rb;
+
+	float maxDistanceSq = maxDistance * maxDistance;
+
+	assert(pdb_ix.size() == af_ix.size());
+
+	for (size_t i = 0; i < pdb_ix.size(); ++i)
+	{
+		bool nearby = false;
+
+		for (const char *atom_id : {"C", "CA", "N", "O"})
+		{
+			assert(pdb_ix[i] < pdb.size());
+
+			auto atom = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
+			if (not atom)
+				continue;
+
+			for (auto &b : residue)
+			{
+				if (ligand.drops(b.get_label_atom_id()))
+					continue;
+
+				if (distance_squared(atom, b) > maxDistanceSq)
+					continue;
+
+				nearby = true;
+				break;
+			}
+
+			if (nearby)
+				break;
+		}
+
+		if (not nearby)
+			continue;
+
+		for (const char *atom_id : {"C", "CA", "N", "O"})
+		{
+			assert(af_ix[i] < af.size());
+			assert(pdb_ix[i] < pdb.size());
+
+			auto pt_a = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
+			auto pt_b = af[af_ix[i]]->get_atom_by_atom_id(atom_id);
+
+			if (not (pt_a and pt_b))
+				continue;
+
+			ra.push_back(pt_a.get_location());
+			rb.push_back(pt_b.get_location());
+		}
+	}
+
+	return {ra, rb};
+}
+
+
+// --------------------------------------------------------------------
+
+sequence getSequenceForStrand(cif::datablock &db, const std::string &strand)
+{
+	using namespace cif::literals;
+
+	auto &pdbx_poly_seq_scheme = db["pdbx_poly_seq_scheme"];
+	auto r = pdbx_poly_seq_scheme.find("pdb_strand_id"_key == strand);
+	if (r.empty())
+		throw std::runtime_error("Could not locate sequence in PDB for strand id " + strand);
+
+	auto entity_id = r.front()["entity_id"].as<std::string>();
+
+	auto &entity_poly = db["entity_poly"];
+	auto pdb_seq = entity_poly.find1<std::string>("entity_id"_key == entity_id, "pdbx_seq_one_letter_code_can");
+
+	return encode(pdb_seq);
 }

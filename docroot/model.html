@@ -13,6 +13,7 @@
 		const AF_ID = /*[[${chunked ? af_id + '-F' + chunk : af_id}]]*/ null;
 		const CHUNKED = /*[[${chunked}]]*/ false;
 		const IDENTITY = /*[[${identity}]]*/ 25;
+		const TYPE = /*[[${type}]]*/ null;
 	</script>
 
 	<script defer="defer" type="text/javascript" src="scripts/model.js"></script>
@@ -23,7 +24,8 @@
 	<header z:replace="header::top('model')"></header>
 
 	<div class="container site-content">
-		<h2 z:text="|${chunked ? af_id + '-F' + chunk : af_id}|"></h2>
+		<h2 z:if="${type=='alphafold'}" z:text="|${chunked ? af_id + '-F' + chunk : af_id}|"></h2>
+		<h2 z:if="${type=='custom'}" z:text="|Your structure with id ${cif-db-name}|"></h2>
 		<h5 z:text="${title}"></h5>
 		<div z:if="${chunked}" class="alert alert-info" role="alert">
 			This is a chunked model with the following chunks: 
@@ -33,7 +35,7 @@
 			</span>
 		</div>
 
-		<table class="table table-sm mt-4">
+		<table z:if="${type=='alphafold'}" class="table table-sm mt-4">
 			<tr>
 				<td>Structure file</td>
 				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}${chunk?'-F'+chunk}|"
@@ -51,6 +53,19 @@
 			</tr>
 		</table>
 
+		<table z:if="${type=='custom'}" class="table table-sm mt-4">
+			<tr>
+				<td>Structure file</td>
+				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}|"
+						z:text="|https://alphafill.eu/v1/aff/${af_id}|"></a></td>
+			</tr>
+			<tr>
+				<td>Metadata</td>
+				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}/json|"
+						z:text="|https://alphafill.eu/v1/aff/${af_id}/json|"></a></td>
+			</tr>
+		</table>
+
 		<div class="row mt-5">
 			<div class="col" id="app"></div>
 
@@ -60,27 +75,27 @@
 					style="width: 100%;">
 					<input type="radio" class="btn-check" name="btnradio" id="btnradio-25" autocomplete="off" data-identity="25"
 						checked="checked" z:checked="${identity == null or identity == 25}" />
-					<label class="btn btn-outline-primary" for="btnradio-25">25% identity</label>
+					<label class="btn btn-outline-secondary" for="btnradio-25">25% identity</label>
 
 					<input type="radio" class="btn-check" name="btnradio" id="btnradio-30" autocomplete="off" data-identity="30"
 						z:checked="${identity == 30}" />
-					<label class="btn btn-outline-primary" for="btnradio-30">30% identity</label>
+					<label class="btn btn-outline-secondary" for="btnradio-30">30% identity</label>
 
 					<input type="radio" class="btn-check" name="btnradio" id="btnradio-40" autocomplete="off" data-identity="40"
 						z:checked="${identity == 40}" />
-					<label class="btn btn-outline-primary" for="btnradio-40">40% identity</label>
+					<label class="btn btn-outline-secondary" for="btnradio-40">40% identity</label>
 
 					<input type="radio" class="btn-check" name="btnradio" id="btnradio-50" autocomplete="off" data-identity="50"
 						z:checked="${identity == 50}" />
-					<label class="btn btn-outline-primary" for="btnradio-50">50% identity</label>
+					<label class="btn btn-outline-secondary" for="btnradio-50">50% identity</label>
 
 					<input type="radio" class="btn-check" name="btnradio" id="btnradio-60" autocomplete="off" data-identity="60"
 						z:checked="${identity == 60}" />
-					<label class="btn btn-outline-primary" for="btnradio-60">60% identity</label>
+					<label class="btn btn-outline-secondary" for="btnradio-60">60% identity</label>
 
 					<input type="radio" class="btn-check" name="btnradio" id="btnradio-70" autocomplete="off" data-identity="70"
 						z:checked="${identity == 70}" />
-					<label class="btn btn-outline-primary" for="btnradio-70">70% identity</label>
+					<label class="btn btn-outline-secondary" for="btnradio-70">70% identity</label>
 				</div>
 
 				<table class="mt-4 table table-sm table-hover" id="transplant-table-by-compound">

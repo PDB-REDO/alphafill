@@ -26,16 +26,21 @@
 
 #pragma once
 
+#include <atomic>
 #include <filesystem>
 
 #include <zeep/nvp.hpp>
 
+#include "queue.hpp"
+
 // --------------------------------------------------------------------
+
+enum class EntryType { Unknown, AlphaFold, Custom };
 
 /// \brief Return the UniprotID and chunk number for an AlphaFold ID.
 ///
-/// Split an id in the form of AF-UNIPROTID-F<CHUNKNR>
-std::tuple<std::string,int> parse_af_id(std::string af_id);
+/// Split an id in the form of AF-UNIPROTID-F<CHUNKNR>-model_v<VERSION>
+std::tuple<EntryType,std::string,int,int> parse_af_id(std::string af_id);
 
 // --------------------------------------------------------------------
 
@@ -75,10 +80,32 @@ struct structure
 	}
 };
 
+enum class CustomStatus
+{
+	Unknown, Queued, Running, Finished, Error
+};
+
+struct status_reply
+{
+	CustomStatus status;
+	std::optional<float> progress;
+	std::optional<std::string> message;
+
+	template<typename Archive>
+	void serialize(Archive &ar, unsigned long)
+	{
+		ar & zeep::make_nvp("status", status)
+		   & zeep::make_nvp("progress", progress)
+		   & zeep::make_nvp("message", message);
+	}
+};
+
 class data_service
 {
   public:
 	static data_service &instance();
+
+	~data_service();
 
 	static int rebuild(const std::string &db_user, const std::filesystem::path &db_dir);
 
@@ -88,4 +115,28 @@ class data_service
 
 	uint32_t count_structures(float min_identity) const;
 	uint32_t count_structures(float min_identity, const std::string &compound) const;
+
+	// On demand services
+
+	bool exists_in_afdb(const std::string &id) const;
+	std::string fetch_from_afdb(const std::string &id) const;
+
+	status_reply get_status(const std::string &id) const;
+
+	void queue(const std::string &data, const std::string &id);
+	void queue_af_id(const std::string &id);
+
+  private:
+
+	data_service();
+
+	void run();
+
+	std::filesystem::path m_in_dir;
+	std::filesystem::path m_out_dir;
+	std::thread m_thread;
+	blocking_queue<std::string> m_queue;
+	std::mutex m_mutex;
+	std::string m_running;
+	std::atomic<float> m_progress;
 };

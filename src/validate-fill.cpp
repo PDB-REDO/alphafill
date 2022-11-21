@@ -27,14 +27,9 @@
 #include <fstream>
 #include <iomanip>
 
-#include <cif++/CifUtils.hpp>
-#include <cif++/Structure.hpp>
+#include <cif++.hpp>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/date_time.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
-#include <boost/program_options.hpp>
 
 #include <zeep/json/element.hpp>
 #include <zeep/json/parser.hpp>
@@ -45,10 +40,7 @@
 #include "ligands.hpp"
 #include "validate.hpp"
 
-namespace po = boost::program_options;
 namespace fs = std::filesystem;
-namespace io = boost::iostreams;
-namespace ba = boost::algorithm;
 
 using json = zeep::json::element;
 
@@ -74,40 +66,40 @@ fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id)
 
 struct VAtom
 {
-	mmcif::Point loc;
+	cif::point loc;
 	bool ligand;
 	std::string compoundID;
 	std::string atomID;
 };
 
-const mmcif::Residue &guessResidueForLigand(const mmcif::Structure &afs, const std::string &afLigandAsymID, const mmcif::Structure &pdb, const Ligand &ligand)
+const cif::mm::residue &guessResidueForLigand(const cif::mm::structure &afs, const std::string &afLigandAsymID, const cif::mm::structure &pdb, const Ligand &ligand)
 {
-	auto &r1 = afs.getResidue(afLigandAsymID);
+	auto &r1 = afs.get_residue(afLigandAsymID);
 
 	std::string compoundID;
 	if (ligand)
 		compoundID = ligand.ID();
 	if (compoundID.empty())
-		compoundID = r1.compoundID();
+		compoundID = r1.get_compound_id();
 
 	float sB1 = 0;
-	std::vector<mmcif::Point> r1p;
+	std::vector<cif::point> r1p;
 
 	for (auto a : r1.atoms())
 	{
-		sB1 += a.get_property<float>("B_iso_or_equiv");
-		r1p.emplace_back(a.location());
+		sB1 += a.get_property_float("B_iso_or_equiv");
+		r1p.emplace_back(a.get_location());
 	}
 
-	auto c1 = mmcif::Centroid(r1p);
+	auto c1 = centroid(r1p);
 
 	auto a1 = r1.atoms();
 
-	sort(a1.begin(), a1.end(), [](const mmcif::Atom &a, const mmcif::Atom &b)
-		{ return a.labelAtomID().compare(b.labelAtomID()) < 0; });
+	sort(a1.begin(), a1.end(), [](const cif::mm::atom &a, const cif::mm::atom &b)
+		{ return a.get_label_atom_id().compare(b.get_label_atom_id()) < 0; });
 
 	// Key type is difference in sum of b-factors and then distance from centroid
-	using M_t = std::tuple<float,float,const mmcif::Residue *>;
+	using M_t = std::tuple<float,float,const cif::mm::residue *>;
 	std::vector<M_t> m;
 	auto lessM = [](const M_t &a, const M_t &b)
 	{
@@ -117,9 +109,9 @@ const mmcif::Residue &guessResidueForLigand(const mmcif::Structure &afs, const s
 		return d < 0;
 	};
 
-	for (auto &r2 : pdb.getNonPolymers())
+	for (auto &r2 : pdb.non_polymers())
 	{
-		if (r2.compoundID() != compoundID)
+		if (r2.get_compound_id() != compoundID)
 			continue;
 
 		auto a2 = r2.atoms();
@@ -127,26 +119,26 @@ const mmcif::Residue &guessResidueForLigand(const mmcif::Structure &afs, const s
 		if (a1.size() != ligand.atom_count(r2))
 			continue;
 
-		std::vector<mmcif::Point> r2p;
+		std::vector<cif::point> r2p;
 		float sB2 = 0;
 
 		for (auto a : r2.atoms())
 		{
-			if (ligand.drops(a.labelAtomID()))
+			if (ligand.drops(a.get_label_atom_id()))
 				continue;
 
-			sB2 += a.get_property<float>("B_iso_or_equiv");
-			r2p.emplace_back(a.location());
+			sB2 += a.get_property_float("B_iso_or_equiv");
+			r2p.emplace_back(a.get_location());
 		}
 
-		auto c2 = mmcif::Centroid(r2p);
+		auto c2 = centroid(r2p);
 
-		m.emplace_back(std::abs(sB2 - sB1), Distance(c1, c2), &r2);
+		m.emplace_back(std::abs(sB2 - sB1), distance(c1, c2), &r2);
 		std::push_heap(m.begin(), m.end(), lessM);
 	}
 
 	if (m.empty())
-		throw std::runtime_error("Could not locate ligand " + afLigandAsymID + " (" + r1.compoundID() + ')');
+		throw std::runtime_error("Could not locate ligand " + afLigandAsymID + " (" + r1.get_compound_id() + ')');
 
 	std::sort_heap(m.begin(), m.end(), lessM);
 
@@ -155,16 +147,16 @@ const mmcif::Residue &guessResidueForLigand(const mmcif::Structure &afs, const s
 
 // --------------------------------------------------------------------
 
-using mmcif::Point;
-using mmcif::Quaternion;
+using cif::point;
+using cif::quaternion;
 
-std::vector<mmcif::Residue *> getResiduesForChain(mmcif::Structure &structure, const std::string &chain_id)
+std::vector<cif::mm::residue *> get_residuesForChain(cif::mm::structure &structure, const std::string &chain_id)
 {
-	std::vector<mmcif::Residue *> result;
+	std::vector<cif::mm::residue *> result;
 
 	for (auto &poly : structure.polymers())
 	{
-		if (poly.chainID() != chain_id)
+		if (poly.get_asym_id() != chain_id)
 			continue;
 
 		for (auto &res : poly)
@@ -174,75 +166,15 @@ std::vector<mmcif::Residue *> getResiduesForChain(mmcif::Structure &structure, c
 	return result;
 }
 
-std::vector<Point> getCAlphaForChain(const std::vector<mmcif::Residue *> &residues)
+std::vector<point> getCAlphaForChain(const std::vector<cif::mm::residue *> &residues)
 {
-	std::vector<Point> result;
+	std::vector<point> result;
 
 	for (auto res : residues)
-		result.push_back(res->atomByID("CA").location());
+		result.push_back(res->get_atom_by_atom_id("CA").get_location());
 
 	return result;
 }
-
-
-
-std::tuple<std::vector<Point>, std::vector<Point>> selectAtomsNearResidue(
-	const std::vector<mmcif::Residue *> &pdb, const std::vector<size_t> &pdb_ix,
-	const std::vector<mmcif::Residue *> &af, const std::vector<size_t> &af_ix,
-	const std::vector<mmcif::Atom> &residue, float maxDistance)
-{
-	std::vector<Point> ra, rb;
-
-	assert(pdb_ix.size() == af_ix.size());
-
-	for (size_t i = 0; i < pdb_ix.size(); ++i)
-	{
-		bool nearby = false;
-
-		for (const char *atom_id : {"C", "CA", "N", "O"})
-		{
-			assert(pdb_ix[i] < pdb.size());
-
-			auto atom = pdb[pdb_ix[i]]->atomByID(atom_id);
-			if (not atom)
-				continue;
-
-			for (auto &b : residue)
-			{
-				if (Distance(atom, b) <= maxDistance)
-				{
-					nearby = true;
-					break;
-				}
-			}
-
-			if (nearby)
-				break;
-		}
-
-		if (not nearby)
-			continue;
-
-		for (const char *atom_id : {"C", "CA", "N", "O"})
-		{
-			assert(af_ix[i] < af.size());
-			assert(pdb_ix[i] < pdb.size());
-
-			auto pt_a = pdb[pdb_ix[i]]->atomByID(atom_id);
-			auto pt_b = af[af_ix[i]]->atomByID(atom_id);
-
-			if (not pt_a and pt_b)
-				continue;
-
-			ra.push_back(pt_a.location());
-			rb.push_back(pt_b.location());
-		}
-	}
-
-	return {ra, rb};
-}
-
-
 
 // --------------------------------------------------------------------
 
@@ -311,16 +243,16 @@ int a_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	const auto &[afID, chunk] = parse_af_id(vm["af-id"].as<std::string>());
+	const auto &[afID, chunk, version] = parse_af_id(vm["af-id"].as<std::string>());
 
-	mmcif::File afFile(file_locator::get_structure_file(afID, chunk));
-	mmcif::Structure afStructure(afFile);
+	cif::file afFile(file_locator::get_structure_file(type, afID, chunk, version));
+	cif::mm::structure afStructure(afFile);
 
 	auto pdbID = vm["pdb-id"].as<std::string>();
-	mmcif::File pdbFile(file_locator::get_pdb_file(pdbID));
-	mmcif::Structure pdbStructure(pdbFile);
+	cif::file pdbFile(file_locator::get_pdb_file(pdbID));
+	cif::mm::structure pdbStructure(pdbFile);
 
-	std::ifstream metadata(file_locator::get_metdata_file(afID, chunk));
+	std::ifstream metadata(file_locator::get_metadata_file(type, afID, chunk));
 
 	json info;
 	zeep::json::parse_json(metadata, info);
@@ -341,28 +273,28 @@ int a_main(int argc, char *const argv[])
 			{
 				auto ligand = ligands[pdbCompoundID];
 
-				auto &afPolyS = afStructure.getPolymerByAsymID("A");
-				auto &pdbPolyS = pdbStructure.getPolymerByAsymID(pdbAsymID);
+				auto &afPolyS = afStructure.get_polymer_by_asym_id("A");
+				auto &pdbPolyS = pdbStructure.get_polymer_by_asym_id(pdbAsymID);
 
 				auto &&[afPoly, pdbPoly] = AlignAndTrimSequences(afPolyS, pdbPolyS);
 
 				if (afPoly.size() != pdbPoly.size())
 					throw std::runtime_error("polymers differ in length");
 
-				std::vector<Point> caA, caP;
+				std::vector<point> caA, caP;
 
 				for (size_t i = 0; i < afPoly.size(); ++i)
 				{
-					auto af_ca = afPoly[i]->atomByID("CA");
+					auto af_ca = afPoly[i]->get_atom_by_atom_id("CA");
 					if (not af_ca)
 						continue;
 
-					auto pdb_ca = pdbPoly[i]->atomByID("CA");
+					auto pdb_ca = pdbPoly[i]->get_atom_by_atom_id("CA");
 					if (not pdb_ca)
 						continue;
 
-					caA.push_back(af_ca.location());
-					caP.push_back(pdb_ca.location());
+					caA.push_back(af_ca.get_location());
+					caP.push_back(pdb_ca.get_location());
 				}
 
 				if (caA.empty())
@@ -385,28 +317,28 @@ int a_main(int argc, char *const argv[])
 						auto &rA = *afPoly[i];
 						auto &rP = *pdbPoly[i];
 
-						if (rA.compoundID() == "TYR" or rA.compoundID() == "PHE")
+						if (rA.get_compound_id() == "TYR" or rA.get_compound_id() == "PHE")
 						{
 							if (std::abs(rA.chi(1) - rP.chi(1)) > 90)
 							{
-								pdbStructure.swapAtoms(rP.atomByID("CD1"), rP.atomByID("CD2"));
-								pdbStructure.swapAtoms(rP.atomByID("CE1"), rP.atomByID("CE2"));
+								pdbStructure.swap_atoms(rP.get_atom_by_atom_id("CD1"), rP.get_atom_by_atom_id("CD2"));
+								pdbStructure.swap_atoms(rP.get_atom_by_atom_id("CE1"), rP.get_atom_by_atom_id("CE2"));
 							}
 
 							continue;
 						}
 
-						if (rA.compoundID() == "ASP")
+						if (rA.get_compound_id() == "ASP")
 						{
 							if (std::abs(rA.chi(1) - rP.chi(1)) > 90)
-								pdbStructure.swapAtoms(rP.atomByID("OD1"), rP.atomByID("OD2"));
+								pdbStructure.swap_atoms(rP.get_atom_by_atom_id("OD1"), rP.get_atom_by_atom_id("OD2"));
 							continue;
 						}
 
-						if (rA.compoundID() == "GLU")
+						if (rA.get_compound_id() == "GLU")
 						{
 							if (std::abs(rA.chi(2) - rP.chi(2)) > 90)
-								pdbStructure.swapAtoms(rP.atomByID("OE1"), rP.atomByID("OE2"));
+								pdbStructure.swap_atoms(rP.get_atom_by_atom_id("OE1"), rP.get_atom_by_atom_id("OE2"));
 							continue;
 						}
 					}
@@ -420,12 +352,12 @@ int a_main(int argc, char *const argv[])
 				// Align the PDB structure on the AF structure, based on C-alpha
 				Align(afStructure, pdbStructure, caA, caP);
 
-				auto &afRes = afStructure.getResidue(asymID);
+				auto &afRes = afStructure.get_residue(asymID);
 				// auto &pdbRes = guessResidueForLigand(afStructure, asymID, pdbStructure, ligand);
-				auto &pdbRes = pdbStructure.getResidue(transplant["pdb_asym_id"].as<std::string>());
+				auto &pdbRes = pdbStructure.get_residue(transplant["pdb_asym_id"].as<std::string>());
 
-				if (afRes.compoundID() != pdbRes.compoundID())
-					throw std::runtime_error("Compound ID's do not match: " + afRes.compoundID() + " != " + pdbRes.compoundID());
+				if (afRes.get_compound_id() != pdbRes.get_compound_id())
+					throw std::runtime_error("Compound ID's do not match: " + afRes.get_compound_id() + " != " + pdbRes.get_compound_id());
 
 				// collect atoms around ligand
 
@@ -438,7 +370,7 @@ int a_main(int argc, char *const argv[])
 					continue;
 				}
 
-				std::vector<mmcif::Atom> cA = pA, cP = pP;
+				std::vector<cif::mm::atom> cA = pA, cP = pP;
 				cA.insert(cA.end(), lA.begin(), lA.end());
 				cP.insert(cP.end(), lP.begin(), lP.end());
 
@@ -449,10 +381,10 @@ int a_main(int argc, char *const argv[])
 
 				std::cout << afID << '\t'
 						<< pdbID << '\t'
-						<< afRes.compoundID() << '\t'
-						<< pdbRes.authAsymID() << '\t'
-						<< pdbRes.authSeqID() << '\t'
-						<< pdbRes.authInsCode() << '\t'
+						<< afRes.get_compound_id() << '\t'
+						<< pdbRes.get_auth_asym_id() << '\t'
+						<< pdbRes.get_auth_seq_id() << '\t'
+						<< pdbRes.get_pdb_ins_code() << '\t'
 						<< std::setprecision(5) << rmsd1 << '\t'
 						<< std::setprecision(5) << rmsd2 << '\t'
 						<< std::setprecision(5) << rmsd3 << '\t'

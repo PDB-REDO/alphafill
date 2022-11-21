@@ -13,18 +13,15 @@
 #include <map>
 #include <atomic>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
-#include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/interprocess/file_mapping.hpp>
+#include <boost/interprocess/mapped_region.hpp>
 
-#include <cif++/CifUtils.hpp>
+#include <cif++.hpp>
 
 #include "blast.hpp"
 #include "matrix.hpp"
 
-namespace ba = boost::algorithm;
 namespace fs = std::filesystem;
-namespace io = boost::iostreams;
 
 // --------------------------------------------------------------------
 
@@ -119,7 +116,7 @@ Matrix::Matrix(const std::string &inName, int32_t inGapOpen, int32_t inGapExtend
 	mData.mName = nullptr;
 	for (const MMatrixData *data = kMMatrixData; data->mName != nullptr; ++data)
 	{
-		if (ba::iequals(inName, data->mName) and
+		if (cif::iequals(inName, data->mName) and
 			inGapOpen == data->mGapOpen and
 			inGapExtend == data->mGapExtend)
 		{
@@ -1274,12 +1271,12 @@ BlastQuery<WORDSIZE>::BlastQuery(const std::string &inQuery, bool inFilter, doub
 	, mDbLength(0)
 	, mSearchSpace(0)
 {
-	if (mQuery.length() >= kMaxSequenceLength)
-		throw blast_exception("Query length exceeds maximum");
-
 	mUnfiltered.erase(remove_if(mUnfiltered.begin(), mUnfiltered.end(), [](char aa) -> bool
 						  { return ResidueNr(aa) >= kResCount; }),
 		mUnfiltered.end());
+
+	if (mUnfiltered.length() >= kMaxSequenceLength)
+		throw blast_exception("Query length exceeds maximum");
 
 	std::string query(mUnfiltered);
 	if (inFilter)
@@ -1310,12 +1307,26 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 {
 	for (const fs::path &p : inDatabanks)
 	{
-		io::mapped_file file(p.string().c_str(), io::mapped_file::readonly);
-		if (not file.is_open())
-			throw blast_exception("FastA file " + p.string() + " not open");
+		// io::mapped_file file(p.string().c_str(), io::mapped_file::readonly);
 
-		const char *data = file.const_data();
-		size_t length = file.size();
+		using namespace boost::interprocess;
+
+		//Create a file mapping
+		file_mapping m_file(p.string().c_str(), read_only);
+
+		// if (not m_file.is_open())
+		// 	throw blast_exception("FastA file " + p.string() + " not open");
+
+		//Map the whole file with read-write permissions in this process
+		mapped_region region(m_file, read_only);
+
+		//Get the address of the mapped region
+		const char *data = reinterpret_cast<const char*>(region.get_address());
+		size_t length = region.get_size();
+
+
+		// const char *data = file.const_data();
+		// size_t length = file.size();
 
 		if (inNrOfThreads <= 1)
 			SearchPart(data, length, inProgress, mDbCount, mDbLength, mHits);
@@ -2001,7 +2012,7 @@ void BlastQuery<WORDSIZE>::AddHit(HitPtr inHit, std::vector<HitPtr> &inHitList) 
 //
 //	std::string query(inQuery), queryID("query"), queryDef;
 //
-//	if (ba::starts_with(inQuery, ">"))
+//	if (cif::starts_with(inQuery, ">"))
 //	{
 //		boost::smatch m;
 //		if (regex_search(inQuery, m, kFastARE, boost::match_not_dot_newline))
@@ -2091,7 +2102,7 @@ std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, const std:
 
 	std::string query(inQuery), queryID("query"), queryDef;
 
-	if (ba::starts_with(inQuery, ">"))
+	if (cif::starts_with(inQuery, ">"))
 	{
 		std::smatch m;
 		if (regex_search(inQuery, m, kFastARE))

@@ -1,0 +1,3 @@
+[submodule "libconfig"]
+	path = libconfig
+	url = git@github.com:mhekkel/libconfig.git

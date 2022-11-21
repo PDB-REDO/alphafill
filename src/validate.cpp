@@ -26,13 +26,11 @@
 
 #include <fstream>
 #include <iomanip>
+#include <thread>
 
-#include <cif++/CifUtils.hpp>
-#include <cif++/Structure.hpp>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/date_time.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
+
+#include <cif++.hpp>
 
 #include <zeep/json/element.hpp>
 #include <zeep/json/parser.hpp>
@@ -40,66 +38,223 @@
 #include "utilities.hpp"
 #include "data-service.hpp"
 #include "ligands.hpp"
+#include "queue.hpp"
 #include "validate.hpp"
 
 namespace fs = std::filesystem;
-namespace ba = boost::algorithm;
 
 using json = zeep::json::element;
-using Point = mmcif::Point;
 
 // --------------------------------------------------------------------
 
-double CalculateRMSD(const std::vector<mmcif::Point> &pa, const std::vector<mmcif::Point> &pb)
+struct VAtom
+{
+	cif::point loc;
+	bool ligand;
+	std::string compoundID;
+	std::string atomID;
+};
+
+const cif::mm::residue &guessResidueForLigand(const cif::mm::structure &afs, const std::string &afLigandAsymID, const cif::mm::structure &pdb, const Ligand &ligand)
+{
+	auto &r1 = afs.get_residue(afLigandAsymID);
+
+	std::string compoundID;
+	if (ligand)
+		compoundID = ligand.ID();
+	if (compoundID.empty())
+		compoundID = r1.get_compound_id();
+
+	float sB1 = 0;
+	std::vector<cif::point> r1p;
+
+	for (auto a : r1.atoms())
+	{
+		sB1 += a.get_property_float("B_iso_or_equiv");
+		r1p.emplace_back(a.get_location());
+	}
+
+	auto c1 = centroid(r1p);
+
+	auto a1 = r1.atoms();
+
+	sort(a1.begin(), a1.end(), [](const cif::mm::atom &a, const cif::mm::atom &b)
+		{ return a.get_label_atom_id().compare(b.get_label_atom_id()) < 0; });
+
+	// Key type is difference in sum of b-factors and then distance from centroid
+	using M_t = std::tuple<float,float,const cif::mm::residue *>;
+	std::vector<M_t> m;
+	auto lessM = [](const M_t &a, const M_t &b)
+	{
+		auto d = std::get<0>(a) - std::get<0>(b);
+		if (d == 0)
+			d = std::get<1>(a) - std::get<1>(b);
+		return d < 0;
+	};
+
+	for (auto &r2 : pdb.non_polymers())
+	{
+		if (r2.get_compound_id() != compoundID)
+			continue;
+
+		auto a2 = r2.atoms();
+
+		if (a1.size() != ligand.atom_count(r2))
+			continue;
+
+		std::vector<cif::point> r2p;
+		float sB2 = 0;
+
+		for (auto a : r2.atoms())
+		{
+			if (ligand.drops(a.get_label_atom_id()))
+				continue;
+
+			sB2 += a.get_property_float("B_iso_or_equiv");
+			r2p.emplace_back(a.get_location());
+		}
+
+		auto c2 = centroid(r2p);
+
+		m.emplace_back(std::abs(sB2 - sB1), distance(c1, c2), &r2);
+		std::push_heap(m.begin(), m.end(), lessM);
+	}
+
+	if (m.empty())
+		throw std::runtime_error("Could not locate ligand " + afLigandAsymID + " (" + r1.get_compound_id() + ')');
+
+	std::sort_heap(m.begin(), m.end(), lessM);
+
+	return *std::get<2>(m.front());
+}
+
+// --------------------------------------------------------------------
+
+using cif::point;
+using cif::quaternion;
+
+std::vector<point> getCAlphaForChain(const std::vector<cif::mm::residue *> &residues)
+{
+	std::vector<point> result;
+
+	for (auto res : residues)
+		result.push_back(res->get_atom_by_atom_id("CA").get_location());
+
+	return result;
+}
+
+
+
+std::tuple<std::vector<point>, std::vector<point>> selectAtomsNearResidue(
+	const std::vector<cif::mm::residue *> &pdb, const std::vector<size_t> &pdb_ix,
+	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
+	const std::vector<cif::mm::atom> &residue, float maxDistance)
+{
+	std::vector<point> ra, rb;
+
+	assert(pdb_ix.size() == af_ix.size());
+
+	for (size_t i = 0; i < pdb_ix.size(); ++i)
+	{
+		bool nearby = false;
+
+		for (const char *atom_id : {"C", "CA", "N", "O"})
+		{
+			assert(pdb_ix[i] < pdb.size());
+
+			auto atom = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
+			if (not atom)
+				continue;
+
+			for (auto &b : residue)
+			{
+				if (distance(atom, b) <= maxDistance)
+				{
+					nearby = true;
+					break;
+				}
+			}
+
+			if (nearby)
+				break;
+		}
+
+		if (not nearby)
+			continue;
+
+		for (const char *atom_id : {"C", "CA", "N", "O"})
+		{
+			assert(af_ix[i] < af.size());
+			assert(pdb_ix[i] < pdb.size());
+
+			auto pt_a = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
+			auto pt_b = af[af_ix[i]]->get_atom_by_atom_id(atom_id);
+
+			if (not pt_a and pt_b)
+				continue;
+
+			ra.push_back(pt_a.get_location());
+			rb.push_back(pt_b.get_location());
+		}
+	}
+
+	return {ra, rb};
+}
+
+
+
+// --------------------------------------------------------------------
+
+double CalculateRMSD(const std::vector<cif::point> &pa, const std::vector<cif::point> &pb)
 {
 	return RMSd(pa, pb);
 }
 
-double CalculateRMSD(const std::vector<mmcif::Atom> &a, const std::vector<mmcif::Atom> &b)
+double CalculateRMSD(const std::vector<cif::mm::atom> &a, const std::vector<cif::mm::atom> &b)
 {
-	std::vector<Point> pa, pb;
+	std::vector<point> pa, pb;
 
 	for (auto &atom : a)
-		pa.emplace_back(atom.location());
+		pa.emplace_back(atom.get_location());
 
 	for (auto &atom : b)
-		pb.emplace_back(atom.location());
+		pb.emplace_back(atom.get_location());
 
 	return RMSd(pa, pb);
 }
 
 // --------------------------------------------------------------------
 
-double Align(std::vector<mmcif::Atom> &aA, std::vector<mmcif::Atom> &aB)
+double Align(std::vector<cif::mm::atom> &aA, std::vector<cif::mm::atom> &aB)
 {
-	std::vector<Point> pA, pB;
+	std::vector<point> pA, pB;
 
 	for (auto &a : aA)
-		pA.emplace_back(a.location());
+		pA.emplace_back(a.get_location());
 
 	for (auto &b : aB)
-		pB.emplace_back(b.location());
+		pB.emplace_back(b.get_location());
 
-	auto ta = CenterPoints(pA);
+	auto ta = center_points(pA);
 
 	if (cif::VERBOSE > 0)
 		std::cerr << "translate A: " << -ta << std::endl;
 
-	auto tb = CenterPoints(pB);
+	auto tb = center_points(pB);
 
 	if (cif::VERBOSE > 0)
 		std::cerr << "translate B: " << -tb << std::endl;
 
-	auto rotation = AlignPoints(pB, pA);
+	auto rotation = align_points(pB, pA);
 
 	if (cif::VERBOSE > 0)
 	{
-		const auto &[angle, axis] = mmcif::QuaternionToAngleAxis(rotation);
+		const auto &[angle, axis] = cif::quaternion_to_angle_axis(rotation);
 		std::cerr << "rotation: " << angle << " degrees rotation around axis " << axis << std::endl;
 	}
 
 	for (auto b : aB)
-		b.translateRotateAndTranslate(-tb, rotation, ta);
+		b.translate_rotate_and_translate(-tb, rotation, ta);
 
 	for (auto &pt : pB)
 		pt.rotate(rotation);
@@ -112,28 +267,28 @@ double Align(std::vector<mmcif::Atom> &aA, std::vector<mmcif::Atom> &aB)
 	return result;
 }
 
-double Align(const mmcif::Structure &a, mmcif::Structure &b,
-	std::vector<Point> &cAlphaA, std::vector<Point> &cAlphaB)
+double Align(const cif::mm::structure &a, cif::mm::structure &b,
+	std::vector<point> &cAlphaA, std::vector<point> &cAlphaB)
 {
-	auto ta = CenterPoints(cAlphaA);
+	auto ta = center_points(cAlphaA);
 
 	if (cif::VERBOSE > 0)
 		std::cerr << "translate A: " << -ta << std::endl;
 
-	auto tb = CenterPoints(cAlphaB);
+	auto tb = center_points(cAlphaB);
 
 	if (cif::VERBOSE > 0)
 		std::cerr << "translate B: " << -tb << std::endl;
 
-	auto rotation = AlignPoints(cAlphaB, cAlphaA);
+	auto rotation = align_points(cAlphaB, cAlphaA);
 
 	if (cif::VERBOSE > 0)
 	{
-		const auto &[angle, axis] = mmcif::QuaternionToAngleAxis(rotation);
+		const auto &[angle, axis] = cif::quaternion_to_angle_axis(rotation);
 		std::cerr << "rotation: " << angle << " degrees rotation around axis " << axis << std::endl;
 	}
 
-	b.translateRotateAndTranslate(-tb, rotation, ta);
+	b.translate_rotate_and_translate(-tb, rotation, ta);
 
 	for (auto &pt : cAlphaB)
 		pt.rotate(rotation);
@@ -147,10 +302,10 @@ double Align(const mmcif::Structure &a, mmcif::Structure &b,
 }
 
 // --------------------------------------------------------------------
-// A blast like alignment. Take two mmcif::Polymers and remove residues
+// A blast like alignment. Take two cif::mm::polymers and remove residues
 // that are not common in both
 
-std::tuple<std::vector<mmcif::Monomer *>, std::vector<mmcif::Monomer *>> AlignAndTrimSequences(mmcif::Polymer &rx, mmcif::Polymer &ry)
+std::tuple<std::vector<cif::mm::monomer *>, std::vector<cif::mm::monomer *>> AlignAndTrimSequences(cif::mm::polymer &rx, cif::mm::polymer &ry)
 {
 	using namespace boost::numeric::ublas;
 
@@ -184,7 +339,7 @@ std::tuple<std::vector<mmcif::Monomer *>, std::vector<mmcif::Monomer *>> AlignAn
 
 			// score for alignment
 			float M;
-			if (a.compoundID() == b.compoundID())
+			if (a.get_compound_id() == b.get_compound_id())
 				M = kMatchReward;
 			else
 				M = kMismatchCost;
@@ -192,7 +347,7 @@ std::tuple<std::vector<mmcif::Monomer *>, std::vector<mmcif::Monomer *>> AlignAn
 			// gap open cost is zero if the PDB ATOM records indicate that a gap
 			// should be here.
 			float gapOpen = kGapOpen;
-			if (y == 0 or (y + 1 < dimY and ry[y + 1].seqID() > ry[y].seqID() + 1))
+			if (y == 0 or (y + 1 < dimY and ry[y + 1].get_seq_id() > ry[y].get_seq_id() + 1))
 				gapOpen = 0;
 
 			if (x > 0 and y > 0)
@@ -241,7 +396,7 @@ std::tuple<std::vector<mmcif::Monomer *>, std::vector<mmcif::Monomer *>> AlignAn
 	x = highX;
 	y = highY;
 
-	std::vector<mmcif::Monomer *> ra, rb;
+	std::vector<cif::mm::monomer *> ra, rb;
 
 	while (x >= 0 and y >= 0)
 	{
@@ -256,7 +411,7 @@ std::tuple<std::vector<mmcif::Monomer *>, std::vector<mmcif::Monomer *>> AlignAn
 				break;
 
 			case 0:
-				if (rx[x].compoundID() == ry[y].compoundID())
+				if (rx[x].get_compound_id() == ry[y].get_compound_id())
 				{
 					ra.emplace_back(&rx[x]);
 					rb.emplace_back(&ry[y]);
@@ -275,15 +430,15 @@ std::tuple<std::vector<mmcif::Monomer *>, std::vector<mmcif::Monomer *>> AlignAn
 
 // --------------------------------------------------------------------
 
-std::tuple<std::vector<mmcif::Atom>, std::vector<mmcif::Atom>, std::vector<mmcif::Atom>, std::vector<mmcif::Atom>>
-FindAtomsNearLigand(const std::vector<mmcif::Monomer *> &pa, const std::vector<mmcif::Monomer *> &pb,
-	const mmcif::Residue &ra, const mmcif::Residue &rb, float maxDistance, const Ligand &ligand)
+std::tuple<std::vector<cif::mm::atom>, std::vector<cif::mm::atom>, std::vector<cif::mm::atom>, std::vector<cif::mm::atom>>
+FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector<cif::mm::monomer *> &pb,
+	const cif::mm::residue &ra, const cif::mm::residue &rb, float maxDistance, const Ligand &ligand)
 {
 	float maxDistanceSq = maxDistance * maxDistance;
 
-	std::vector<mmcif::Atom> aL, bL, aP, bP;
+	std::vector<cif::mm::atom> aL, bL, aP, bP;
 
-	std::vector<std::tuple<int, mmcif::Atom>> aI, bI;
+	std::vector<std::tuple<int, cif::mm::atom>> aI, bI;
 
 	for (auto atom : ra.atoms())
 	{
@@ -295,7 +450,7 @@ FindAtomsNearLigand(const std::vector<mmcif::Monomer *> &pa, const std::vector<m
 		{
 			for (auto ra : r->atoms())
 			{
-				if (mmcif::DistanceSquared(atom, ra) <= maxDistanceSq)
+				if (distance_squared(atom, ra) <= maxDistanceSq)
 					aI.emplace_back(i, ra);
 			}
 
@@ -305,7 +460,7 @@ FindAtomsNearLigand(const std::vector<mmcif::Monomer *> &pa, const std::vector<m
 
 	for (auto atom : rb.atoms())
 	{
-		if (ligand.drops(atom.labelAtomID()))
+		if (ligand.drops(atom.get_label_atom_id()))
 			continue;
 
 		bL.emplace_back(atom);
@@ -316,7 +471,7 @@ FindAtomsNearLigand(const std::vector<mmcif::Monomer *> &pa, const std::vector<m
 		{
 			for (auto ra : r->atoms())
 			{
-				if (mmcif::DistanceSquared(atom, ra) <= maxDistanceSq)
+				if (distance_squared(atom, ra) <= maxDistanceSq)
 					bI.emplace_back(i, ra);
 			}
 
@@ -326,9 +481,9 @@ FindAtomsNearLigand(const std::vector<mmcif::Monomer *> &pa, const std::vector<m
 
 	assert(aL.size() == bL.size());
 	for (size_t i = 0; i < aL.size(); ++i)
-		assert(aL[i].labelAtomID() == ligand.map(bL[i].labelAtomID()));
+		assert(aL[i].get_label_atom_id() == ligand.map(bL[i].get_label_atom_id()));
 
-	auto atomLess = [](const std::tuple<int, mmcif::Atom> &a, const std::tuple<int, mmcif::Atom> &b)
+	auto atomLess = [](const std::tuple<int, cif::mm::atom> &a, const std::tuple<int, cif::mm::atom> &b)
 	{
 		const auto &[ai, aa] = a;
 		const auto &[bi, ba] = b;
@@ -336,7 +491,7 @@ FindAtomsNearLigand(const std::vector<mmcif::Monomer *> &pa, const std::vector<m
 		int d = ai - bi;
 
 		if (d == 0)
-			d = aa.labelAtomID().compare(ba.labelAtomID());
+			d = aa.get_label_atom_id().compare(ba.get_label_atom_id());
 
 		return d < 0;
 	};
@@ -384,14 +539,14 @@ FindAtomsNearLigand(const std::vector<mmcif::Monomer *> &pa, const std::vector<m
 
 // --------------------------------------------------------------------
 
-CAtom::CAtom(mmcif::AtomType type, mmcif::Point pt, int charge, int seqID, const std::string &id)
-	: type(type), pt(pt), seqID(seqID), id(id)
+CAtom::CAtom(cif::atom_type type, cif::point pt, int charge, int get_seq_id, const std::string &id)
+	: type(type), pt(pt), seqID(get_seq_id), id(id)
 {
-	const mmcif::AtomTypeTraits att(type);
+	const cif::atom_type_traits att(type);
 
 	if (charge == 0)
 	{
-		radius = att.radius(mmcif::RadiusType::VanderWaals);
+		radius = att.radius(cif::radius_type::van_der_waals);
 		if (std::isnan(radius))
 			radius = att.radius();
 	}
@@ -417,7 +572,7 @@ std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, co
 
 		for (auto &ra : resAtoms)
 		{
-			auto d = DistanceSquared(pa.pt, ra.pt);
+			auto d = distance_squared(pa.pt, ra.pt);
 
 			if (d >= maxDistanceSq)
 				continue;
@@ -467,19 +622,19 @@ std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, co
 	};
 }
 
-float ClashScore(cif::Datablock &db, float maxDistance)
+float ClashScore(cif::datablock &db, float maxDistance)
 {
 	using namespace cif::literals;
 
-	auto addAtom = [](const std::string &symbol, const std::string &comp_id, int charge, mmcif::Point p, std::vector<CAtom> &v)
+	auto addAtom = [](const std::string &symbol, const std::string &comp_id, int charge, cif::point p, std::vector<CAtom> &v)
 	{
-		const mmcif::AtomTypeTraits att(symbol);
+		const cif::atom_type_traits att(symbol);
 
-		if (charge == 0 and att.isMetal())
+		if (charge == 0 and att.is_metal())
 		{
-			auto compound = mmcif::CompoundFactory::instance().create(comp_id);
+			auto compound = cif::compound_factory::instance().create(comp_id);
 			if (compound)
-				charge = compound->formalCharge();
+				charge = compound->formal_charge();
 		}
 
 		v.emplace_back(att.type(), p, charge, 0, "");
@@ -511,7 +666,7 @@ float ClashScore(cif::Datablock &db, float maxDistance)
 
 		for (auto &ra : cL)
 		{
-			auto d = DistanceSquared(pa.pt, ra.pt);
+			auto d = distance_squared(pa.pt, ra.pt);
 
 			if (d >= maxDistanceSq)
 				continue;
@@ -541,7 +696,7 @@ float ClashScore(cif::Datablock &db, float maxDistance)
 
 // --------------------------------------------------------------------
 
-std::tuple<float,float,float> validateCif(cif::Datablock &db, const std::string &asymID, zeep::json::element &info,
+std::tuple<float,float,float> validateCif(cif::datablock &db, const std::string &asymID, zeep::json::element &info,
 	float maxLigandPolyAtomDistance)
 {
 	std::string pdbID;
@@ -558,9 +713,9 @@ std::tuple<float,float,float> validateCif(cif::Datablock &db, const std::string 
 		}
 	}
 
-	mmcif::File pdbFile(file_locator::get_pdb_file(pdbID));
-	mmcif::Structure pdbStructure(pdbFile);
-	mmcif::Structure afStructure(db);
+	cif::file pdbFile(file_locator::get_pdb_file(pdbID));
+	cif::mm::structure pdbStructure(pdbFile);
+	cif::mm::structure afStructure(db);
 
 	auto &ligands = LigandsTable::instance();
 
@@ -575,32 +730,32 @@ std::tuple<float,float,float> validateCif(cif::Datablock &db, const std::string 
 				continue;
 
 			auto pdbAsymID = hit["pdb_asym_id"].as<std::string>();
-			auto pdbCompoundID = transplant["compound_id"].as<std::string>();
+			auto pdbget_compound_id = transplant["compound_id"].as<std::string>();
 
-			auto ligand = ligands[pdbCompoundID];
+			auto ligand = ligands[pdbget_compound_id];
 
-			auto &afPolyS = afStructure.getPolymerByAsymID("A");
-			auto &pdbPolyS = pdbStructure.getPolymerByAsymID(pdbAsymID);
+			auto &afPolyS = afStructure.get_polymer_by_asym_id("A");
+			auto &pdbPolyS = pdbStructure.get_polymer_by_asym_id(pdbAsymID);
 
 			auto &&[afPoly, pdbPoly] = AlignAndTrimSequences(afPolyS, pdbPolyS);
 
 			if (afPoly.size() != pdbPoly.size())
 				throw std::runtime_error("polymers differ in length");
 
-			std::vector<Point> caA, caP;
+			std::vector<point> caA, caP;
 
 			for (size_t i = 0; i < afPoly.size(); ++i)
 			{
-				auto af_ca = afPoly[i]->atomByID("CA");
+				auto af_ca = afPoly[i]->get_atom_by_atom_id("CA");
 				if (not af_ca)
 					continue;
 
-				auto pdb_ca = pdbPoly[i]->atomByID("CA");
+				auto pdb_ca = pdbPoly[i]->get_atom_by_atom_id("CA");
 				if (not pdb_ca)
 					continue;
 
-				caA.push_back(af_ca.location());
-				caP.push_back(pdb_ca.location());
+				caA.push_back(af_ca.get_location());
+				caP.push_back(pdb_ca.get_location());
 			}
 
 			if (caA.empty())
@@ -623,28 +778,28 @@ std::tuple<float,float,float> validateCif(cif::Datablock &db, const std::string 
 					auto &rA = *afPoly[i];
 					auto &rP = *pdbPoly[i];
 
-					if (rA.compoundID() == "TYR" or rA.compoundID() == "PHE")
+					if (rA.get_compound_id() == "TYR" or rA.get_compound_id() == "PHE")
 					{
 						if (std::abs(rA.chi(1) - rP.chi(1)) > 90)
 						{
-							pdbStructure.swapAtoms(rP.atomByID("CD1"), rP.atomByID("CD2"));
-							pdbStructure.swapAtoms(rP.atomByID("CE1"), rP.atomByID("CE2"));
+							pdbStructure.swap_atoms(rP.get_atom_by_atom_id("CD1"), rP.get_atom_by_atom_id("CD2"));
+							pdbStructure.swap_atoms(rP.get_atom_by_atom_id("CE1"), rP.get_atom_by_atom_id("CE2"));
 						}
 
 						continue;
 					}
 
-					if (rA.compoundID() == "ASP")
+					if (rA.get_compound_id() == "ASP")
 					{
 						if (std::abs(rA.chi(1) - rP.chi(1)) > 90)
-							pdbStructure.swapAtoms(rP.atomByID("OD1"), rP.atomByID("OD2"));
+							pdbStructure.swap_atoms(rP.get_atom_by_atom_id("OD1"), rP.get_atom_by_atom_id("OD2"));
 						continue;
 					}
 
-					if (rA.compoundID() == "GLU")
+					if (rA.get_compound_id() == "GLU")
 					{
 						if (std::abs(rA.chi(2) - rP.chi(2)) > 90)
-							pdbStructure.swapAtoms(rP.atomByID("OE1"), rP.atomByID("OE2"));
+							pdbStructure.swap_atoms(rP.get_atom_by_atom_id("OE1"), rP.get_atom_by_atom_id("OE2"));
 						continue;
 					}
 				}
@@ -658,12 +813,12 @@ std::tuple<float,float,float> validateCif(cif::Datablock &db, const std::string 
 			// Align the PDB structure on the AF structure, based on C-alpha
 			Align(afStructure, pdbStructure, caA, caP);
 
-			auto &afRes = afStructure.getResidue(asymID);
+			auto &afRes = afStructure.get_residue(asymID);
 			// auto &pdbRes = guessResidueForLigand(afStructure, asymID, pdbStructure, ligand);
-			auto &pdbRes = pdbStructure.getResidue(transplant["pdb_asym_id"].as<std::string>());
+			auto &pdbRes = pdbStructure.get_residue(transplant["pdb_asym_id"].as<std::string>());
 
-			if (afRes.compoundID() != pdbRes.compoundID())
-				throw std::runtime_error("Compound ID's do not match: " + afRes.compoundID() + " != " + pdbRes.compoundID());
+			if (afRes.get_compound_id() != pdbRes.get_compound_id())
+				throw std::runtime_error("Compound ID's do not match: " + afRes.get_compound_id() + " != " + pdbRes.get_compound_id());
 
 			// collect atoms around ligand
 
@@ -676,7 +831,7 @@ std::tuple<float,float,float> validateCif(cif::Datablock &db, const std::string 
 				continue;
 			}
 
-			std::vector<mmcif::Atom> cA = pA, cP = pP;
+			std::vector<cif::mm::atom> cA = pA, cP = pP;
 			cA.insert(cA.end(), lA.begin(), lA.end());
 			cP.insert(cP.end(), lP.begin(), lP.end());
 
@@ -691,3 +846,373 @@ std::tuple<float,float,float> validateCif(cif::Datablock &db, const std::string 
 
 	return { std::nanf("0"), std::nanf("0"), std::nanf("0") };
 }
+
+
+int validateFastA(fs::path fasta, fs::path dbDir, int threads)
+{
+	int result = 0;
+
+	std::ifstream f(fasta);
+	if (not f.is_open())
+		throw std::runtime_error("Could not open fasta file");
+	
+	std::string id, strand, seq, line;
+
+	std::vector<std::string> mismatch, unequal_length, not_x_related;
+	blocking_queue<std::tuple<std::string,std::string,std::string>> q;
+
+	std::mutex guard;
+
+	std::vector<std::thread> t;
+	for (int i = 0; i < threads; ++i)
+	{
+		t.emplace_back([&]()
+		{
+			for (;;)
+			{
+				const auto &&[id, strand, seq] = q.pop();
+
+				if (id.empty())	// sentinel
+				{
+					q.push({});
+					break;
+				}
+
+				try
+				{
+					cif::file pdbFile(pdbFileForID(dbDir, id));
+
+					if (pdbFile.empty())
+						throw std::runtime_error("Invalid cif file for " + id);
+
+					auto a = getSequenceForStrand(pdbFile.front(), strand);
+					auto b = encode(seq);
+
+					if (a == b)
+						continue;
+
+					std::unique_lock lock(guard);
+
+					result = -1;
+
+					std::cerr << "Mismatch for " << id << " strand " << strand << std::endl;
+
+					std::cerr << std::endl
+								<< decode(a) << std::endl
+								<< seq << std::endl
+								<< std::endl;
+
+					mismatch.push_back(id);
+
+					if (a.length() != b.length())
+					{
+						unequal_length.push_back(id);
+						continue;
+					}
+
+					for (size_t i = 0; i < a.length(); ++i)
+					{
+						if (a[i] == b[i])
+							continue;
+						
+						if (a[i] == 22 or b[i] == 22)	// either one is X
+							continue;
+						
+						not_x_related.push_back(id);
+					}
+				}
+				catch (std::exception const &ex)
+				{
+					std::cerr << ex.what() << std::endl;
+				}
+			}
+		});
+	}
+
+	while (std::getline(f, line))
+	{
+		if (line[0] == '>')
+		{
+			if (not id.empty())
+			{
+				if (seq.empty() or strand.empty())
+					throw std::runtime_error("No sequence for id " + id);
+
+				q.push({id, strand, seq });
+			}
+				
+			id = line.substr(1, 4);
+			strand = line.substr(6);
+			seq.clear();
+		}
+		else
+			seq.append(line.begin(), line.end());
+	}
+
+	// signal end
+	q.push({});
+
+	for (auto &ti: t)
+		ti.join();
+
+	if (result)
+	{
+		mismatch.erase(std::unique(mismatch.begin(), mismatch.end()), mismatch.end());
+		unequal_length.erase(std::unique(unequal_length.begin(), unequal_length.end()), unequal_length.end());
+		not_x_related.erase(std::unique(not_x_related.begin(), not_x_related.end()), not_x_related.end());
+
+		std::cout << "Report for fasta check" << std::endl
+				  << std::string(80, '-') << std::endl
+				  << std::endl
+				  << "PDB ID's with mismatches" << std::endl
+				  << cif::join(mismatch, ", ") << std::endl
+				  << std::endl
+				  << "PDB ID's with differing sequence length" << std::endl
+				  << cif::join(unequal_length, ", ") << std::endl
+				  << std::endl
+				  << "PDB ID's with mismatches that do not involve X" << std::endl
+				  << cif::join(not_x_related, ", ") << std::endl
+				  << std::endl;
+	}
+
+	return result;
+}
+
+// // --------------------------------------------------------------------
+
+// int validate_main(int argc, char *const argv[])
+// {
+// 	using namespace std::literals;
+// 	using namespace cif::literals;
+
+// 	po::options_description visible_options(argv[0] + " [options] input-file [output-file]"s);
+
+// 	visible_options.add_options()
+// 		("af-id", po::value<std::string>(), "AlphaFold ID")
+// 		("pdb-id", po::value<std::string>(), "ID of the PDB file")
+
+// 		("max-ligand-to-polymer-atom-distance,d", po::value<float>()->default_value(6),
+// 			"The max distance to use to find neighbouring polymer atoms for the ligand in the AF structure");
+
+// 	po::options_description hidden_options("hidden options");
+
+// 	po::positional_options_description p;
+// 	p.add("af-id", 1);
+// 	p.add("pdb-id", 1);
+
+// 	po::variables_map vm = load_options(argc, argv, visible_options, hidden_options, p, "alphafill.conf");
+
+// 	// --------------------------------------------------------------------
+
+// 	if (vm.count("db-dir") == 0)
+// 	{
+// 		std::cout << "AlphaFill data directory not specified" << std::endl;
+// 		exit(1);
+// 	}
+
+// 	if (vm.count("pdb-dir") == 0)
+// 	{
+// 		std::cout << "PDB directory not specified" << std::endl;
+// 		exit(1);
+// 	}
+
+// 	// --------------------------------------------------------------------
+
+// 	file_locator::init(vm);
+
+// 	// --------------------------------------------------------------------
+
+// 	if (vm.count("af-id") == 0 or vm.count("pdb-id") == 0)
+// 	{
+// 		std::cout << "AlphaFold ID or ligand not specified" << std::endl;
+// 		exit(1);
+// 	}
+
+// 	// --------------------------------------------------------------------
+
+// 	fs::path ligandsFile = vm["ligands"].as<std::string>();
+// 	if (not fs::exists(ligandsFile))
+// 	{
+// 		std::cerr << "Ligands file not found" << std::endl;
+// 		exit(1);
+// 	}
+
+// 	LigandsTable ligands(ligandsFile);
+
+// 	// --------------------------------------------------------------------
+	
+// 	float maxLigandPolyAtomDistance = vm["max-ligand-to-polymer-atom-distance"].as<float>();
+
+// 	// --------------------------------------------------------------------
+
+// 	const auto &[afID, chunk, version] = parse_af_id(vm["af-id"].as<std::string>());
+
+// 	cif::file afFile(file_locator::get_structure_file(type, afID, chunk));
+// 	cif::mm::structure afStructure(afFile);
+
+// 	auto pdbID = vm["pdb-id"].as<std::string>();
+// 	cif::file pdbFile(file_locator::get_pdb_file(pdbID));
+// 	cif::mm::structure pdbStructure(pdbFile);
+
+// 	std::ifstream metadata(file_locator::get_metadata_file(type, afID, chunk));
+
+// 	json info;
+// 	zeep::json::parse_json(metadata, info);
+
+// 	for (auto hit : info["hits"])
+// 	{
+// 		if (hit["pdb_id"] != pdbID)
+// 			continue;
+
+// 		for (auto transplant : hit["transplants"])
+// 		{
+// 			std::string asymID = transplant["asym_id"].as<std::string>();
+
+// 			auto pdbAsymID = hit["pdb_asym_id"].as<std::string>();
+// 			auto pdbCompoundID = transplant["compound_id"].as<std::string>();
+
+// 			try
+// 			{
+// 				auto ligand = ligands[pdbCompoundID];
+
+// 				auto &afPolyS = afStructure.get_polymer_by_asym_id("A");
+// 				auto &pdbPolyS = pdbStructure.get_polymer_by_asym_id(pdbAsymID);
+
+// 				auto &&[afPoly, pdbPoly] = AlignAndTrimSequences(afPolyS, pdbPolyS);
+
+// 				if (afPoly.size() != pdbPoly.size())
+// 					throw std::runtime_error("polymers differ in length");
+
+// 				std::vector<point> caA, caP;
+
+// 				for (size_t i = 0; i < afPoly.size(); ++i)
+// 				{
+// 					auto af_ca = afPoly[i]->get_atom_by_atom_id("CA");
+// 					if (not af_ca)
+// 						continue;
+
+// 					auto pdb_ca = pdbPoly[i]->get_atom_by_atom_id("CA");
+// 					if (not pdb_ca)
+// 						continue;
+
+// 					caA.push_back(af_ca.get_location());
+// 					caP.push_back(pdb_ca.get_location());
+// 				}
+
+// 				if (caA.empty())
+// 				{
+// 					if (cif::VERBOSE > 0)
+// 						std::cerr << "No CA atoms mapped, skipping" << std::endl;
+// 					continue;
+// 				}
+
+// 				// [11-4 11:43] Robbie Joosten
+// 				// Bij de alignment moeten we rekening houden met de conformatie van TYR, PHE, ASP, en GLU.
+// 				// Het verschil in de laatste torsiehoek moet geminimaliseerd worden door de zijketens (in
+// 				// het PDB_REDO model) 180 graden te flippen (i.e. de atoomnamen te swappen). Voor TYR, PHE
+// 				// en ASP gaat het om de torsiehoek chi-2. In GLU gaat het om chi-3.
+
+// 				for (size_t i = 0; i < afPoly.size(); ++i)
+// 				{
+// 					try
+// 					{
+// 						auto &rA = *afPoly[i];
+// 						auto &rP = *pdbPoly[i];
+
+// 						if (rA.get_compound_id() == "TYR" or rA.get_compound_id() == "PHE")
+// 						{
+// 							if (std::abs(rA.chi(1) - rP.chi(1)) > 90)
+// 							{
+// 								pdbStructure.swap_atoms(rP.get_atom_by_atom_id("CD1"), rP.get_atom_by_atom_id("CD2"));
+// 								pdbStructure.swap_atoms(rP.get_atom_by_atom_id("CE1"), rP.get_atom_by_atom_id("CE2"));
+// 							}
+
+// 							continue;
+// 						}
+
+// 						if (rA.get_compound_id() == "ASP")
+// 						{
+// 							if (std::abs(rA.chi(1) - rP.chi(1)) > 90)
+// 								pdbStructure.swap_atoms(rP.get_atom_by_atom_id("OD1"), rP.get_atom_by_atom_id("OD2"));
+// 							continue;
+// 						}
+
+// 						if (rA.get_compound_id() == "GLU")
+// 						{
+// 							if (std::abs(rA.chi(2) - rP.chi(2)) > 90)
+// 								pdbStructure.swap_atoms(rP.get_atom_by_atom_id("OE1"), rP.get_atom_by_atom_id("OE2"));
+// 							continue;
+// 						}
+// 					}
+// 					catch (const std::exception &ex)
+// 					{
+// 						if (cif::VERBOSE > 0)
+// 							std::cerr << ex.what() << std::endl;
+// 					}
+// 				}
+
+// 				// Align the PDB structure on the AF structure, based on C-alpha
+// 				Align(afStructure, pdbStructure, caA, caP);
+
+// 				auto &afRes = afStructure.get_residue(asymID);
+// 				// auto &pdbRes = guessResidueForLigand(afStructure, asymID, pdbStructure, ligand);
+// 				auto &pdbRes = pdbStructure.get_residue(transplant["pdb_asym_id"].as<std::string>());
+
+// 				if (afRes.get_compound_id() != pdbRes.get_compound_id())
+// 					throw std::runtime_error("Compound ID's do not match: " + afRes.get_compound_id() + " != " + pdbRes.get_compound_id());
+
+// 				// collect atoms around ligand
+
+// 				auto &&[pA, pP, lA, lP] = FindAtomsNearLigand(afPoly, pdbPoly, afRes, pdbRes, maxLigandPolyAtomDistance, ligand);
+
+// 				if (pA.empty())
+// 				{
+// 					if (cif::VERBOSE > 0)
+// 						std::cerr << "Could not find poly atoms near " << afRes << std::endl;
+// 					continue;
+// 				}
+
+// 				std::vector<cif::mm::atom> cA = pA, cP = pP;
+// 				cA.insert(cA.end(), lA.begin(), lA.end());
+// 				cP.insert(cP.end(), lP.begin(), lP.end());
+
+// 				auto rmsd1 = Align(cA, cP);
+
+// 				auto rmsd2 = CalculateRMSD(pA, pP);
+// 				auto rmsd3 = CalculateRMSD(lA, lP);
+
+// 				std::cout << afID << '\t'
+// 						<< pdbID << '\t'
+// 						<< afRes.get_compound_id() << '\t'
+// 						<< pdbRes.get_auth_asym_id() << '\t'
+// 						<< pdbRes.get_auth_seq_id() << '\t'
+// 						<< pdbRes.get_pdb_ins_code() << '\t'
+// 						<< std::setprecision(5) << rmsd1 << '\t'
+// 						<< std::setprecision(5) << rmsd2 << '\t'
+// 						<< std::setprecision(5) << rmsd3 << '\t'
+// 						<< pA.size() << '\t'
+// 						<< lA.size() << std::endl;
+// 			}
+// 			catch (const std::exception &ex)
+// 			{
+// 				if (cif::VERBOSE >= 0)
+// 					std::cerr << "Failed to process asym " << asymID << " in " << pdbID << std::endl
+// 							  << ex.what() << std::endl;
+
+// 				std::cout << afID << '\t'
+// 						<< pdbID << '\t'
+// 						<< '"' << transplant["compound_id"].as<std::string>() << '/' << transplant["analogue_id"].as<std::string>() << '"' << '\t'
+// 						<< "\"?\"" << '\t'
+// 						<< 0 << '\t'
+// 						<< "\"?\"" << '\t'
+// 						<< 0 << '\t'
+// 						<< 0 << '\t'
+// 						<< 0 << '\t'
+// 						<< 0 << '\t'
+// 						<< 0 << std::endl;
+// 			}
+// 		}
+// 	}
+
+// 	return 0;
+// }

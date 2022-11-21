@@ -27,74 +27,88 @@
 #include <filesystem>
 #include <regex>
 
-#include <boost/program_options.hpp>
+#include <cif++.hpp>
+#include <mcfp/mcfp.hpp>
+
+#include "blast.hpp"
+#include "ligands.hpp"
+#include "data-service.hpp"
 
 // --------------------------------------------------------------------
 
-int a_main(int argc, char *const argv[]);
-void print_what(const std::exception &ex);
-
-// --------------------------------------------------------------------
-
-boost::program_options::variables_map load_options(
-	int argc, char *const argv[],
-	boost::program_options::options_description &visible_options,
-	boost::program_options::options_description &hidden_options,
-	boost::program_options::positional_options_description &positional_options,
-	const char *config_file_name);
+std::filesystem::path pdbFileForID(const std::filesystem::path &pdbDir, std::string pdb_id);
+std::vector<cif::mm::residue *> get_residuesForChain(cif::mm::structure &structure, const std::string &chain_id);
+std::tuple<std::vector<cif::point>, std::vector<cif::point>> selectAtomsNearResidue(
+	const std::vector<cif::mm::residue *> &pdb, const std::vector<size_t> &pdb_ix,
+	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
+	const std::vector<cif::mm::atom> &residue, float maxDistance, const Ligand &ligand);
+sequence getSequenceForStrand(cif::datablock &db, const std::string &strand);
 
 // --------------------------------------------------------------------
 
 class file_locator
 {
   public:
-	static void init(boost::program_options::variables_map &vm);
-
-	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr)
+	static std::filesystem::path get_structure_file(EntryType type, const std::string &id, int chunk_nr, int version)
 	{
-		return s_instance->get_structure_file_1(id, chunk_nr);
+		if (type == EntryType::Custom)
+			return instance().m_custom_dir / ("CS-" + id + ".cif.gz");
+		else
+			return instance().get_structure_file_1(id, chunk_nr, version);
+	}
+
+	static std::filesystem::path get_metadata_file(EntryType type, const std::string &id, int chunk_nr, int version)
+	{
+		if (type == EntryType::Custom)
+			return instance().m_custom_dir / ("CS-" + id + ".json");
+		else
+			return instance().get_metadata_file_1(id, chunk_nr, version);
+	}
+
+	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr, int version)
+	{
+		return instance().get_structure_file_1(id, chunk_nr, version);
 	}
 
 	static std::filesystem::path get_pdb_file(const std::string &id)
 	{
-		return s_instance->get_pdb_file_1(id);
+		return instance().get_pdb_file_1(id);
 	}
 
-	static std::filesystem::path get_metdata_file(const std::string &id, int chunk_nr)
+	static std::filesystem::path get_metadata_file(const std::string &id, int chunk_nr, int version)
 	{
-		return s_instance->get_metdata_file_1(id, chunk_nr);
+		return instance().get_metadata_file_1(id, chunk_nr, version);
 	}
 
-	static std::vector<std::filesystem::path> get_all_structure_files(const std::string &id);
+	static std::vector<std::filesystem::path> get_all_structure_files(const std::string &id, int version);
 
   private:
-	static std::unique_ptr<file_locator> s_instance;
 
+	static file_locator &instance()
+	{
+		static file_locator s_instance(mcfp::config::instance());
+		return s_instance;
+	}
+
+	file_locator(mcfp::config &config);
 	file_locator(const file_locator &) = delete;
 	file_locator &operator=(const file_locator &) = delete;
 
-	file_locator(const std::filesystem::path &db_dir, const std::filesystem::path &pdb_dir,
-		const std::string &structure_name_pattern, const std::string &pdb_name_pattern, const std::string &metadata_name_pattern)
-		: m_db_dir(db_dir)
-		, m_pdb_dir(pdb_dir)
-		, m_structure_name_pattern(structure_name_pattern)
-		, m_pdb_name_pattern(pdb_name_pattern)
-		, m_metadata_name_pattern(metadata_name_pattern)
-	{
-	}
-
-	std::filesystem::path get_structure_file_1(const std::string &id, int chunk_nr)
+	std::filesystem::path get_structure_file_1(const std::string &id, int chunk_nr, int version)
 	{
 		std::string s = get_file(id, chunk_nr, m_structure_name_pattern);
 
 		std::string::size_type i;
 		while ((i = s.find("${db-dir}")) != std::string::npos)
 			s.replace(i, strlen("${db-dir}"), m_db_dir);
-		
+
+		while ((i = s.find("${version}")) != std::string::npos)
+			s.replace(i, strlen("${version}"), std::to_string(version));
+
 		return s;
 	}
 
-	std::filesystem::path get_metdata_file_1(const std::string &id, int chunk_nr)
+	std::filesystem::path get_metadata_file_1(const std::string &id, int chunk_nr, int version)
 	{
 		std::string s = get_file(id, chunk_nr, m_metadata_name_pattern);
 
@@ -102,6 +116,9 @@ class file_locator
 		while ((i = s.find("${db-dir}")) != std::string::npos)
 			s.replace(i, strlen("${db-dir}"), m_db_dir);
 		
+		while ((i = s.find("${version}")) != std::string::npos)
+			s.replace(i, strlen("${version}"), std::to_string(version));
+
 		return s;
 	}
 
@@ -140,7 +157,7 @@ class file_locator
 		return pattern;
 	}
 
-	const std::filesystem::path m_db_dir, m_pdb_dir;
+	const std::filesystem::path m_db_dir, m_pdb_dir, m_custom_dir;
 	const std::string m_structure_name_pattern;
 	const std::string m_pdb_name_pattern;
 	const std::string m_metadata_name_pattern;

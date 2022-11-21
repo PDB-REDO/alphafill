@@ -14,28 +14,47 @@
 		<h1 class="text-center fw-bold">AlphaFill</h1>
 		<h2 class="text-center fw-bold">AlphaFold models enriched with ligands and co-factors</h2>
 
-		<form z:action="@{/model}">
-			<div class="input-group mt-5 mb-5">
-				<span class="input-group-text" id="search-af">Uniprot ID</span>
-				<input type="text" class="form-control" placeholder="Search for Uniprot ID" aria-label="Uniprot ID"
-					name="id" aria-describedby="search-af" />
-			</div>
-		</form>
+		<div class="row">
+
+			<form z:action="@{/model}" class="col">
+				<div class="input-group mt-5 mb-5">
+					<span class="input-group-text" id="search-af">Uniprot ID</span>
+					<input type="text" class="form-control" placeholder="Search for Uniprot ID" aria-label="Uniprot ID"
+						name="id" aria-describedby="search-af" />
+					</div>
+			</form>
+			<form z:action="@{/model}" class="col">
+				<div class="input-group mt-5 mb-5">
+					<input type="file" class="form-control" id="custom-file" aria-describedby="upload-btn" aria-label="Upload" />
+					<button class="btn btn-outline-secondary" type="button" id="upload-btn">Upload</button>
+				</div>
+			</form>
+		</div>
 
 		<div z:if="${missing}" class="missing_entry alert alert-danger" role="alert">
 			<h4>Not found</h4>
 
-			<p>The entry <span z:text="${missing}"></span> was not found. Please note that the ID should be an Uniprot primary accession code. Secondary Uniprot accession codes as well as Uniprot names are not recognized.</p>
+			<p>The entry <span z:text="${missing}"></span> was not found. Please note that the ID should be an Uniprot
+				primary accession code. Secondary Uniprot accession codes as well as Uniprot names are not recognized.
+			</p>
 		</div>
 
 		<h4>AlphaFill</h4>
-		<p><em>AlphaFill</em> is an algorithm based on sequence and structure similarity that “transplants” missing ligands, cofactors and (metal) ions to the AlphaFold models. By adding the molecular context to these protein structures, the models can be more easily appreciated in terms of function and structural integrity. Consequently, the AlphaFill models can be helpful in designing downstream wet-lab experiments and/or computational studies.</p>
+		<p><em>AlphaFill</em> is an algorithm based on sequence and structure similarity that “transplants” missing
+			ligands, cofactors and (metal) ions to the AlphaFold models. By adding the molecular context to these
+			protein structures, the models can be more easily appreciated in terms of function and structural integrity.
+			Consequently, the AlphaFill models can be helpful in designing downstream wet-lab experiments and/or
+			computational studies.</p>
 
 		<h4>AlphaFill databank</h4>
-		<p>The AlphaFill databank contains all AlphaFold models including the transferred compounds, if present. For each entry, metadata is provided describing the origin of the ligands and indicating the quality based on global and local Root-Mean-Square deviation (RMSd) values.</p>
-		<p>Data for a single entry can be found at the corresponding entry page (search by UniProt ID above). Download details for the complete databank can be found at the <a href="/download">download page</a>.</p>
+		<p>The AlphaFill databank contains all AlphaFold models including the transferred compounds, if present. For
+			each entry, metadata is provided describing the origin of the ligands and indicating the quality based on
+			global and local Root-Mean-Square deviation (RMSd) values.</p>
+		<p>Data for a single entry can be found at the corresponding entry page (search by UniProt ID above). Download
+			details for the complete databank can be found at the <a href="/download">download page</a>.</p>
 
-		<p>For more AlphaFill details: <a href="https://www.biorxiv.org/content/10.1101/2021.11.26.470110v1" target="_BLANK">https://www.biorxiv.org/content/10.1101/2021.11.26.470110v1</a></p>
+		<p>For more AlphaFill details: <a href="https://www.nature.com/articles/s41592-022-01685-y"
+				target="_BLANK">https://www.nature.com/articles/s41592-022-01685-y</a></p>
 	</div>
 
 	<footer z:replace="~{footer::content}"></footer>

@@ -42,8 +42,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 /// \param identity The identity cut-off
 /// \param os The stream to write the output to
 /// \result The result is a json object containing the validation statistics before and after running yasara
-zeep::json::element optimizeWithYasara(const std::string &yasara,
-	const std::string &af_id, std::set<std::string> requestedAsyms, std::ostream &os);
+zeep::json::element optimizeWithYasara(const std::string &af_id, std::set<std::string> requestedAsyms, std::ostream &os);
 
 /// \brief Merge the yasara output in \a yasara_out into an mmCIF structure \a input writing the result to \a os
 ///

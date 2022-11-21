@@ -26,12 +26,12 @@
 
 #pragma once
 
-#include <cif++/Structure.hpp>
+#include <cif++.hpp>
 
 class Ligand
 {
   public:
-	Ligand(cif::Datablock *db)
+	Ligand(const cif::datablock *db)
 		: mDb(db)
 		, mLigand(db ? db->get("ligand") : nullptr)
 		, mModifications(db ? db->get("modification") : nullptr)
@@ -45,7 +45,7 @@ class Ligand
 		return mDb != nullptr and mLigand != nullptr and mLigand->front()["priority"].as<std::string>() != "n";
 	}
 
-	void modify(mmcif::Structure &structure, const std::string &asymID) const;
+	void modify(cif::mm::structure &structure, const std::string &asymID) const;
 
 	std::string analogueID() const
 	{
@@ -54,7 +54,7 @@ class Ligand
 
 	std::string ID() const
 	{
-		return mDb->getName();
+		return mDb->name();
 	}
 
 	std::string description() const
@@ -62,15 +62,15 @@ class Ligand
 		return mLigand->front()["description"].as<std::string>();
 	}
 
-	size_t atom_count(const mmcif::Residue &res) const;
+	size_t atom_count(const cif::mm::residue &res) const;
 
 	bool drops(const std::string &atomID) const;
 
 	std::string map(const std::string &atomID) const;
 
   private:
-	cif::Datablock *mDb;
-	cif::Category *mLigand, *mModifications;
+	const cif::datablock *mDb;
+	const cif::category *mLigand, *mModifications;
 };
 
 // --------------------------------------------------------------------
@@ -95,10 +95,10 @@ class LigandsTable
 
 	Ligand operator[](std::string_view id) const
 	{
-		return {mCifFile.get(id)};
+		return {&mCifFile[id]};
 	}
 
   private:
-	cif::File mCifFile;
+	cif::file mCifFile;
 	static std::unique_ptr<LigandsTable> sInstance;
 };

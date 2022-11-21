@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "cif++/CifUtils.hpp"
+#include <cstdint>
 
 // Some predefined matrices
 

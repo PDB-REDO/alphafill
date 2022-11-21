@@ -39,9 +39,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include <cif++/Cif++.hpp>
-#include <cif++/CifUtils.hpp>
-// #include <cif++/Compound.hpp>
+#include <cif++.hpp>
 
 #include <zeep/http/reply.hpp>
 #include <zeep/json/parser.hpp>
@@ -56,7 +54,6 @@
 #include "validate.hpp"
 
 namespace fs = std::filesystem;
-namespace po = boost::program_options;
 
 using json = zeep::json::element;
 
@@ -66,9 +63,9 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 {
 	using namespace cif::literals;
 
-	const auto &[id, chunkNr] = parse_af_id(af_id);
+	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
 
-	fs::path file = file_locator::get_structure_file(id, chunkNr);
+	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
@@ -78,7 +75,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	{
 		using json = zeep::json::element;
 
-		fs::path jsonFile = file_locator::get_metdata_file(id, chunkNr);
+		fs::path jsonFile = file_locator::get_metadata_file(type, id, chunkNr, version);
 
 		if (not fs::exists(jsonFile))
 			throw zeep::http::not_found;
@@ -99,21 +96,32 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 		}
 	}
 
-	cif::File cif(file);
-	auto &db = cif.firstDatablock();
+	cif::file cif(file);
+	auto &db = cif.front();
 
-	cif.loadDictionary("mmcif_pdbx_v50");
+	if (cif.get_validator() == nullptr)
+		cif.load_dictionary("mmcif_af");
 
 	auto &struct_asym = db["struct_asym"];
 	auto &atom_site = db["atom_site"];
 	auto &struct_conn = db["struct_conn"];
+	auto &entity_poly = db["entity_poly"];
 
 	std::set<std::string> existingAsyms;
-	for (const auto &[asymID] : struct_asym.rows<std::string>("id"))
+	for (const auto &[asymID, entityID] : struct_asym.rows<std::string,std::string>("id", "entity_id"))
+	{
+		// check if this is a nonpoly entity
+		if (entity_poly.exists("entity_id"_key == entityID))
+			continue;
+
 		existingAsyms.insert(asymID);
+	}
 
 	std::vector<std::string> toBeRemoved;
 	std::set_difference(existingAsyms.begin(), existingAsyms.end(), requestedAsyms.begin(), requestedAsyms.end(), std::back_insert_iterator(toBeRemoved));
+
+	auto validator = db.get_validator();
+	db.set_validator(nullptr);
 
 	for (auto &asymID : toBeRemoved)
 	{
@@ -122,8 +130,10 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 		struct_conn.erase("ptnr1_label_asym_id"_key == asymID or "ptnr2_label_asym_id"_key == asymID);
 	}
 
-	mmcif::Structure structure(db);
-	structure.cleanupEmptyCategories();
+	db.set_validator(validator);
+
+	cif::mm::structure structure(db);
+	structure.cleanup_empty_categories();
 
 	cif.save(os);
 }
@@ -134,15 +144,15 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 {
 	using namespace cif::literals;
 
-	cif::File fin(input);
-	cif::File yin(yasara_out);
+	cif::file fin(input);
+	cif::file yin(yasara_out);
 
 	auto &db_i = fin.front();
 	auto &db_y = yin.front();
 
 	json info;
-	const auto &[afID, chunkNr] = parse_af_id(db_i.getName());
-	std::ifstream infoFile(file_locator::get_metdata_file(afID, chunkNr));
+	const auto &[type, afID, chunkNr, version] = parse_af_id(db_i.name());
+	std::ifstream infoFile(file_locator::get_metadata_file(type, afID, chunkNr, version));
 	zeep::json::parse_json(infoFile, info);
 
 	// statistics before
@@ -171,7 +181,7 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 
 	for (auto r : as_i.rows())
 	{
-		const auto &[asym_id, seq_id, atom_id, auth_seq_id] = r.get<std::string,int,std::string,int>({"label_asym_id", "label_seq_id", "label_atom_id", "auth_seq_id"});
+		const auto &[asym_id, seq_id, atom_id, auth_seq_id] = r.get<std::string,int,std::string,int>("label_asym_id", "label_seq_id", "label_atom_id", "auth_seq_id");
 
 		auto l = locations.find(asym_id == "A" ? key_type{ asym_id, seq_id, atom_id } : key_type{ asym_id, 0, atom_id });
 		if (l == locations.end())
@@ -194,9 +204,12 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 	};
 }
 
-json optimizeWithYasara(const std::string &yasara, const std::string &af_id, std::set<std::string> requestedAsyms, std::ostream &os)
+json optimizeWithYasara(const std::string &af_id, std::set<std::string> requestedAsyms, std::ostream &os)
 {
 	using namespace std::literals;
+
+	auto &config = mcfp::config::instance();
+	auto yasara = config.get<std::string>("yasara");
 
 	static std::atomic<int> sYasaraRunNr = 1;
 
