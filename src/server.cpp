@@ -402,6 +402,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 	fs::path cifFile = file_locator::get_structure_file(type, afId, chunkNr, version);
 
 	sub.put("af_id", af_id);
+	sub.put("id", afId);
 	sub.put("chunk", chunkNr);
 	sub.put("type", type);
 	sub.put("version", version);
