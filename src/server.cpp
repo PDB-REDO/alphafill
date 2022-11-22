@@ -559,9 +559,10 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 
 	std::string asymID = request.get_parameter("asym");
 
-	const auto &[type, afId, chunkNr, version] = parse_af_id(request.get_parameter("id"));
+	std::string af_id = request.get_parameter("id");
+	const auto &[type, afId, chunkNr, version] = parse_af_id(af_id);
 
-	sub.put("af_id", afId);
+	sub.put("af_id", af_id);
 	sub.put("chunk", chunkNr);
 	sub.put("asym_id", asymID);
 	sub.put("version", version);

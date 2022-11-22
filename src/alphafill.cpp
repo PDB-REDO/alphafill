@@ -802,6 +802,21 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 								}
 							}
 
+							// This might not be an alphafold entry, check to see if there's a pdbx_struct_assembly_gen
+							if (db.get("pdbx_struct_assembly_gen") != nullptr)
+							{
+								for (auto r : db["pdbx_struct_assembly_gen"])
+								{
+									auto asym_id_list = cif::split<std::string>(r["asym_id_list"].as<std::string>(), ",", true);
+									if (find(asym_id_list.begin(), asym_id_list.end(), af_res.front()->get_asym_id()) == asym_id_list.end())
+										continue;
+									
+									asym_id_list.push_back(asym_id);
+									r["asym_id_list"] = cif::join(asym_id_list, ",");
+									break;
+								}
+							}
+
 							// now fix up the newly created residue
 							ligand.modify(af_structure, asym_id);
 
@@ -824,7 +839,8 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 	af_structure.cleanup_empty_categories();
 
 	auto &software = af_structure.get_category("software");
-	software.emplace({ { "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
+	software.emplace({
+		{ "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
 		{ "name", "alphafill" },
 		{ "version", kVersionNumber },
 		{ "date", kBuildDate },
