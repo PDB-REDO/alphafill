@@ -738,7 +738,17 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 		stripCifFile(af_id, requestedAsymSet, identity, *s);
 
 	rep.set_content(s.release(), "text/plain");
-	// rep.set_header("content-disposition", "attachement; filename = \"AF-" + id + "-F1-model_v1.cif\"");
+
+	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
+	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
+	if (fs::exists(file))
+	{
+		auto filename = file.filename();
+		if (filename.extension() == ".gz")
+			filename.replace_extension("");
+		
+		rep.set_header("content-disposition", "attachement; filename = \"" + filename.string() + "\"");
+	}
 
 	return rep;
 }
