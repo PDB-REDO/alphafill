@@ -20,7 +20,9 @@
                 },
                 "hits": {
                     "description": "List of hits",
-                    "$ref": "#/definitions/Hit"
+                    "oneOf": [
+            				{"type": "null"},
+            				{"$ref":"#/definitions/Hit"}]
                 },
                 "id": {
                     "description": "AlphaFold identifier",
@@ -29,7 +31,6 @@
             "required": [
                 "alphafill_version",
                 "date",
-                "file",
                 "hits",
                 "id"
             ],
