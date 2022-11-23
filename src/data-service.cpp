@@ -37,6 +37,7 @@
 #include <cif++.hpp>
 
 #include <zeep/json/parser.hpp>
+#include <zeep/http/uri.hpp>
 
 #include "mrsrc.hpp"
 
@@ -454,7 +455,7 @@ bool data_service::exists_in_afdb(const std::string &id) const
 	return result;
 }
 
-std::string data_service::fetch_from_afdb(const std::string &id) const
+std::tuple<std::filesystem::path,std::string> data_service::fetch_from_afdb(const std::string &id) const
 {
 	auto &config = mcfp::config::instance();
 
@@ -502,7 +503,9 @@ std::string data_service::fetch_from_afdb(const std::string &id) const
 	while (getline(in, line))
 		result << line << std::endl;
 
-	return result.str();
+	zeep::http::uri uri(url); 
+
+	return { uri.get_path().filename(), result.str() };
 }
 
 // --------------------------------------------------------------------
@@ -765,13 +768,18 @@ void data_service::queue(const std::string &data, const std::string &id)
 	m_queue.push(id);
 }
 
-void data_service::queue_af_id(const std::string &id)
+std::string data_service::queue_af_id(const std::string &id)
 {
-	std::string data = fetch_from_afdb(id);
+	auto &&[filename, data] = fetch_from_afdb(id);
 
-	auto outfile = file_locator::get_metadata_file(id, 1, 3);
+	if (filename.extension() == ".cif")
+		filename.replace_extension("");
 
-	cif::gzio::ofstream out(m_in_dir / ("AF-" + id + "-F1-model_v3.cif.gz"));
+	const auto &[type, af_id, chunk, version] = parse_af_id(filename);
+
+	auto outfile = file_locator::get_structure_file(af_id, chunk, version);
+
+	cif::gzio::ofstream out(m_in_dir / outfile.filename());
 	if (not out.is_open())
 		throw std::runtime_error("Could not create temporary file");
 
@@ -783,5 +791,7 @@ void data_service::queue_af_id(const std::string &id)
 	if (not fs::exists(outfile.parent_path()))
 		fs::create_directories(outfile.parent_path());
 
-	m_queue.push("AF-" + id + "-F1-model_v3");
+	m_queue.push(filename.string());
+
+	return filename.string();
 }

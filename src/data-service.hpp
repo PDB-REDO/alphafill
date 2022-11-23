@@ -119,12 +119,12 @@ class data_service
 	// On demand services
 
 	bool exists_in_afdb(const std::string &id) const;
-	std::string fetch_from_afdb(const std::string &id) const;
+	std::tuple<std::filesystem::path,std::string> fetch_from_afdb(const std::string &id) const;
 
 	status_reply get_status(const std::string &id) const;
 
 	void queue(const std::string &data, const std::string &id);
-	void queue_af_id(const std::string &id);
+	std::string queue_af_id(const std::string &id);
 
   private:
 
