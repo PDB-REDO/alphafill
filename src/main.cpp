@@ -71,7 +71,7 @@ int main(int argc, char *const argv[])
 
 		auto &config = mcfp::config::instance();
 		config.init(
-			"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate' or 'prepare-pdb-list', 'rebuild-db'",
+			"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate', 'prepare-pdb-list' or 'rebuild-db'",
 			mcfp::make_option("version", "Show version number"),
 			mcfp::make_option("verbose,v", "Show verbose output"),
 
