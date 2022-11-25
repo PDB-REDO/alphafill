@@ -57,6 +57,6 @@ Typical running time is less than 2 minutes but varies depending on the number o
 
 Before running the web application, you need to create a PostgreSQL database first. The owner and name can then be recorded in a af-filledd.conf file similar to the config file of alphafill. The location of your filled structures should be recorded as well as the db-dir option.
 
-The database can be filled with the `--rebuild-db` option. If you built the code with resources using [mrc](https://github.com/mhekkel/mrc) this will take care of setting up the tables as well, otherwise you have to create the tables running the db-schema.sql file.
+The database can be filled with the `alphafill rebuild-db` command. If you built the code with resources using [mrc](https://github.com/mhekkel/mrc) this will take care of setting up the tables as well, otherwise you have to create the tables running the db-schema.sql file.
 
 After this setting up, you can start a web server using `af-filledd start`. Use `af-filledd status` to find the status of the server and `af-filled stop` to stop it again. In this case the af-filledd server is run as a daemon and log files will be written to /var/log/af-filledd/. You can also start with the extra --no-daemon option and then the server will run in the foreground.

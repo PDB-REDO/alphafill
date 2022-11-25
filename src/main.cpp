@@ -71,7 +71,7 @@ int main(int argc, char *const argv[])
 
 		auto &config = mcfp::config::instance();
 		config.init(
-			"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate' or 'prepare-pdb-list'",
+			"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate' or 'prepare-pdb-list', 'rebuild-db'",
 			mcfp::make_option("version", "Show version number"),
 			mcfp::make_option("verbose,v", "Show verbose output"),
 
@@ -194,7 +194,6 @@ int main(int argc, char *const argv[])
 
 		// --------------------------------------------------------------------
 
-
 		std::string command;
 		if (not config.operands().empty())
 			command = config.operands().front();
@@ -203,6 +202,8 @@ int main(int argc, char *const argv[])
 			result = server_main(argc - 1, argv + 1);
 		else if (command == "process")
 			result = alphafill_main(argc - 1, argv + 1);
+		else if (command == "rebuild-db")
+			result = rebuild_db_main(argc - 1, argv + 1);
 		else if (command == "validate")
 			std::cerr << "unimplemented" << std::endl;
 		else if (command == "prepare-pdb-list")
