@@ -365,8 +365,8 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 		case CustomStatus::Unknown:
 			if (data_service::instance().exists_in_afdb(af_id))
 			{
-				data_service::instance().queue_af_id(af_id);
-				sub.put("hash", af_id);
+				auto id = data_service::instance().queue_af_id(af_id);
+				sub.put("hash", id);
 				sub.put("status", status.status);
 				get_server().get_template_processor().create_reply_from_template("wait", sub, reply);
 				return;
