@@ -972,6 +972,35 @@ zeep::json::element affd_rest_controller::post_custom_structure(const std::strin
 
 // --------------------------------------------------------------------
 
+int rebuild_db_main(int argc, char * const argv[])
+{
+	using namespace std::literals;
+
+	auto &config = mcfp::config::instance();
+
+	fs::path dbDir = config.get<std::string>("db-dir");
+
+	std::vector<std::string> vConn;
+	std::string db_user;
+	for (std::string opt : {"db-host", "db-port", "db-dbname", "db-user", "db-password"})
+	{
+		if (not config.has(opt))
+			continue;
+
+		vConn.push_back(opt.substr(3) + "=" + config.get<std::string>(opt));
+		if (opt == "db-user")
+			db_user = config.get<std::string>(opt);
+	}
+
+	db_connection::init(cif::join(vConn, " "));
+
+	// --------------------------------------------------------------------
+
+	return data_service::rebuild(db_user, dbDir);
+}
+
+// --------------------------------------------------------------------
+
 int server_main(int argc, char *const argv[])
 {
 	using namespace std::literals;
@@ -1011,9 +1040,6 @@ int server_main(int argc, char *const argv[])
 	db_connection::init(cif::join(vConn, " "));
 
 	// --------------------------------------------------------------------
-
-	if (config.has("rebuild-db"))
-		return data_service::rebuild(db_user, dbDir);
 
 	if (config.operands().size() < 2)
 	{

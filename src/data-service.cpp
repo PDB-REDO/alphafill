@@ -376,7 +376,7 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 	}
 	catch (const std::exception &e)
 	{
-		std::cerr << "Not built using resources, please create and/or empty the tables manually before running --rebuild-db" << std::endl;
+		std::cerr << "Not built using resources, please create and/or empty the tables manually before running rebuild-db" << std::endl;
 		exit(1);
 	}
 #endif
