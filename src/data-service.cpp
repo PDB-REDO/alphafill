@@ -83,17 +83,21 @@ std::tuple<EntryType, std::string, int, int> parse_af_id(std::string af_id)
 		else
 		{
 			// No prefix was given, try to see if we can find this ID in our cache
-			if (fs::exists(file_locator::get_metadata_file(id, chunkNr, 2)))
+			for (version = 2; ; ++version)
 			{
-				type = EntryType::AlphaFold;
-				version = 2;
+				auto test = file_locator::get_metadata_file(id, chunkNr, version);
+
+				if (fs::exists(test))
+				{
+					type = EntryType::AlphaFold;
+					break;
+				}
+
+				if (not fs::exists(test.parent_path().parent_path()))
+					break;
 			}
-			else if (fs::exists(file_locator::get_metadata_file(id, chunkNr, 3)))
-			{
-				type = EntryType::AlphaFold;
-				version = 3;
-			}
-			else if (data_service.get_status(id).status != CustomStatus::Unknown)
+
+			if (type != EntryType::AlphaFold and data_service.get_status(id).status != CustomStatus::Unknown)
 				type = EntryType::Custom;
 		}
 	}
@@ -770,6 +774,8 @@ void data_service::queue(const std::string &data, const std::string &id)
 
 std::string data_service::queue_af_id(const std::string &id)
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
+
 	auto &&[filename, data] = fetch_from_afdb(id);
 
 	if (filename.extension() == ".cif")
