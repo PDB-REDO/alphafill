@@ -846,7 +846,14 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
+	{
+		auto &data_service = data_service::instance();
+
+		if (data_service.exists_in_afdb(id))
+			data_service.queue_af_id(id);
+
 		throw zeep::http::not_found;
+	}
 
 	int version_major = 1, version_minor = 0;
 	std::smatch m;

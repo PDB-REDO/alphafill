@@ -770,6 +770,8 @@ void data_service::queue(const std::string &data, const std::string &id)
 
 std::string data_service::queue_af_id(const std::string &id)
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
+
 	auto &&[filename, data] = fetch_from_afdb(id);
 
 	if (filename.extension() == ".cif")
