@@ -160,6 +160,7 @@ class affd_html_controller : public zh::html_controller
 		mount("about", &affd_html_controller::about);
 		mount("download", &affd_html_controller::download);
 		mount("{css,scripts,fonts,images}/", &affd_html_controller::handle_file);
+		mount("browserconfig.xml", &affd_html_controller::handle_file);
 		mount("alphafill.json.schema", &affd_html_controller::schema);
 		mount("favicon.ico", &affd_html_controller::handle_file);
 
