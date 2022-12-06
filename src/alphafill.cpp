@@ -24,6 +24,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <chrono>
 #include <fstream>
 #include <iomanip>
 
@@ -362,11 +363,13 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 	std::string afID;
 	cif::tie(afID) = db["entry"].front().get("id");
 
-	auto now = boost::posix_time::second_clock::universal_time();
+	auto v_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::ostringstream ss;
+	ss << std::put_time(std::gmtime(&v_t), "%F");
 
 	json result = {
 		{ "id", afID },
-		{ "date", to_iso_extended_string(now.date()) },
+		{ "date", ss.str() },
 		{ "alphafill_version", kVersionNumber }
 	};
 
