@@ -134,6 +134,7 @@ class data_service
 
 	std::filesystem::path m_in_dir;
 	std::filesystem::path m_out_dir;
+	std::filesystem::path m_work_dir;
 	std::thread m_thread;
 	blocking_queue<std::string> m_queue;
 	std::mutex m_mutex;

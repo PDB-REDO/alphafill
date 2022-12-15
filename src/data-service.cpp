@@ -120,12 +120,16 @@ data_service::data_service()
 	fs::path dir = config.get<std::string>("custom-dir");
 	m_in_dir = dir / "in";
 	m_out_dir = dir / "out";
+	m_work_dir = dir / "work";
 
 	if (not fs::is_directory(m_in_dir))
 		fs::create_directories(m_in_dir);
 
 	if (not fs::is_directory(m_out_dir))
 		fs::create_directories(m_out_dir);
+
+	if (not fs::is_directory(m_work_dir))
+		fs::create_directories(m_work_dir);
 
 	m_thread = std::thread(std::bind(&data_service::run, this));
 
@@ -618,7 +622,10 @@ void data_service::run()
 			if (cif::VERBOSE > 0)
 				std::cerr << "Running ID " << m_running << std::endl;
 
-			fs::remove(xyzin, ec);
+			// fs::remove(xyzin, ec);
+			fs::rename(xyzin, m_work_dir / (next + ".cif.gz"), ec);
+			if (ec)
+				std::cerr << "Error moving input file to work dir: " << ec.message() << std::endl;
 
 			auto metadata = alphafill(f.front(), data_service_progress{ m_progress });
 
@@ -626,6 +633,10 @@ void data_service::run()
 
 			std::ofstream metadataFile(jsonout);
 			metadataFile << metadata;
+
+			fs::remove(m_work_dir / (next + ".cif.gz"), ec);
+			if (ec)
+				std::cerr << "Error removing input file from work dir: " << ec.message() << std::endl;
 
 			// int pid = fork();
 
