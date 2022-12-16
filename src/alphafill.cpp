@@ -516,7 +516,7 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 				// 	exit(1);
 				// }
 
-				auto pdb_res = get_residuesForChain(pdb_structure, chain_id);
+				auto pdb_res = get_residuesForChainID(pdb_structure, chain_id);
 
 				if (pdb_res.size() == 0)
 				{
@@ -557,7 +557,7 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 					// Loop over each asym containing this entity poly
 					for (const auto &af_asym_id : db["struct_asym"].find<std::string>("entity_id"_key == id, "id"))
 					{
-						auto af_res = get_residuesForChain(af_structure, af_asym_id);
+						auto af_res = get_residuesForAsymID(af_structure, af_asym_id);
 						if (af_res.size() != seq.length())
 							throw std::runtime_error("Something is wrong with the input file, the number of residues for chain A is not equal to the number in pdbx_seq_one_letter_code_can");
 

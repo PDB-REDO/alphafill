@@ -37,7 +37,8 @@
 // --------------------------------------------------------------------
 
 std::filesystem::path pdbFileForID(const std::filesystem::path &pdbDir, std::string pdb_id);
-std::vector<cif::mm::residue *> get_residuesForChain(cif::mm::structure &structure, const std::string &chain_id);
+std::vector<cif::mm::residue *> get_residuesForAsymID(cif::mm::structure &structure, const std::string &asym_id);
+std::vector<cif::mm::residue *> get_residuesForChainID(cif::mm::structure &structure, const std::string &chain_id);
 std::tuple<std::vector<cif::point>, std::vector<cif::point>> selectAtomsNearResidue(
 	const std::vector<cif::mm::residue *> &pdb, const std::vector<size_t> &pdb_ix,
 	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
