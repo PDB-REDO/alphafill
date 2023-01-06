@@ -125,6 +125,7 @@ class data_service
 
 	void queue(const std::string &data, const std::string &id);
 	std::string queue_af_id(const std::string &id);
+	void queue_3d_beacon_request(const std::string &id);
 
   private:
 

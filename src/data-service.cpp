@@ -33,11 +33,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <mcfp/mcfp.hpp>
 #include <cif++.hpp>
+#include <mcfp/mcfp.hpp>
 
-#include <zeep/json/parser.hpp>
 #include <zeep/http/uri.hpp>
+#include <zeep/json/parser.hpp>
 
 #include "mrsrc.hpp"
 
@@ -83,7 +83,7 @@ std::tuple<EntryType, std::string, int, int> parse_af_id(std::string af_id)
 		else
 		{
 			// No prefix was given, try to see if we can find this ID in our cache
-			for (version = 2; ; ++version)
+			for (version = 2;; ++version)
 			{
 				auto test = file_locator::get_metadata_file(id, chunkNr, version);
 
@@ -467,7 +467,7 @@ bool data_service::exists_in_afdb(const std::string &id) const
 	return result;
 }
 
-std::tuple<std::filesystem::path,std::string> data_service::fetch_from_afdb(const std::string &id) const
+std::tuple<std::filesystem::path, std::string> data_service::fetch_from_afdb(const std::string &id) const
 {
 	auto &config = mcfp::config::instance();
 
@@ -515,7 +515,7 @@ std::tuple<std::filesystem::path,std::string> data_service::fetch_from_afdb(cons
 	while (getline(in, line))
 		result << line << std::endl;
 
-	zeep::http::uri uri(url); 
+	zeep::http::uri uri(url);
 
 	return { uri.get_path().filename(), result.str() };
 }
@@ -792,6 +792,39 @@ void data_service::queue(const std::string &data, const std::string &id)
 
 std::string data_service::queue_af_id(const std::string &id)
 {
+	if (m_queue.is_full())
+		throw std::runtime_error("The server is too busy to handle your request, please try again later");
+
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	auto &&[filename, data] = fetch_from_afdb(id);
+
+	if (filename.extension() == ".cif")
+		filename.replace_extension("");
+
+	const auto &[type, af_id, chunk, version] = parse_af_id(filename);
+
+	auto outfile = file_locator::get_structure_file(af_id, chunk, version);
+
+	cif::gzio::ofstream out(m_in_dir / outfile.filename());
+	if (not out.is_open())
+		throw std::runtime_error("Could not create temporary file");
+
+	out << data;
+	out.close();
+
+	// create output directory, if needed.
+	assert(not outfile.empty());
+	if (not fs::exists(outfile.parent_path()))
+		fs::create_directories(outfile.parent_path());
+
+	m_queue.push(filename.string());
+
+	return filename.string();
+}
+
+void data_service::queue_3d_beacon_request(const std::string &id)
+{
 	if (not m_queue_3db.push(id))
 		std::cerr << "Not queuing " << id << " since queue is full" << std::endl;
 }
@@ -811,34 +844,14 @@ void data_service::run_3db()
 		auto id = m_queue_3db.pop();
 		if (id == "stop")
 			break;
-		
+
 		try
 		{
-			auto &&[filename, data] = fetch_from_afdb(id);
-
-			if (filename.extension() == ".cif")
-				filename.replace_extension("");
-
-			const auto &[type, af_id, chunk, version] = parse_af_id(filename);
-
-			auto outfile = file_locator::get_structure_file(af_id, chunk, version);
-
-			cif::gzio::ofstream out(m_in_dir / outfile.filename());
-			if (not out.is_open())
-				throw std::runtime_error("Could not create temporary file");
-
-			out << data;
-			out.close();
-
-			// create output directory, if needed.
-			assert(not outfile.empty());
-			if (not fs::exists(outfile.parent_path()))
-				fs::create_directories(outfile.parent_path());
-
-			m_queue.push(filename.string());
+			queue_af_id(id);
 		}
-		catch (...)
+		catch (const std::exception &ex)
 		{
+			std::cerr << "queuing 3d beacon request failed: " << ex.what() << std::endl;
 		}
 	}
 }

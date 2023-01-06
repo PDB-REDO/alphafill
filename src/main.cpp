@@ -114,7 +114,6 @@ int main(int argc, char *const argv[])
 			mcfp::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
 
 			mcfp::make_option<std::string>("alphafold-3d-beacon", "The URL of the 3d-beacons service for alphafold"),
-			mcfp::make_hidden_option<std::string>("test-af-id", ""),
 
 			mcfp::make_option("no-daemon,F", "Do not fork a background process"),
 			mcfp::make_option<std::string>("address", "Address to listen to"),
@@ -185,12 +184,6 @@ int main(int argc, char *const argv[])
 		
 		if (config.has("validate-fasta"))
 			return validateFastA(config.get<std::string>("pdb-fasta"), config.get<std::string>("pdb-dir"), std::thread::hardware_concurrency());
-
-		if (config.has("test-af-id"))
-		{
-			data_service::instance().exists_in_afdb(config.get<std::string>("test-af-id"));
-			return 0;
-		}
 
 		// --------------------------------------------------------------------
 
