@@ -132,6 +132,7 @@ data_service::data_service()
 		fs::create_directories(m_work_dir);
 
 	m_thread = std::thread(std::bind(&data_service::run, this));
+	m_thread_3db = std::thread(std::bind(&data_service::run_3db, this));
 
 	std::regex rx(R"(CS-(.+?)(?:\.cif\.gz)?)");
 
@@ -151,6 +152,9 @@ data_service::~data_service()
 {
 	m_queue.push("stop");
 	m_thread.join();
+
+	m_queue_3db.push("stop");
+	m_thread_3db.join();
 }
 
 std::vector<compound> data_service::get_compounds(float min_identity) const
@@ -758,6 +762,9 @@ void data_service::queue(const std::string &data, const std::string &id)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
+	if (m_queue.is_full())
+		throw std::runtime_error("The server is too busy to handle your request, please try again later");
+
 	struct membuf : public std::streambuf
 	{
 		membuf(char *text, size_t length)
@@ -785,30 +792,53 @@ void data_service::queue(const std::string &data, const std::string &id)
 
 std::string data_service::queue_af_id(const std::string &id)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
+	if (not m_queue_3db.push(id))
+		std::cerr << "Not queuing " << id << " since queue is full" << std::endl;
+}
 
-	auto &&[filename, data] = fetch_from_afdb(id);
+void data_service::run_3db()
+{
+	using namespace std::literals;
 
-	if (filename.extension() == ".cif")
-		filename.replace_extension("");
+	for (;;)
+	{
+		if (m_queue.is_full())
+		{
+			std::this_thread::sleep_for(60s);
+			continue;
+		}
 
-	const auto &[type, af_id, chunk, version] = parse_af_id(filename);
+		auto id = m_queue_3db.pop();
+		if (id == "stop")
+			break;
+		
+		try
+		{
+			auto &&[filename, data] = fetch_from_afdb(id);
 
-	auto outfile = file_locator::get_structure_file(af_id, chunk, version);
+			if (filename.extension() == ".cif")
+				filename.replace_extension("");
 
-	cif::gzio::ofstream out(m_in_dir / outfile.filename());
-	if (not out.is_open())
-		throw std::runtime_error("Could not create temporary file");
+			const auto &[type, af_id, chunk, version] = parse_af_id(filename);
 
-	out << data;
-	out.close();
+			auto outfile = file_locator::get_structure_file(af_id, chunk, version);
 
-	// create output directory, if needed.
-	assert(not outfile.empty());
-	if (not fs::exists(outfile.parent_path()))
-		fs::create_directories(outfile.parent_path());
+			cif::gzio::ofstream out(m_in_dir / outfile.filename());
+			if (not out.is_open())
+				throw std::runtime_error("Could not create temporary file");
 
-	m_queue.push(filename.string());
+			out << data;
+			out.close();
 
-	return filename.string();
+			// create output directory, if needed.
+			assert(not outfile.empty());
+			if (not fs::exists(outfile.parent_path()))
+				fs::create_directories(outfile.parent_path());
+
+			m_queue.push(filename.string());
+		}
+		catch (...)
+		{
+		}
+	}
 }

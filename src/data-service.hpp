@@ -131,12 +131,20 @@ class data_service
 	data_service();
 
 	void run();
+	void run_3db();
 
 	std::filesystem::path m_in_dir;
 	std::filesystem::path m_out_dir;
 	std::filesystem::path m_work_dir;
+
+	// thread processing AF entries
 	std::thread m_thread;
-	blocking_queue<std::string> m_queue;
+	blocking_queue<std::string,10> m_queue;
+
+	// thread processing 3d-beacon requests
+	std::thread m_thread_3db;
+	non_blocking_queue<std::string> m_queue_3db;
+
 	std::mutex m_mutex;
 	std::string m_running;
 	std::atomic<float> m_progress;
