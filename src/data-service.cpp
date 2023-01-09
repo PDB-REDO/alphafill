@@ -634,17 +634,19 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 void data_service::run()
 {
 	using namespace std::literals;
-	std::regex rx(R"(CS-(.+?)(?:\.cif\.gz)?)");
+	std::regex rx(R"(((?:AF|CS)-.+?)(?:\.cif\.gz)?)");
 
 	for (;;)
 	{
 		std::error_code ec;
 		std::filesystem::path xyzin;
 
-		const auto &[timeout, next] = m_queue.pop(5s);
+		auto &&[timeout, next] = m_queue.pop(5s);
 
 		if (timeout)	// nothing in the queue, see if there's something left in m_in_dir
 		{
+			std::lock_guard<std::mutex> lock(m_mutex);
+
 			for (fs::directory_iterator iter(m_in_dir); iter != fs::directory_iterator(); ++iter)
 			{
 				std::smatch m;
@@ -654,8 +656,12 @@ void data_service::run()
 					continue;
 
 				xyzin = *iter;
+				next = m[1].str();
 				break;
 			}
+
+			if (xyzin.empty())
+				continue;
 		}
 		else if (next == "stop")
 			break;
@@ -794,8 +800,6 @@ std::string data_service::queue_af_id(const std::string &id)
 	if (m_queue.is_full())
 		throw std::runtime_error("The server is too busy to handle your request, please try again later");
 
-	std::lock_guard<std::mutex> lock(m_mutex);
-
 	auto &&[filename, data] = fetch_from_afdb(id);
 
 	if (filename.extension() == ".cif")
@@ -804,6 +808,8 @@ std::string data_service::queue_af_id(const std::string &id)
 	const auto &[type, af_id, chunk, version] = parse_af_id(filename);
 
 	auto outfile = file_locator::get_structure_file(af_id, chunk, version);
+
+	std::lock_guard<std::mutex> lock(m_mutex);
 
 	cif::gzio::ofstream out(m_in_dir / outfile.filename());
 	if (not out.is_open())
@@ -846,7 +852,23 @@ void data_service::run_3db()
 
 		try
 		{
-			queue_af_id(id);
+			auto &&[filename, data] = fetch_from_afdb(id);
+
+			if (filename.extension() == ".cif")
+				filename.replace_extension("");
+
+			const auto &[type, af_id, chunk, version] = parse_af_id(filename);
+
+			auto outfile = file_locator::get_structure_file(af_id, chunk, version);
+
+			std::lock_guard<std::mutex> lock(m_mutex);
+
+			cif::gzio::ofstream out(m_in_dir / outfile.filename());
+			if (not out.is_open())
+				throw std::runtime_error("Could not create temporary file");
+
+			out << data;
+			out.close();
 		}
 		catch (const std::exception &ex)
 		{

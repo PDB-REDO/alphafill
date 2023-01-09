@@ -146,7 +146,7 @@ class data_service
 
 	// thread processing 3d-beacon requests
 	std::thread m_thread_3db;
-	non_blocking_queue<std::string> m_queue_3db;
+	non_blocking_queue<std::string,100> m_queue_3db;
 
 	std::mutex m_mutex;
 	std::string m_running;
