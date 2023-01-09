@@ -60,6 +60,25 @@ class blocking_queue
 		return value;
 	}
 
+	template<class Rep, class Period>
+	std::tuple<bool,T> pop(const std::chrono::duration<Rep, Period>& wait_for)
+	{
+		std::unique_lock<std::mutex> lock(m_guard);
+		while (m_queue.empty())
+		{
+		    auto now = std::chrono::system_clock::now();
+			if (m_empty_signal.wait_until(lock, now + wait_for) == std::cv_status::timeout)
+				return { true , T{} };
+		}
+
+		auto value = m_queue.front();
+		m_queue.pop();
+
+		m_full_signal.notify_one();
+
+		return { false, value };
+	}
+
 	bool is_full() const
 	{
 		std::unique_lock<std::mutex> lock(m_guard);

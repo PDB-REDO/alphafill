@@ -133,19 +133,6 @@ data_service::data_service()
 
 	m_thread = std::thread(std::bind(&data_service::run, this));
 	m_thread_3db = std::thread(std::bind(&data_service::run_3db, this));
-
-	std::regex rx(R"(CS-(.+?)(?:\.cif\.gz)?)");
-
-	for (fs::directory_iterator iter(m_in_dir); iter != fs::directory_iterator(); ++iter)
-	{
-		std::smatch m;
-
-		std::string name = iter->path().filename();
-		if (not std::regex_match(name, m, rx))
-			continue;
-
-		m_queue.push(m[1]);
-	}
 }
 
 data_service::~data_service()
@@ -574,31 +561,106 @@ void print_what(std::ostream &os, const std::exception &e)
 	}
 }
 
+void data_service::process_queued(const std::filesystem::path &xyzin, const std::filesystem::path &xyzout, const std::filesystem::path &jsonout)
+{
+	std::error_code ec;
+
+	if (not fs::exists(xyzin, ec))
+		throw std::runtime_error("Input file does not exist");
+
+	cif::file f(xyzin);
+	if (f.empty())
+		throw std::runtime_error("mmCIF file seems to be empty or invalid");
+
+	m_progress = 0;
+
+	if (cif::VERBOSE > 0)
+		std::cerr << "Running ID " << m_running << std::endl;
+
+	fs::rename(xyzin, m_work_dir / xyzin.filename(), ec);
+	if (ec)
+		std::cerr << "Error moving input file to work dir: " << ec.message() << std::endl;
+
+	auto metadata = alphafill(f.front(), data_service_progress{ m_progress });
+
+	f.save(xyzout);
+
+	std::ofstream metadataFile(jsonout);
+	metadataFile << metadata;
+
+	fs::remove(m_work_dir / xyzin.filename(), ec);
+	if (ec)
+		std::cerr << "Error removing input file from work dir: " << ec.message() << std::endl;
+
+	// int pid = fork();
+
+	// if (pid < 0)
+	// 	throw std::runtime_error("Could not fork: "s + std::strerror(errno));
+
+	// if (pid == 0)	// child
+	// {
+	// 	try
+	// 	{
+	// 		auto metadata = alphafill(f.front(), data_service_progress{ m_progress });
+
+	// 		f.save(xyzout);
+
+	// 		std::ofstream metadataFile(jsonout);
+	// 		metadataFile << metadata;
+
+	// 		exit(0);
+	// 	}
+	// 	catch (const std::exception &ex)
+	// 	{
+	// 		std::ofstream errorFile(m_out_dir / ("CS-" + next + ".error"));
+	// 		errorFile << ex.what() << std::endl;
+	// 		exit(1);
+	// 	}
+	// }
+
+	// int status = 0;
+	// int err = waitpid(pid, &status, 0);
+
+	// if (err != 0)
+	// 	throw std::runtime_error("Wait failed with error "s + std::strerror(errno));
+
+	// if (WIFEXITED(status) and WEXITSTATUS(status) != 0)
+	// 	throw std::runtime_error("Alphafill terminated with exit status " + std::to_string(WEXITSTATUS(status)));
+
+	// if (WIFSIGNALED(status))
+	// 	throw std::runtime_error("Alphafill terminated with signal " + std::to_string(WTERMSIG(status)));
+}
+
 void data_service::run()
 {
 	using namespace std::literals;
+	std::regex rx(R"(CS-(.+?)(?:\.cif\.gz)?)");
 
 	for (;;)
 	{
-		std::string next = m_queue.pop();
-
-		if (next == "stop")
-			break;
-
-		// std::cout << "Need to process " << next << std::endl;
-
-		// for (int i = 0; i < 100; ++i)
-		// {
-		// 	m_progress = i / 100.0f;
-		// 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		// }
-
-		// m_running.clear();
-		// m_progress = 0;
-
 		std::error_code ec;
+		std::filesystem::path xyzin;
 
-		auto xyzin = m_in_dir / (next + ".cif.gz");
+		const auto &[timeout, next] = m_queue.pop(5s);
+
+		if (timeout)	// nothing in the queue, see if there's something left in m_in_dir
+		{
+			for (fs::directory_iterator iter(m_in_dir); iter != fs::directory_iterator(); ++iter)
+			{
+				std::smatch m;
+
+				std::string name = iter->path().filename();
+				if (not std::regex_match(name, m, rx))
+					continue;
+
+				xyzin = *iter;
+				break;
+			}
+		}
+		else if (next == "stop")
+			break;
+		else
+			xyzin = m_in_dir / (next + ".cif.gz");
 
 		const auto &[type, afId, chunkNr, version] = parse_af_id(next);
 		fs::path jsonout = file_locator::get_metadata_file(type, afId, chunkNr, version);
@@ -611,82 +673,19 @@ void data_service::run()
 			continue;
 		}
 
+		m_running = afId;
+
 		try
 		{
-			if (not fs::exists(xyzin, ec))
-				throw std::runtime_error("Input file does not exist");
-
-			cif::file f(xyzin);
-			if (f.empty())
-				throw std::runtime_error("Cif file seems to be empty or invalid");
-
-			m_running = afId;
-			m_progress = 0;
-
-			if (cif::VERBOSE > 0)
-				std::cerr << "Running ID " << m_running << std::endl;
-
-			// fs::remove(xyzin, ec);
-			fs::rename(xyzin, m_work_dir / (next + ".cif.gz"), ec);
-			if (ec)
-				std::cerr << "Error moving input file to work dir: " << ec.message() << std::endl;
-
-			auto metadata = alphafill(f.front(), data_service_progress{ m_progress });
-
-			f.save(xyzout);
-
-			std::ofstream metadataFile(jsonout);
-			metadataFile << metadata;
-
-			fs::remove(m_work_dir / (next + ".cif.gz"), ec);
-			if (ec)
-				std::cerr << "Error removing input file from work dir: " << ec.message() << std::endl;
-
-			// int pid = fork();
-
-			// if (pid < 0)
-			// 	throw std::runtime_error("Could not fork: "s + std::strerror(errno));
-
-			// if (pid == 0)	// child
-			// {
-			// 	try
-			// 	{
-			// 		auto metadata = alphafill(f.front(), data_service_progress{ m_progress });
-
-			// 		f.save(xyzout);
-
-			// 		std::ofstream metadataFile(jsonout);
-			// 		metadataFile << metadata;
-
-			// 		exit(0);
-			// 	}
-			// 	catch (const std::exception &ex)
-			// 	{
-			// 		std::ofstream errorFile(m_out_dir / ("CS-" + next + ".error"));
-			// 		errorFile << ex.what() << std::endl;
-			// 		exit(1);
-			// 	}
-			// }
-
-			// int status = 0;
-			// int err = waitpid(pid, &status, 0);
-
-			// if (err != 0)
-			// 	throw std::runtime_error("Wait failed with error "s + std::strerror(errno));
-
-			// if (WIFEXITED(status) and WEXITSTATUS(status) != 0)
-			// 	throw std::runtime_error("Alphafill terminated with exit status " + std::to_string(WEXITSTATUS(status)));
-
-			// if (WIFSIGNALED(status))
-			// 	throw std::runtime_error("Alphafill terminated with signal " + std::to_string(WTERMSIG(status)));
+			process_queued(xyzin, xyzout, jsonout);
 		}
-
 		catch (const std::exception &ex)
 		{
 			std::ofstream errorFile(m_out_dir / (next + ".error"));
 			print_what(errorFile, ex);
 		}
 
+		m_progress = 0;
 		m_running.clear();
 
 		if (fs::exists(xyzin, ec))

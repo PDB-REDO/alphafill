@@ -134,6 +134,8 @@ class data_service
 	void run();
 	void run_3db();
 
+	void process_queued(const std::filesystem::path &xyzin, const std::filesystem::path &xyzout, const std::filesystem::path &jsonout);
+
 	std::filesystem::path m_in_dir;
 	std::filesystem::path m_out_dir;
 	std::filesystem::path m_work_dir;
