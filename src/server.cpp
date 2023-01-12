@@ -369,7 +369,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 				auto id = data_service::instance().queue_af_id(af_id);
 				sub.put("hash", id);
 				sub.put("status", status.status);
-				get_server().get_template_processor().create_reply_from_template("wait", sub, reply);
+				get_template_processor().create_reply_from_template("wait", sub, reply);
 				return;
 			}
 
@@ -386,14 +386,14 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 			sub.put("error-id", af_id);
 			sub.put("error", status.message.value_or("<< message is missing >>"));
 			
-			get_server().get_template_processor().create_reply_from_template("index", sub, reply);
+			get_template_processor().create_reply_from_template("index", sub, reply);
 			return;
 		}
 
 		default:
 			sub.put("hash", af_id);
 			sub.put("status", status.status);
-			get_server().get_template_processor().create_reply_from_template("wait", sub, reply);
+			get_template_processor().create_reply_from_template("wait", sub, reply);
 			return;
 	}
 	
@@ -544,7 +544,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 						  {"local", {{"unreliable", 3.10}, {"suspect", 0.92}}},
 						  {"tcs", {{"unreliable", 1.27}, {"suspect", 0.64}}}});
 
-	get_server().get_template_processor().create_reply_from_template("model", sub, reply);
+	get_template_processor().create_reply_from_template("model", sub, reply);
 }
 
 void affd_html_controller::optimized(const zh::request &request, const zh::scope &scope, zh::reply &reply)
@@ -604,7 +604,7 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 		sub.put("chunks", chunks);
 	}
 
-	get_server().get_template_processor().create_reply_from_template("optimized", sub, reply);
+	get_template_processor().create_reply_from_template("optimized", sub, reply);
 }
 
 void affd_html_controller::about(const zh::request &request, const zh::scope &scope, zh::reply &reply)

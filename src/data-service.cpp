@@ -444,7 +444,7 @@ bool data_service::exists_in_afdb(const std::string &id) const
 		zeep::json::element rep_j;
 		zeep::json::parse_json(rep.get_content(), rep_j);
 
-		url = rep_j["structures"][0]["model_url"].as<std::string>();
+		url = rep_j["structures"][0]["summary"]["model_url"].as<std::string>();
 
 		rep = head_request(url, { { "Accept-Encoding", "gzip" } });
 
@@ -472,7 +472,7 @@ std::tuple<std::filesystem::path, std::string> data_service::fetch_from_afdb(con
 	zeep::json::element rep_j;
 	zeep::json::parse_json(rep.get_content(), rep_j);
 
-	url = rep_j["structures"][0]["model_url"].as<std::string>();
+	url = rep_j["structures"][0]["summary"]["model_url"].as<std::string>();
 
 	rep = simple_request(url, { { "Accept-Encoding", "gzip" } });
 
