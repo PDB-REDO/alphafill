@@ -43,7 +43,7 @@ alphafill prepare-pdb-list --pdb-dir=${PDB_DIR} --pdb-fasta=${PDB_FASTA} --outpu
 
 The pdb-id-list file is optional, but speeds up the process considerably (it records PDB id's that can be skipped since they do not contain interesting ligands).
 
-All basic option can be store in a file called alphafill.conf which can be located in either the current working directory or in the directory `.config` in your home directory.
+All basic options can be store in a file called alphafill.conf which can be located in either the current working directory or in the directory `.config` in your home directory.
 
 Running alpafill is then as easy as:
 
