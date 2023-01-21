@@ -59,4 +59,4 @@ Before running the web application, you need to create a PostgreSQL database fir
 
 The database can be filled with the `alphafill rebuild-db` command. If you built the code with resources using [mrc](https://github.com/mhekkel/mrc) this will take care of setting up the tables as well, otherwise you have to create the tables running the db-schema.sql file.
 
-After this setting up, you can start a web server using `alphafill server start`. Use `alphafill server status` to find the status of the server and `alphafill server stop` to stop it again. In this case the alphafill server is run as a daemon and log files will be written to /var/log/alphafill/. You can also start with the extra --no-daemon option and then the server will run in the foreground.
+After this setting up, you can start a web server using `alphafill server start`. Use `alphafill server status` to find the status of the server and `alphafill server stop` to stop it again. In this case the alphafill server runs as a daemon and log files will be written to /var/log/alphafill/. You can also start with the extra --no-daemon option and then the server will run in the foreground.
