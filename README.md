@@ -24,7 +24,7 @@ cd alphafill
 yarn  # will fetch all node modules
 mkdir build
 cd build
-cmake ..
+cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build .
 cmake --install .
 ```
