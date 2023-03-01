@@ -24,7 +24,7 @@ cd alphafill
 yarn  # will fetch all node modules
 mkdir build
 cd build
-cmake ..
+cmake .. -DCMAKE_BUILD_TYPE=Release
 cmake --build .
 cmake --install .
 ```
@@ -35,7 +35,7 @@ The building method is not OS-specific and has been tested on Ubuntu LTS 20:04. 
 
 ### alphafill
 
-For alphafill you need a copy of either PDB-REDO or PDB in mmCIF format. You also need a FastA formatted file for all sequences in this databank and an af-ligands.cif file. The latter is supplied with the code. Using these, you can construct a pdb-id-list file using the command:
+For alphafill you need a copy of either PDB-REDO or PDB in mmCIF format. You also need a FastA formatted file for all sequences in this databank and an af-ligands.cif file. As a fasta file you can use the `others/pdbredo_seqdb.txt` file located inside the PDB-REDO directory. The af-ligands.cif file is supplied with the code. Using these, you can construct a pdb-id-list file using the command:
 
 ```bash
 alphafill prepare-pdb-list --pdb-dir=${PDB_DIR} --pdb-fasta=${PDB_FASTA} --output pdb-id-list.txt
@@ -43,7 +43,7 @@ alphafill prepare-pdb-list --pdb-dir=${PDB_DIR} --pdb-fasta=${PDB_FASTA} --outpu
 
 The pdb-id-list file is optional, but speeds up the process considerably (it records PDB id's that can be skipped since they do not contain interesting ligands).
 
-All basic option can be store in a file called alphafill.conf which can be located in either the current working directory or in the directory `.config` in your home directory.
+All basic options can be store in a file called alphafill.conf which can be located in either the current working directory or in the directory `.config` in your home directory.
 
 Running alpafill is then as easy as:
 
@@ -59,4 +59,4 @@ Before running the web application, you need to create a PostgreSQL database fir
 
 The database can be filled with the `alphafill rebuild-db` command. If you built the code with resources using [mrc](https://github.com/mhekkel/mrc) this will take care of setting up the tables as well, otherwise you have to create the tables running the db-schema.sql file.
 
-After this setting up, you can start a web server using `alphafill server start`. Use `alphafill server status` to find the status of the server and `alphafill server stop` to stop it again. In this case the alphafill server is run as a daemon and log files will be written to /var/log/alphafill/. You can also start with the extra --no-daemon option and then the server will run in the foreground.
+After this setting up, you can start a web server using `alphafill server start`. Use `alphafill server status` to find the status of the server and `alphafill server stop` to stop it again. In this case the alphafill server runs as a daemon and log files will be written to /var/log/alphafill/. You can also start with the extra --no-daemon option and then the server will run in the foreground.
