@@ -167,7 +167,7 @@ int GeneratePDBList()
 		++N;
 	}
 
-	cif::Progress progress(N, "Generating PDB-ID list");
+	cif::progress_bar progress(N, "Generating PDB-ID list");
 
 	int nrOfThreads = config.get<int>("threads");
 	if (nrOfThreads == 0)
@@ -863,7 +863,7 @@ struct my_progress : public alphafill_progress_cb
 	void set_max_1(size_t in_max) override
 	{
 		if (cif::VERBOSE < 1)
-			m_progress.reset(new cif::Progress(in_max + 1, "matching"));
+			m_progress.reset(new cif::progress_bar(in_max + 1, "matching"));
 	}
 
 	void consumed(size_t n) override
@@ -878,7 +878,7 @@ struct my_progress : public alphafill_progress_cb
 			m_progress->message(msg);
 	}
 
-	std::unique_ptr<cif::Progress> m_progress;
+	std::unique_ptr<cif::progress_bar> m_progress;
 };
 
 int alphafill_main(int argc, char *const argv[])

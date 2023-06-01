@@ -289,7 +289,7 @@ uint32_t data_service::count_structures(float min_identity, const std::string &c
 
 using json = zeep::json::element;
 
-void process(blocking_queue<json> &q, cif::Progress &p)
+void process(blocking_queue<json> &q, cif::progress_bar &p)
 {
 	for (;;)
 	{
@@ -388,7 +388,7 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 		files.push_back(di->path());
 	}
 
-	cif::Progress progress(files.size(), "Processing");
+	cif::progress_bar progress(files.size(), "Processing");
 	blocking_queue<json> q;
 	std::exception_ptr ep;
 
@@ -504,7 +504,10 @@ std::tuple<std::filesystem::path, std::string> data_service::fetch_from_afdb(con
 
 	zeep::http::uri uri(url);
 
-	return { uri.get_path().filename(), result.str() };
+	if (uri.get_path().get_segments().empty())
+		throw std::runtime_error("Empy uri returned");
+
+	return { uri.get_path().get_segments().back(), result.str() };
 }
 
 // --------------------------------------------------------------------

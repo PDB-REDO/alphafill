@@ -1219,14 +1219,14 @@ class BlastQuery
 		uint32_t inReportLimit);
 	~BlastQuery();
 
-	void Search(const std::vector<fs::path> &inDatabanks, cif::Progress &inProgress, uint32_t inNrOfThreads);
+	void Search(const std::vector<fs::path> &inDatabanks, cif::progress_bar &inProgress, uint32_t inNrOfThreads);
 	//void			Report(Result& outResult);
 	void WriteAsFasta(std::ostream &inStream);
 
 	std::vector<BlastHit> BlastHits() const;
 
   private:
-	void SearchPart(const char *inFasta, size_t inLength, cif::Progress &inProgress,
+	void SearchPart(const char *inFasta, size_t inLength, cif::progress_bar &inProgress,
 		uint32_t &outDbCount, int64_t &outDbLength, std::vector<HitPtr> &outHits) const;
 
 	int32_t Extend(int32_t &ioQueryStart, const sequence &inTarget, int32_t &ioTargetStart, int32_t &ioDistance) const;
@@ -1303,7 +1303,7 @@ BlastQuery<WORDSIZE>::~BlastQuery()
 }
 
 template <int WORDSIZE>
-void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif::Progress &inProgress, uint32_t inNrOfThreads)
+void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif::progress_bar &inProgress, uint32_t inNrOfThreads)
 {
 	for (const fs::path &p : inDatabanks)
 	{
@@ -1528,7 +1528,7 @@ std::vector<BlastHit> BlastQuery<WORDSIZE>::BlastHits() const
 }
 
 template <int WORDSIZE>
-void BlastQuery<WORDSIZE>::SearchPart(const char *inFasta, size_t inLength, cif::Progress &inProgress,
+void BlastQuery<WORDSIZE>::SearchPart(const char *inFasta, size_t inLength, cif::progress_bar &inProgress,
 	uint32_t &outDbCount, int64_t &outDbLength, std::vector<HitPtr> &outHits) const
 {
 	const char *end = inFasta + inLength;
@@ -2129,7 +2129,7 @@ std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, const std:
 
 	int64_t totalLength = fs::file_size(inDatabank);
 
-	cif::Progress progress(totalLength, "blast");
+	cif::progress_bar progress(totalLength, "blast");
 
 	switch (inWordSize)
 	{
