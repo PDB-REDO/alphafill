@@ -115,6 +115,9 @@ int main(int argc, char *const argv[])
 
 			mcfp::make_option<std::string>("alphafold-3d-beacon", "The URL of the 3d-beacons service for alphafold"),
 
+			mcfp::make_option<std::string>("pae-name-pattern", "Pattern for location cached PAE scores"),
+			mcfp::make_option<std::string>("pae-url", "The URL to use to retrieve PAE scores from the EBI"),
+
 			mcfp::make_option("no-daemon,F", "Do not fork a background process"),
 			mcfp::make_option<std::string>("address", "Address to listen to"),
 			mcfp::make_option<unsigned short>("port", "Port to listen to"),
