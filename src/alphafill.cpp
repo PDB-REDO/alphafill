@@ -24,12 +24,13 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <chrono>
 #include <fstream>
 #include <iomanip>
 
 #include <cif++.hpp>
 
-#include <cfp/cfp.hpp>
+#include <mcfp/mcfp.hpp>
 #include <zeep/json/element.hpp>
 
 #include "alphafill.hpp"
@@ -144,7 +145,7 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 int GeneratePDBList()
 {
-	auto &config = cfp::config::instance();
+	auto &config = mcfp::config::instance();
 
 	fs::path pdbDir = config.get<std::string>("pdb-dir");
 
@@ -166,7 +167,7 @@ int GeneratePDBList()
 		++N;
 	}
 
-	cif::Progress progress(N, "Generating PDB-ID list");
+	cif::progress_bar progress(N, "Generating PDB-ID list");
 
 	int nrOfThreads = config.get<int>("threads");
 	if (nrOfThreads == 0)
@@ -303,7 +304,7 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 	using namespace std::literals;
 	using namespace cif::literals;
 
-	auto &config = cfp::config::instance();
+	auto &config = mcfp::config::instance();
 
 	std::string fasta = config.get<std::string>("pdb-fasta");
 	fs::path pdbDir = config.get<std::string>("pdb-dir");
@@ -362,11 +363,13 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 	std::string afID;
 	cif::tie(afID) = db["entry"].front().get("id");
 
-	auto now = boost::posix_time::second_clock::universal_time();
+	auto v_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::ostringstream ss;
+	ss << std::put_time(std::gmtime(&v_t), "%F");
 
 	json result = {
 		{ "id", afID },
-		{ "date", to_iso_extended_string(now.date()) },
+		{ "date", ss.str() },
 		{ "alphafill_version", kVersionNumber }
 	};
 
@@ -449,24 +452,32 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 
 				if (ci == mmCifFiles.end())
 				{
-					fs::path pdb_path = pdbFileForID(pdbDir, pdb_id);
-
-					auto cf = std::make_shared<cif::file>(pdb_path.string());
-
-					mmCifFiles.emplace_front(pdb_id, cf);
-
-					// PDB-REDO files don't have the correct audit_conform records, sometimes
-					if (cf->get_validator() == nullptr or
-						cf->get_validator()->name() == "mmcif_ddl" or
-						cf->get_validator()->name() == "mmcif_ddl.dic")
+					try
 					{
-						cf->load_dictionary("mmcif_pdbx");
+						fs::path pdb_path = pdbFileForID(pdbDir, pdb_id);
+
+						auto cf = std::make_shared<cif::file>(pdb_path.string());
+
+						mmCifFiles.emplace_front(pdb_id, cf);
+
+						// PDB-REDO files don't have the correct audit_conform records, sometimes
+						if (cf->get_validator() == nullptr or
+							cf->get_validator()->name() == "mmcif_ddl" or
+							cf->get_validator()->name() == "mmcif_ddl.dic")
+						{
+							cf->load_dictionary("mmcif_pdbx");
+						}
+
+						ci = mmCifFiles.begin();
+
+						if (mmCifFiles.size() > 5)
+							mmCifFiles.pop_back();
 					}
-
-					ci = mmCifFiles.begin();
-
-					if (mmCifFiles.size() > 5)
-						mmCifFiles.pop_back();
+					catch (const std::exception &ex)
+					{
+						std::cerr << ex.what() << std::endl;
+						continue;
+					}
 				}
 
 				auto &pdb_f = *std::get<1>(*ci);
@@ -505,7 +516,7 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 				// 	exit(1);
 				// }
 
-				auto pdb_res = get_residuesForChain(pdb_structure, chain_id);
+				auto pdb_res = get_residuesForChainID(pdb_structure, chain_id);
 
 				if (pdb_res.size() == 0)
 				{
@@ -546,7 +557,7 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 					// Loop over each asym containing this entity poly
 					for (const auto &af_asym_id : db["struct_asym"].find<std::string>("entity_id"_key == id, "id"))
 					{
-						auto af_res = get_residuesForChain(af_structure, af_asym_id);
+						auto af_res = get_residuesForAsymID(af_structure, af_asym_id);
 						if (af_res.size() != seq.length())
 							throw std::runtime_error("Something is wrong with the input file, the number of residues for chain A is not equal to the number in pdbx_seq_one_letter_code_can");
 
@@ -794,6 +805,21 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 								}
 							}
 
+							// This might not be an alphafold entry, check to see if there's a pdbx_struct_assembly_gen
+							if (db.get("pdbx_struct_assembly_gen") != nullptr)
+							{
+								for (auto r : db["pdbx_struct_assembly_gen"])
+								{
+									auto asym_id_list = cif::split<std::string>(r["asym_id_list"].as<std::string>(), ",", true);
+									if (find(asym_id_list.begin(), asym_id_list.end(), af_res.front()->get_asym_id()) == asym_id_list.end())
+										continue;
+									
+									asym_id_list.push_back(asym_id);
+									r["asym_id_list"] = cif::join(asym_id_list, ",");
+									break;
+								}
+							}
+
 							// now fix up the newly created residue
 							ligand.modify(af_structure, asym_id);
 
@@ -816,7 +842,8 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 	af_structure.cleanup_empty_categories();
 
 	auto &software = af_structure.get_category("software");
-	software.emplace({ { "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
+	software.emplace({
+		{ "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
 		{ "name", "alphafill" },
 		{ "version", kVersionNumber },
 		{ "date", kBuildDate },
@@ -836,7 +863,7 @@ struct my_progress : public alphafill_progress_cb
 	void set_max_1(size_t in_max) override
 	{
 		if (cif::VERBOSE < 1)
-			m_progress.reset(new cif::Progress(in_max + 1, "matching"));
+			m_progress.reset(new cif::progress_bar(in_max + 1, "matching"));
 	}
 
 	void consumed(size_t n) override
@@ -851,12 +878,12 @@ struct my_progress : public alphafill_progress_cb
 			m_progress->message(msg);
 	}
 
-	std::unique_ptr<cif::Progress> m_progress;
+	std::unique_ptr<cif::progress_bar> m_progress;
 };
 
 int alphafill_main(int argc, char *const argv[])
 {
-	auto &config = cfp::config::instance();
+	auto &config = mcfp::config::instance();
 
 	if (config.operands().size() < 2)
 	{

@@ -61,7 +61,12 @@ $theme-colors: map-merge($pdb-redo-colors, $theme-colors);
 		color: white;
 	  }
 	}
+
+	& > div {
+		background-color: $nav-secondary;
+	}
 }
+
 
 // for the pdb-redo header
 

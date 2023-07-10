@@ -119,23 +119,35 @@ class data_service
 	// On demand services
 
 	bool exists_in_afdb(const std::string &id) const;
-	std::string fetch_from_afdb(const std::string &id) const;
+	std::tuple<std::filesystem::path,std::string> fetch_from_afdb(const std::string &id) const;
 
 	status_reply get_status(const std::string &id) const;
 
 	void queue(const std::string &data, const std::string &id);
-	void queue_af_id(const std::string &id);
+	std::string queue_af_id(const std::string &id);
+	void queue_3d_beacon_request(const std::string &id);
 
   private:
 
 	data_service();
 
 	void run();
+	void run_3db();
+
+	void process_queued(const std::filesystem::path &xyzin, const std::filesystem::path &xyzout, const std::filesystem::path &jsonout);
 
 	std::filesystem::path m_in_dir;
 	std::filesystem::path m_out_dir;
+	std::filesystem::path m_work_dir;
+
+	// thread processing AF entries
 	std::thread m_thread;
-	blocking_queue<std::string> m_queue;
+	blocking_queue<std::string,10> m_queue;
+
+	// thread processing 3d-beacon requests
+	std::thread m_thread_3db;
+	non_blocking_queue<std::string,100> m_queue_3db;
+
 	std::mutex m_mutex;
 	std::string m_running;
 	std::atomic<float> m_progress;

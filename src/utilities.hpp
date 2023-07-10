@@ -28,7 +28,7 @@
 #include <regex>
 
 #include <cif++.hpp>
-#include <cfp/cfp.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include "blast.hpp"
 #include "ligands.hpp"
@@ -37,7 +37,8 @@
 // --------------------------------------------------------------------
 
 std::filesystem::path pdbFileForID(const std::filesystem::path &pdbDir, std::string pdb_id);
-std::vector<cif::mm::residue *> get_residuesForChain(cif::mm::structure &structure, const std::string &chain_id);
+std::vector<cif::mm::residue *> get_residuesForAsymID(cif::mm::structure &structure, const std::string &asym_id);
+std::vector<cif::mm::residue *> get_residuesForChainID(cif::mm::structure &structure, const std::string &chain_id);
 std::tuple<std::vector<cif::point>, std::vector<cif::point>> selectAtomsNearResidue(
 	const std::vector<cif::mm::residue *> &pdb, const std::vector<size_t> &pdb_ix,
 	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
@@ -65,6 +66,14 @@ class file_locator
 			return instance().get_metadata_file_1(id, chunk_nr, version);
 	}
 
+	static std::filesystem::path get_error_file(EntryType type, const std::string &id, int chunk_nr, int version)
+	{
+		if (type == EntryType::Custom)
+			return instance().m_custom_dir / ("CS-" + id + ".json");
+		else
+			return instance().m_custom_dir / ("AF-" + id + "-F" + std::to_string(chunk_nr) + "-model_v" + std::to_string(version) + ".json");
+	}
+
 	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr, int version)
 	{
 		return instance().get_structure_file_1(id, chunk_nr, version);
@@ -86,11 +95,11 @@ class file_locator
 
 	static file_locator &instance()
 	{
-		static file_locator s_instance(cfp::config::instance());
+		static file_locator s_instance(mcfp::config::instance());
 		return s_instance;
 	}
 
-	file_locator(cfp::config &config);
+	file_locator(mcfp::config &config);
 	file_locator(const file_locator &) = delete;
 	file_locator &operator=(const file_locator &) = delete;
 

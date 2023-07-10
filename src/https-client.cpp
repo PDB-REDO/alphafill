@@ -26,6 +26,8 @@
 
 // This code is originally written for mini-ibs, a content management system
 
+#include <iostream>
+
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/version.hpp>
@@ -33,7 +35,7 @@
 #include <zeep/http/message-parser.hpp>
 #include <zeep/streambuf.hpp>
 
-#include <cfp/cfp.hpp>
+#include <mcfp/mcfp.hpp>
 #include <cif++/text.hpp>
 
 #include "https-client.hpp"
@@ -63,7 +65,7 @@ class client_base
 
 	client_base(const std::string &url)
 		: m_req({ "GET", url })
-		, m_verbose(cfp::config::instance().has("m_verbose"))
+		, m_verbose(mcfp::config::instance().has("m_verbose"))
 	{
 	}
 
@@ -104,7 +106,7 @@ class client_base
 			});
 	}
 
-	boost::array<char, 4096> m_buffer;
+	std::array<char, 4096> m_buffer;
 	const zh::request m_req;
 	bool m_done = false, m_verbose = false;
 	zh::reply_parser m_reply_parser;
@@ -229,7 +231,7 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 
 		for (;;)
 		{
-			boost::array<char, 4096> buf;
+			std::array<char, 4096> buf;
 			boost::system::error_code error;
 
 			size_t len = socket.read_some(boost::asio::buffer(buf), error);
@@ -245,7 +247,7 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 			}
 			else if (error)
 			{
-				if (cfp::config::instance().has("verbose"))
+				if (mcfp::config::instance().has("verbose"))
 					std::cerr << error << std::endl;
 				break;
 			}

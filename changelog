@@ -1,6 +1,10 @@
 Version 2.0.0
 - Based on new libcifpp
 
+Version 1.2.0
+- Added an optimized page to the server where models are refined
+  using Yasara
+
 Version 1.1.0
 - Added clash score
 - Added code to support regular PDB files along PDB-redo

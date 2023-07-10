@@ -60,8 +60,71 @@ class blocking_queue
 		return value;
 	}
 
+	template<class Rep, class Period>
+	std::tuple<bool,T> pop(const std::chrono::duration<Rep, Period>& wait_for)
+	{
+		std::unique_lock<std::mutex> lock(m_guard);
+		while (m_queue.empty())
+		{
+		    auto now = std::chrono::system_clock::now();
+			if (m_empty_signal.wait_until(lock, now + wait_for) == std::cv_status::timeout)
+				return { true , T{} };
+		}
+
+		auto value = m_queue.front();
+		m_queue.pop();
+
+		m_full_signal.notify_one();
+
+		return { false, value };
+	}
+
+	bool is_full() const
+	{
+		std::unique_lock<std::mutex> lock(m_guard);
+		return m_queue.size() >= N;
+	}
+
   private:
 	std::queue<T> m_queue;
 	mutable std::mutex m_guard;
 	std::condition_variable m_empty_signal, m_full_signal;
+};
+
+template <typename T, size_t N = 10>
+class non_blocking_queue
+{
+  public:
+	bool push(T const &value)
+	{
+		bool result = false;
+
+		std::unique_lock<std::mutex> lock(m_guard);
+
+		if (m_queue.size() < N)
+		{
+			m_queue.push(value);
+			m_empty_signal.notify_one();
+			result = true;
+		}
+			
+		return result;
+	}
+
+	T pop()
+	{
+		std::unique_lock<std::mutex> lock(m_guard);
+		while (m_queue.empty())
+			m_empty_signal.wait(lock);
+
+		auto value = m_queue.front();
+		m_queue.pop();
+
+		return value;
+	}
+
+  private:
+	std::queue<T> m_queue;
+	mutable std::mutex m_guard;
+	std::condition_variable m_empty_signal;
 };
