@@ -295,7 +295,7 @@ int generate_PDB_list()
 	return 0;
 }
 
-PAE_matrix calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae)
+zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae)
 {
 	auto maxDistanceSq = maxDistance * maxDistance;
 
@@ -325,13 +325,40 @@ PAE_matrix calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std:
 		}
 	}
 
-	PAE_matrix result(index.size(), index.size());
+	zeep::json::element result;
+	auto &pae_s = result["pae"];
+
+	std::vector<float> s(32);
 
 	for (size_t i = 0; i < index.size(); ++i)
 	{
+		std::vector<uint8_t> v(index.size());
+
 		for (size_t j = 0; j < index.size(); ++j)
-			result(i, j) = pae(index[i], index[j]);
+			v[j] = pae(index[i], index[j]);
+		pae_s.push_back(v);
 	}
+
+	for (size_t i = 0; i < index.size(); ++i)
+	{
+		for (size_t j = i + 1; j < index.size(); ++j)
+		{
+			auto v = pae(index[i], index[j]);
+			if (v < pae(index[j], index[i]))
+				v = pae(index[j], index[i]);
+
+			for (auto k = v; k < 32; ++k)
+				s[k] += 1;
+		}
+	}
+
+	float N = (index.size() * (index.size() - 1)) / 2.0f;
+	for (float &v : s)
+		v /= N;
+
+	result["scores"] = s;
+
+std::cout << std::setw(1) << result << std::endl;
 
 	return result;
 }
@@ -774,7 +801,8 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 							auto entity_id = af_structure.create_non_poly_entity(comp_id);
 							auto asym_id = af_structure.create_non_poly(entity_id, res.atoms());
 
-							r_hsp["transplants"].push_back({ { "compound_id", comp_id },
+							auto &hsp_t = r_hsp["transplants"].emplace_back(json{
+								{ "compound_id", comp_id },
 								// {"entity_id", entity_id},
 								{ "asym_id", asym_id },
 								{ "pdb_asym_id", res.get_asym_id() },
@@ -785,14 +813,14 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								{ "clash", clashInfo } });
 
 							if (not res.get_pdb_ins_code().empty())
-								r_hsp["transplants"].back().emplace("pdb_auth_ins_code", res.get_pdb_ins_code());
+								hsp_t.emplace("pdb_auth_ins_code", res.get_pdb_ins_code());
 							else
-								r_hsp["transplants"].back().emplace("pdb_auth_ins_code", nullptr);
+								hsp_t.emplace("pdb_auth_ins_code", nullptr);
 
 							// Calculate PAE matrix and score for the 'nearby' residues
 
 							if (not pae.empty())
-								calculatePAEScore(af_res, resAtoms, maxDistance, pae);
+								hsp_t["pae"] = calculatePAEScore(af_res, resAtoms, maxDistance, pae);
 
 							// copy any struct_conn record that might be needed
 
