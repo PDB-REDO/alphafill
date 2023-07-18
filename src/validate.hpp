@@ -26,15 +26,13 @@
 
 #pragma once
 
-#include <filesystem>
-#include <tuple>
-#include <vector>
+#include "ligands.hpp"
 
 #include <zeep/json/element.hpp>
 
-#include "cif++.hpp"
-
-#include "ligands.hpp"
+#include <filesystem>
+#include <tuple>
+#include <vector>
 
 std::tuple<float,float,float> validateCif(cif::datablock &db, const std::string &asymID, zeep::json::element &info, float maxLigandPolyAtomDistance = 6);
 

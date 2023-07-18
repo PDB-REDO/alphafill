@@ -24,16 +24,16 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <fstream>
-#include <iomanip>
+#include "blast.hpp"
+#include "queue.hpp"
+#include "revision.hpp"
 
 #include <cif++.hpp>
 
 #include <zeep/json/element.hpp>
 
-#include "blast.hpp"
-#include "queue.hpp"
-#include "revision.hpp"
+#include <fstream>
+#include <iomanip>
 
 namespace fs = std::filesystem;
 

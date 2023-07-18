@@ -99,8 +99,8 @@ if(USE_RSRC)
 endif()
 
 find_package(Filesystem REQUIRED)
-find_package(zeep 5.1.8 REQUIRED)
-find_package(cifpp 5.0.4 REQUIRED)
+find_package(zeep 6.0.4 REQUIRED)
+find_package(cifpp 5.1.1 REQUIRED)
 find_package(libmcfp REQUIRED)
 
 # For the web interface

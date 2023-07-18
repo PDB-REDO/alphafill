@@ -24,24 +24,22 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <chrono>
-#include <fstream>
-#include <iomanip>
-
-#include <cif++.hpp>
-
-#include <mcfp/mcfp.hpp>
-#include <zeep/json/element.hpp>
-
 #include "alphafill.hpp"
 #include "blast.hpp"
+#include "data-service.hpp"
 #include "ligands.hpp"
 #include "queue.hpp"
 #include "revision.hpp"
 #include "utilities.hpp"
 #include "validate.hpp"
 
-#include "data-service.hpp"
+#include <cif++.hpp>
+#include <mcfp/mcfp.hpp>
+#include <zeep/json/element.hpp>
+
+#include <chrono>
+#include <fstream>
+#include <iomanip>
 
 namespace fs = std::filesystem;
 
@@ -143,7 +141,7 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 // --------------------------------------------------------------------
 
-int GeneratePDBList()
+int generate_PDB_list()
 {
 	auto &config = mcfp::config::instance();
 
@@ -297,9 +295,50 @@ int GeneratePDBList()
 	return 0;
 }
 
+PAE_matrix calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae)
+{
+	auto maxDistanceSq = maxDistance * maxDistance;
+
+	std::vector<size_t> index;
+
+	for (size_t i = 0; i < af_res.size(); ++i)
+	{
+		for (auto &a : af_res[i]->atoms())
+		{
+			auto l = a.get_location();
+			bool near = false;
+
+			for (auto &b : atoms)
+			{
+				if (distance_squared(l, b.pt) < maxDistanceSq)
+				{
+					near = true;
+					break;
+				}
+			}
+
+			if (near)
+			{
+				index.push_back(i);
+				break;
+			}
+		}
+	}
+
+	PAE_matrix result(index.size(), index.size());
+
+	for (size_t i = 0; i < index.size(); ++i)
+	{
+		for (size_t j = 0; j < index.size(); ++j)
+			result(i, j) = pae(index[i], index[j]);
+	}
+
+	return result;
+}
+
 // --------------------------------------------------------------------
 
-zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progress)
+zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> &v_pae, alphafill_progress_cb &&progress)
 {
 	using namespace std::literals;
 	using namespace cif::literals;
@@ -360,8 +399,7 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 
 	const std::regex kIDRx(R"(^>(\w{4,8})_(\w)( .*)?)");
 
-	std::string afID;
-	cif::tie(afID) = db["entry"].front().get("id");
+	std::string afID = db["entry"].front().get<std::string>("id");
 
 	auto v_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	std::ostringstream ss;
@@ -380,8 +418,13 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 
 	progress.set_max_0(db["entity_poly"].size());
 
+	auto pae_i = v_pae.begin();
+	PAE_matrix empty_pae;
+
 	for (auto r : db["entity_poly"])
 	{
+		const PAE_matrix &pae = (pae_i == v_pae.end()) ? empty_pae : *pae_i++;
+
 		auto &&[id, seq] = r.get<std::string, std::string>("entity_id", "pdbx_seq_one_letter_code_can");
 
 		// strip all spaces from the sequence, to be able to check length later on
@@ -560,6 +603,9 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 						auto af_res = get_residuesForAsymID(af_structure, af_asym_id);
 						if (af_res.size() != seq.length())
 							throw std::runtime_error("Something is wrong with the input file, the number of residues for chain A is not equal to the number in pdbx_seq_one_letter_code_can");
+
+						if (not v_pae.empty() and pae.dim_m() != af_res.size())
+							throw std::runtime_error("The supplied PAE data is inconsistent with the residues in the AlphaFold structure for asym ID " + af_asym_id);
 
 						std::vector<point> af_ca_trimmed, pdb_ca_trimmed;
 						for (size_t i = 0; i < af_ix_trimmed.size(); ++i)
@@ -743,6 +789,11 @@ zeep::json::element alphafill(cif::datablock &db, alphafill_progress_cb &&progre
 							else
 								r_hsp["transplants"].back().emplace("pdb_auth_ins_code", nullptr);
 
+							// Calculate PAE matrix and score for the 'nearby' residues
+
+							if (not pae.empty())
+								calculatePAEScore(af_res, resAtoms, maxDistance, pae);
+
 							// copy any struct_conn record that might be needed
 
 							auto &pdb_struct_conn = pdb_structure.get_category("struct_conn");
@@ -893,6 +944,22 @@ int alphafill_main(int argc, char *const argv[])
 
 	fs::path xyzin = config.operands()[1];
 
+	std::vector<PAE_matrix> v_pae;
+	if (config.has("fetch-pae"))
+	{
+		auto filename = xyzin.filename();
+
+		if (filename.extension() == ".gz")
+			filename.replace_extension("");
+
+		if (filename.extension() == ".cif")
+			filename.replace_extension("");
+
+		const auto &[type, af_id, chunk, version] = parse_af_id(filename);
+
+		v_pae = data_service::instance().get_pae(af_id, chunk, version);
+	}
+
 	cif::file f(xyzin);
 	if (f.empty())
 		throw std::runtime_error("Empty cif file?");
@@ -904,7 +971,7 @@ int alphafill_main(int argc, char *const argv[])
 		if (output.has_parent_path() and not fs::exists(output.parent_path()))
 			fs::create_directories(output.parent_path());
 
-		json metadata = alphafill(f.front(), my_progress{});
+		json metadata = alphafill(f.front(), v_pae, my_progress{});
 
 		cif::gzio::ofstream xyzout(output);
 		f.save(xyzout);
@@ -917,7 +984,7 @@ int alphafill_main(int argc, char *const argv[])
 	}
 	else
 	{
-		alphafill(f.front(), my_progress{});
+		alphafill(f.front(), v_pae, my_progress{});
 		f.save(std::cout);
 	}
 

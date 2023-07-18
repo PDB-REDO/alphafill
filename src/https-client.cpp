@@ -232,7 +232,7 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 		for (;;)
 		{
 			std::array<char, 4096> buf;
-			boost::system::error_code error;
+			boost::system::error_code error{};
 
 			size_t len = socket.read_some(boost::asio::buffer(buf), error);
 
@@ -240,7 +240,7 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 
 			auto r = p.parse(sb);
 
-			if (r == true or error == boost::asio::error::eof or (sb.in_avail() == 0 and is_head))
+			if (r == true or error == boost::asio::error::eof or len == 0 or (sb.in_avail() == 0 and is_head))
 			{
 				result = p.get_reply();
 				break;

@@ -42,6 +42,16 @@ namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
 
+int test_main(int argc, char *const argv[])
+{
+	data_service::instance().get_pae("P29376", 1, 3);
+
+	return 0;
+}
+
+
+// --------------------------------------------------------------------
+
 // recursively print exception whats:
 void print_what(const std::exception &e)
 {
@@ -102,9 +112,9 @@ int main(int argc, char *const argv[])
 			mcfp::make_option<std::string>("extra-compounds", "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file"),
 			mcfp::make_option<std::string>("mmcif-dictionary", "Path to the mmcif_pdbx.dic file to use instead of default"),
 
-			mcfp::make_option<std::string>("structure-name-pattern", "Pattern for locating structure files"),
-			mcfp::make_option<std::string>("metadata-name-pattern", "Pattern for locating metadata files"),
-			mcfp::make_option<std::string>("pdb-name-pattern", "Pattern for locating PDB files"),
+			mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.gz", "Pattern for locating structure files"),
+			mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.json", "Pattern for locating metadata files"),
+			mcfp::make_option<std::string>("pdb-name-pattern", "${pdb-dir}/${id:1:2}/${id}/${id}_final.cif", "Pattern for locating PDB files"),
 
 			mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
 
@@ -113,10 +123,15 @@ int main(int argc, char *const argv[])
 
 			mcfp::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
 
-			mcfp::make_option<std::string>("alphafold-3d-beacon", "The URL of the 3d-beacons service for alphafold"),
+			mcfp::make_option<std::string>("alphafold-3d-beacon", "https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${id}.json?provider=alphafold",
+				"The URL of the 3d-beacons service for alphafold"),
 
-			mcfp::make_option<std::string>("pae-name-pattern", "Pattern for location cached PAE scores"),
-			mcfp::make_option<std::string>("pae-url", "The URL to use to retrieve PAE scores from the EBI"),
+			mcfp::make_option<std::string>("pae-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.pae.json",
+				"Pattern for location cached PAE scores"),
+			mcfp::make_option<std::string>("pae-url", "https://alphafold.ebi.ac.uk/files/AF-${id}-F${chunk}-predicted_aligned_error_v${version}.json",
+				"The URL to use to retrieve PAE scores from the EBI"),
+
+			mcfp::make_option("fetch-pae", "Try to fetch the PAE scores based on the input file name"),
 
 			mcfp::make_option("no-daemon,F", "Do not fork a background process"),
 			mcfp::make_option<std::string>("address", "Address to listen to"),
@@ -203,7 +218,9 @@ int main(int argc, char *const argv[])
 		else if (command == "validate")
 			std::cerr << "unimplemented" << std::endl;
 		else if (command == "prepare-pdb-list")
-			result = GeneratePDBList();
+			result = generate_PDB_list();
+		else if (command == "test")
+			result = test_main(argc - 1, argv + 1);
 		else 
 		{
 			std::cerr << "Usage: alphafill command [options...]" << std::endl
