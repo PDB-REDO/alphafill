@@ -24,20 +24,21 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <filesystem>
-#include <regex>
-
-#include <cif++.hpp>
-#include <cfp/cfp.hpp>
-
 #include "blast.hpp"
 #include "ligands.hpp"
 #include "data-service.hpp"
 
+#include <cif++.hpp>
+#include <mcfp/mcfp.hpp>
+
+#include <filesystem>
+#include <regex>
+
 // --------------------------------------------------------------------
 
 std::filesystem::path pdbFileForID(const std::filesystem::path &pdbDir, std::string pdb_id);
-std::vector<cif::mm::residue *> get_residuesForChain(cif::mm::structure &structure, const std::string &chain_id);
+std::vector<cif::mm::residue *> get_residuesForAsymID(cif::mm::structure &structure, const std::string &asym_id);
+std::vector<cif::mm::residue *> get_residuesForChainID(cif::mm::structure &structure, const std::string &chain_id);
 std::tuple<std::vector<cif::point>, std::vector<cif::point>> selectAtomsNearResidue(
 	const std::vector<cif::mm::residue *> &pdb, const std::vector<size_t> &pdb_ix,
 	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
@@ -65,6 +66,14 @@ class file_locator
 			return instance().get_metadata_file_1(id, chunk_nr, version);
 	}
 
+	static std::filesystem::path get_error_file(EntryType type, const std::string &id, int chunk_nr, int version)
+	{
+		if (type == EntryType::Custom)
+			return instance().m_custom_dir / ("CS-" + id + ".json");
+		else
+			return instance().m_custom_dir / ("AF-" + id + "-F" + std::to_string(chunk_nr) + "-model_v" + std::to_string(version) + ".json");
+	}
+
 	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr, int version)
 	{
 		return instance().get_structure_file_1(id, chunk_nr, version);
@@ -80,17 +89,22 @@ class file_locator
 		return instance().get_metadata_file_1(id, chunk_nr, version);
 	}
 
+	static std::filesystem::path get_pae_file(const std::string &id, int chunk_nr, int version)
+	{
+		return instance().get_pae_file_1(id, chunk_nr, version);
+	}
+
 	static std::vector<std::filesystem::path> get_all_structure_files(const std::string &id, int version);
 
   private:
 
 	static file_locator &instance()
 	{
-		static file_locator s_instance(cfp::config::instance());
+		static file_locator s_instance(mcfp::config::instance());
 		return s_instance;
 	}
 
-	file_locator(cfp::config &config);
+	file_locator(mcfp::config &config);
 	file_locator(const file_locator &) = delete;
 	file_locator &operator=(const file_locator &) = delete;
 
@@ -133,6 +147,20 @@ class file_locator
 		return s;
 	}
 
+	std::filesystem::path get_pae_file_1(const std::string &id, int chunk_nr, int version)
+	{
+		std::string s = get_file(id, chunk_nr, m_pae_name_pattern);
+
+		std::string::size_type i;
+		while ((i = s.find("${db-dir}")) != std::string::npos)
+			s.replace(i, strlen("${db-dir}"), m_db_dir);
+		
+		while ((i = s.find("${version}")) != std::string::npos)
+			s.replace(i, strlen("${version}"), std::to_string(version));
+
+		return s;
+	}
+
 	std::string get_file(const std::string &id, int chunk_nr, std::string pattern)
 	{
 		std::string::size_type i;
@@ -161,4 +189,5 @@ class file_locator
 	const std::string m_structure_name_pattern;
 	const std::string m_pdb_name_pattern;
 	const std::string m_metadata_name_pattern;
+	const std::string m_pae_name_pattern;
 };

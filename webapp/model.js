@@ -25,9 +25,9 @@ function updateModel(viewer, cbs, showAllCB) {
 	else
 		showAllCB.indeterminate = true;
 
-	const linkTDs = [...document.querySelectorAll('td.optimize-link')];
-	linkTDs.forEach(ltd => {
-		ltd.classList.toggle('invisible', selected.length != 1 || ltd.getAttribute('data-asym-id') != selected[0]);
+	const linkAs = [...document.querySelectorAll('a.optimize-link')];
+	linkAs.forEach(a => {
+		a.classList.toggle('invisible', selected.length != 1 || a.getAttribute('data-asym-id') != selected[0]);
 	});
 
 	// selected.push('A');
@@ -89,6 +89,19 @@ window.addEventListener('load', () => {
 	ibs.forEach(ib => {
 		const identity = ib.getAttribute('data-identity');
 		ib.addEventListener('click', () => window.location = `model?id=${AF_ID}&identity=${identity}`)
+	});
+
+
+	// download button
+	const downloadBtn = document.getElementById('structure-with-selected-ligands');
+	downloadBtn.addEventListener('click', (e) => {
+		e.preventDefault();
+
+		const selected = cbs
+			.filter(c => c.checked)
+			.map(c => c.getAttribute("data-asym-id"));
+	
+		window.location = `v1/aff/${AF_ID}/stripped/${selected.join(',')}/${IDENTITY}`;
 	});
 
 })

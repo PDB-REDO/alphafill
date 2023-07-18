@@ -35,7 +35,7 @@
 #include <zeep/json/parser.hpp>
 
 #include <cif++.hpp>
-#include <cfp/cfp.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include "data-service.hpp"
 #include "db-connection.hpp"
@@ -160,6 +160,7 @@ class affd_html_controller : public zh::html_controller
 		mount("about", &affd_html_controller::about);
 		mount("download", &affd_html_controller::download);
 		mount("{css,scripts,fonts,images}/", &affd_html_controller::handle_file);
+		mount("browserconfig.xml", &affd_html_controller::handle_file);
 		mount("alphafill.json.schema", &affd_html_controller::schema);
 		mount("favicon.ico", &affd_html_controller::handle_file);
 
@@ -365,10 +366,10 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 		case CustomStatus::Unknown:
 			if (data_service::instance().exists_in_afdb(af_id))
 			{
-				data_service::instance().queue_af_id(af_id);
-				sub.put("hash", af_id);
+				auto id = data_service::instance().queue_af_id(af_id);
+				sub.put("hash", id);
 				sub.put("status", status.status);
-				get_server().get_template_processor().create_reply_from_template("wait", sub, reply);
+				get_template_processor().create_reply_from_template("wait", sub, reply);
 				return;
 			}
 
@@ -377,10 +378,22 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 		case CustomStatus::Finished:
 			break;
 		
+		case CustomStatus::Error:
+		{
+			const auto &[type, afId, chunkNr, version] = parse_af_id(af_id);
+			std::ifstream errmsg(file_locator::get_error_file(type, afId, chunkNr, version));
+
+			sub.put("error-id", af_id);
+			sub.put("error", status.message.value_or("<< message is missing >>"));
+			
+			get_template_processor().create_reply_from_template("index", sub, reply);
+			return;
+		}
+
 		default:
 			sub.put("hash", af_id);
 			sub.put("status", status.status);
-			get_server().get_template_processor().create_reply_from_template("wait", sub, reply);
+			get_template_processor().create_reply_from_template("wait", sub, reply);
 			return;
 	}
 	
@@ -390,6 +403,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 	fs::path cifFile = file_locator::get_structure_file(type, afId, chunkNr, version);
 
 	sub.put("af_id", af_id);
+	sub.put("id", afId);
 	sub.put("chunk", chunkNr);
 	sub.put("type", type);
 	sub.put("version", version);
@@ -405,7 +419,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 
 		for (size_t i = 0; i < allChunks.size(); ++i)
 			chunks.emplace_back(afId + "-F" + std::to_string(i + 1));
-		
+
 		sub.put("chunks", chunks);
 	}
 
@@ -526,11 +540,11 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 	// TODO: These magic numbers should of course be configurable parameters
 	// 11.43, 3.04 voor global, en 3.10 en 0.92 voor local
 	sub.put("cutoff", json{
-		{"global", {{"unreliable", 11.43}, {"suspect", 3.04}}},
-		{"local", {{"unreliable", 3.10}, {"suspect", 0.92}}}
-	});
+						  // {"global", {{"unreliable", 11.43}, {"suspect", 3.04}}},
+						  {"local", {{"unreliable", 3.10}, {"suspect", 0.92}}},
+						  {"tcs", {{"unreliable", 1.27}, {"suspect", 0.64}}}});
 
-	get_server().get_template_processor().create_reply_from_template("model", sub, reply);
+	get_template_processor().create_reply_from_template("model", sub, reply);
 }
 
 void affd_html_controller::optimized(const zh::request &request, const zh::scope &scope, zh::reply &reply)
@@ -547,9 +561,10 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 
 	std::string asymID = request.get_parameter("asym");
 
-	const auto &[type, afId, chunkNr, version] = parse_af_id(request.get_parameter("id"));
+	std::string af_id = request.get_parameter("id");
+	const auto &[type, afId, chunkNr, version] = parse_af_id(af_id);
 
-	sub.put("af_id", afId);
+	sub.put("af_id", af_id);
 	sub.put("chunk", chunkNr);
 	sub.put("asym_id", asymID);
 	sub.put("version", version);
@@ -585,11 +600,11 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 
 		for (size_t i = 0; i < allChunks.size(); ++i)
 			chunks.emplace_back(afId + "-F" + std::to_string(i + 1));
-		
+
 		sub.put("chunks", chunks);
 	}
 
-	get_server().get_template_processor().create_reply_from_template("optimized", sub, reply);
+	get_template_processor().create_reply_from_template("optimized", sub, reply);
 }
 
 void affd_html_controller::about(const zh::request &request, const zh::scope &scope, zh::reply &reply)
@@ -621,7 +636,7 @@ class affd_rest_controller : public zh::rest_controller
 		map_get_request("aff/{id}/json", &affd_rest_controller::get_aff_structure_json, "id");
 		map_get_request("aff/{id}/status", &affd_rest_controller::get_aff_status, "id");
 
-		map_get_request("aff/3d-beacon/{id}", &affd_rest_controller::get_aff_3d_beacon, "id");
+		map_get_request("aff/3d-beacon/{id}", &affd_rest_controller::get_aff_3d_beacon, "id", "version");
 
 		map_get_request("aff/{id}/stripped/{asymlist}", &affd_rest_controller::get_aff_structure_stripped_def, "id", "asymlist");
 		map_get_request("aff/{id}/stripped/{asymlist}/{identity}", &affd_rest_controller::get_aff_structure_stripped, "id", "asymlist", "identity");
@@ -636,7 +651,7 @@ class affd_rest_controller : public zh::rest_controller
 	status_reply get_aff_status(const std::string &af_id);
 
 	zeep::json::element get_aff_structure_json(const std::string &af_id);
-	zeep::json::element get_aff_3d_beacon(std::string id);
+	zeep::json::element get_aff_3d_beacon(std::string id, std::string version);
 
 	zh::reply get_aff_structure_stripped_def(const std::string &id, const std::string &asyms)
 	{
@@ -725,7 +740,17 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 		stripCifFile(af_id, requestedAsymSet, identity, *s);
 
 	rep.set_content(s.release(), "text/plain");
-	// rep.set_header("content-disposition", "attachement; filename = \"AF-" + id + "-F1-model_v1.cif\"");
+
+	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
+	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
+	if (fs::exists(file))
+	{
+		auto filename = file.filename();
+		if (filename.extension() == ".gz")
+			filename.replace_extension("");
+		
+		rep.set_header("content-disposition", "attachement; filename = \"" + filename.string() + "\"");
+	}
 
 	return rep;
 }
@@ -745,12 +770,12 @@ zh::reply affd_rest_controller::get_aff_structure_optimized(const std::string &a
 		buffer.init(s->rdbuf());
 		std::ostream os(&buffer);
 
-		optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsymSet, os);
+		optimizeWithYasara(af_id, requestedAsymSet, os);
 
 		rep.set_header("content-encoding", "gzip");
 	}
 	else
-		optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsymSet, *s);
+		optimizeWithYasara(af_id, requestedAsymSet, *s);
 
 	rep.set_content(s.release(), "text/plain");
 
@@ -766,7 +791,7 @@ zh::reply affd_rest_controller::get_aff_structure_optimized_with_stats(const std
 
 	std::ostringstream os;
 
-	auto stats = optimizeWithYasara("/opt/yasara/yasara", af_id, requestedAsymSet, os);
+	auto stats = optimizeWithYasara(af_id, requestedAsymSet, os);
 
 	stats["model"] = os.str();
 
@@ -807,8 +832,12 @@ zeep::json::element affd_rest_controller::get_aff_structure_json(const std::stri
 	return result;
 }
 
-zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
+zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, std::string version_3dbeacons)
 {
+	using namespace cif::literals;
+
+	static const std::regex KVersionRX(R"((\d+)(?:\.(\d+))?(?:\.(\d+))?)");
+
 	if (cif::ends_with(af_id, ".json"))
 		af_id.erase(af_id.begin() + af_id.length() - 5, af_id.end());
 
@@ -817,11 +846,21 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
-		throw zeep::http::not_found;
+	{
+		auto &data_service = data_service::instance();
+		data_service.queue_3d_beacon_request(id);
 
-	zeep::json::element result{
-		{"uniprot_entry",
-			{{"ac", id}}}};
+		throw zeep::http::not_found;
+	}
+
+	int version_major = 1, version_minor = 0;
+	std::smatch m;
+	if (std::regex_match(version_3dbeacons, m, KVersionRX))
+	{
+		version_major = std::stoi(m[1]);
+		if (m.length() >= 2)
+			version_minor = std::stoi(m[2]);
+	}
 
 	using namespace std::chrono;
 
@@ -839,23 +878,79 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id)
 	if (cf.empty())
 		throw zeep::http::not_found;
 	auto &db = cf.front();
-	// auto &struct_ref = db["struct_ref"];
+	auto &struct_ref = db["struct_ref"];
 	auto &struct_ref_seq = db["struct_ref_seq"];
 
 	int uniprot_start, uniprot_end;
 	cif::tie(uniprot_start, uniprot_end) = struct_ref_seq.front().get("db_align_beg", "db_align_end");
 
-	result["structures"].push_back({{"model_identifier", id},
-		{"model_category", "DEEP-LEARNING"},
-		{"model_url", "https://alphafill.eu/v1/aff/" + id},
-		{"model_page_url", "https://alphafill.eu/model?id=" + id},
-		{"model_format", "MMCIF"},
-		{"provider", "AlphaFill"},
-		{"created", ss.str()},
-		{"sequence_identity", 1.0},
-		{"coverage", 1.0},
-		{"uniprot_start", uniprot_start},
-		{"uniprot_end", uniprot_end}});
+	std::string db_code = struct_ref.front()["db_code"].as<std::string>();
+
+	zeep::json::element result{
+		{"uniprot_entry", {{"ac", id},
+							  {"id", db_code},
+							  {"sequence_length", uniprot_end - uniprot_start + 1}}}};
+
+	if (version_major >= 2)
+	{
+		zeep::json::element summary{
+			{"model_identifier", id},
+			{"model_category", "TEMPLATE-BASED"},
+			{"model_url", "https://alphafill.eu/v1/aff/" + id},
+			{"model_format", "MMCIF"},
+			{"model_page_url", "https://alphafill.eu/model?id=" + id},
+			{"provider", "AlphaFill"},
+			{"created", ss.str()},
+			{"sequence_identity", 1.0},
+			{"uniprot_start", uniprot_start},
+			{"uniprot_end", uniprot_end},
+			{"coverage", 1.0},
+		};
+
+		auto &entities = summary["entities"];
+		auto &struct_asym = db["struct_asym"];
+
+		for (const auto &[id, description, type] : db["entity"].rows<int, std::string, std::string>("id", "pdbx_description", "type"))
+		{
+			if (type == "polymer")
+			{
+				entities.push_back({{"entity_type", "POLYMER"},
+					{"entity_poly_type", "POLYPEPTIDE(L)"},
+					{"description", description}});
+				entities.back()["chain_ids"].push_back("A");
+				continue;
+			}
+
+			if (type == "non-polymer")
+			{
+				entities.push_back({{"entity_type", "NON-POLYMER"},
+					{"description", description}});
+
+				auto &chain_ids = entities.back()["chain_ids"];
+
+				for (auto asym_id : struct_asym.find<std::string>("entity_id"_key == id, "id"))
+					chain_ids.push_back(asym_id);
+
+				continue;
+			}
+		}
+
+		result["structures"].push_back({{"summary", summary}});
+	}
+	else
+	{
+		result["structures"].push_back({{"model_identifier", id},
+			{"model_category", "DEEP-LEARNING"},
+			{"model_url", "https://alphafill.eu/v1/aff/" + id},
+			{"model_page_url", "https://alphafill.eu/model?id=" + id},
+			{"model_format", "MMCIF"},
+			{"provider", "AlphaFill"},
+			{"created", ss.str()},
+			{"sequence_identity", 1.0},
+			{"coverage", 1.0},
+			{"uniprot_start", uniprot_start},
+			{"uniprot_end", uniprot_end}});
+	}
 
 	return result;
 }
@@ -882,6 +977,35 @@ zeep::json::element affd_rest_controller::post_custom_structure(const std::strin
 
 // --------------------------------------------------------------------
 
+int rebuild_db_main(int argc, char * const argv[])
+{
+	using namespace std::literals;
+
+	auto &config = mcfp::config::instance();
+
+	fs::path dbDir = config.get<std::string>("db-dir");
+
+	std::vector<std::string> vConn;
+	std::string db_user;
+	for (std::string opt : {"db-host", "db-port", "db-dbname", "db-user", "db-password"})
+	{
+		if (not config.has(opt))
+			continue;
+
+		vConn.push_back(opt.substr(3) + "=" + config.get<std::string>(opt));
+		if (opt == "db-user")
+			db_user = config.get<std::string>(opt);
+	}
+
+	db_connection::init(cif::join(vConn, " "));
+
+	// --------------------------------------------------------------------
+
+	return data_service::rebuild(db_user, dbDir);
+}
+
+// --------------------------------------------------------------------
+
 int server_main(int argc, char *const argv[])
 {
 	using namespace std::literals;
@@ -900,7 +1024,7 @@ int server_main(int argc, char *const argv[])
 		("alphafold", EntryType::AlphaFold)
 		("custom", EntryType::Custom);
 
-	auto &config = cfp::config::instance();
+	auto &config = mcfp::config::instance();
 
 	fs::path dbDir = config.get<std::string>("db-dir");
 
@@ -921,9 +1045,6 @@ int server_main(int argc, char *const argv[])
 	db_connection::init(cif::join(vConn, " "));
 
 	// --------------------------------------------------------------------
-
-	if (config.has("rebuild-db"))
-		return data_service::rebuild(db_user, dbDir);
 
 	if (config.operands().size() < 2)
 	{

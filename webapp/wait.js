@@ -53,6 +53,6 @@ function update() {
 
 window.addEventListener('load', () => {
 
-	timer = setInterval(update, 1000);
+	timer = setInterval(update, 5000);
 
 });

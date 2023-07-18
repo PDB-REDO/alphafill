@@ -29,7 +29,7 @@
 #include <thread>
 
 #include <cif++.hpp>
-#include <cfp/cfp.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include "alphafill.hpp"
 #include "data-service.hpp"
@@ -39,6 +39,16 @@
 #include "validate.hpp"
 
 namespace fs = std::filesystem;
+
+// --------------------------------------------------------------------
+
+int test_main(int argc, char *const argv[])
+{
+	data_service::instance().get_pae("P29376", 1, 3);
+
+	return 0;
+}
+
 
 // --------------------------------------------------------------------
 
@@ -69,68 +79,77 @@ int main(int argc, char *const argv[])
 		cif::add_data_directory(DATA_DIR);
 #endif
 
-		auto &config = cfp::config::instance();
+		auto &config = mcfp::config::instance();
 		config.init(
-			"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate' or 'prepare-pdb-list'",
-			cfp::make_option("version", "Show version number"),
-			cfp::make_option("verbose,v", "Show verbose output"),
+			"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate', 'prepare-pdb-list' or 'rebuild-db'",
+			mcfp::make_option("version", "Show version number"),
+			mcfp::make_option("verbose,v", "Show verbose output"),
 
-			cfp::make_option("help,h", "Display help message"),
-			cfp::make_option("quiet", "Do not produce warnings"),
+			mcfp::make_option("help,h", "Display help message"),
+			mcfp::make_option("quiet", "Do not produce warnings"),
 
-			cfp::make_option<std::string>("config", "alphafill.conf", "Configuration file to use"),
+			mcfp::make_option<std::string>("config", "alphafill.conf", "Configuration file to use"),
 
-			cfp::make_option<std::string>("af-dir", "Directory containing the alphafold data"),
-			cfp::make_option<std::string>("db-dir", "Directory containing the alphafilled data"),
-			cfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
+			mcfp::make_option<std::string>("af-dir", "Directory containing the alphafold data"),
+			mcfp::make_option<std::string>("db-dir", "Directory containing the alphafilled data"),
+			mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 
-			cfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
-			cfp::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"),
+			mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
+			mcfp::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"),
 
-			cfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
+			mcfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
 
-			cfp::make_option<float>("max-ligand-to-backbone-distance", 6, "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure"),
-			cfp::make_option<float>("min-hsp-identity", 0.25, "The minimal identity for a high scoring pair (note, value between 0 and 1)"),
-			cfp::make_option<int>("min-alignment-length", 85, "The minimal length of an alignment"),
-			cfp::make_option<float>("min-separation-distance", 3.5, "The centroids of two identical ligands should be at least this far apart to count as separate occurrences"),
-			cfp::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
+			mcfp::make_option<float>("max-ligand-to-backbone-distance", 6, "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure"),
+			mcfp::make_option<float>("min-hsp-identity", 0.25, "The minimal identity for a high scoring pair (note, value between 0 and 1)"),
+			mcfp::make_option<int>("min-alignment-length", 85, "The minimal length of an alignment"),
+			mcfp::make_option<float>("min-separation-distance", 3.5, "The centroids of two identical ligands should be at least this far apart to count as separate occurrences"),
+			mcfp::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
 
-			cfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
+			mcfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
 
-			cfp::make_option<std::string>("compounds", "Location of the components.cif file from CCD"),
-			cfp::make_option<std::string>("components", "Location of the components.cif file from CCD, alias"),
-			cfp::make_option<std::string>("extra-compounds", "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file"),
-			cfp::make_option<std::string>("mmcif-dictionary", "Path to the mmcif_pdbx.dic file to use instead of default"),
+			mcfp::make_option<std::string>("compounds", "Location of the components.cif file from CCD"),
+			mcfp::make_option<std::string>("components", "Location of the components.cif file from CCD, alias"),
+			mcfp::make_option<std::string>("extra-compounds", "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file"),
+			mcfp::make_option<std::string>("mmcif-dictionary", "Path to the mmcif_pdbx.dic file to use instead of default"),
 
-			cfp::make_option<std::string>("structure-name-pattern", "Pattern for locating structure files"),
-			cfp::make_option<std::string>("metadata-name-pattern", "Pattern for locating metadata files"),
-			cfp::make_option<std::string>("pdb-name-pattern", "Pattern for locating PDB files"),
+			mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.gz", "Pattern for locating structure files"),
+			mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.json", "Pattern for locating metadata files"),
+			mcfp::make_option<std::string>("pdb-name-pattern", "${pdb-dir}/${id:1:2}/${id}/${id}_final.cif", "Pattern for locating PDB files"),
 
-			cfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
+			mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
 
-			cfp::make_hidden_option("validate-fasta", "Validate the FastA file (check if all sequence therein are the same as in the corresponding PDB files)"),
-			cfp::make_hidden_option("prepare-pdb-list", "Generate a list with PDB ID's that contain any of the ligands"),
+			mcfp::make_hidden_option("validate-fasta", "Validate the FastA file (check if all sequence therein are the same as in the corresponding PDB files)"),
+			mcfp::make_hidden_option("prepare-pdb-list", "Generate a list with PDB ID's that contain any of the ligands"),
 
-			cfp::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
+			mcfp::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
 
-			cfp::make_option<std::string>("alphafold-3d-beacon", "The URL of the 3d-beacons service for alphafold"),
-			cfp::make_hidden_option<std::string>("test-af-id", ""),
+			mcfp::make_option<std::string>("alphafold-3d-beacon", "https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${id}.json?provider=alphafold",
+				"The URL of the 3d-beacons service for alphafold"),
 
-			cfp::make_option("no-daemon,F", "Do not fork a background process"),
-			cfp::make_option<std::string>("address", "Address to listen to"),
-			cfp::make_option<unsigned short>("port", "Port to listen to"),
-			cfp::make_option<std::string>("user", "User to run as"),
-			cfp::make_option<std::string>("context", "Reverse proxy context"),
-			cfp::make_option<std::string>("db-link-template", "Template for links to pdb(-redo) entry"),
-			cfp::make_option<std::string>("db-dbname", "AF DB name"),
-			cfp::make_option<std::string>("db-user", "AF DB owner"),
-			cfp::make_option<std::string>("db-password", "AF DB password"),
-			cfp::make_option<std::string>("db-host", "AF DB host"),
-			cfp::make_option<std::string>("db-port", "AF DB port"),
+			mcfp::make_option<std::string>("pae-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.pae.json",
+				"Pattern for location cached PAE scores"),
+			mcfp::make_option<std::string>("pae-url", "https://alphafold.ebi.ac.uk/files/AF-${id}-F${chunk}-predicted_aligned_error_v${version}.json",
+				"The URL to use to retrieve PAE scores from the EBI"),
 
-			cfp::make_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries"),
+			mcfp::make_option("fetch-pae", "Try to fetch the PAE scores based on the input file name"),
 
-			cfp::make_hidden_option("test", "Run test code")
+			mcfp::make_option("no-daemon,F", "Do not fork a background process"),
+			mcfp::make_option<std::string>("address", "Address to listen to"),
+			mcfp::make_option<unsigned short>("port", "Port to listen to"),
+			mcfp::make_option<std::string>("user", "User to run as"),
+			mcfp::make_option<std::string>("context", "Reverse proxy context"),
+			mcfp::make_option<std::string>("db-link-template", "Template for links to pdb(-redo) entry"),
+			mcfp::make_option<std::string>("db-dbname", "AF DB name"),
+			mcfp::make_option<std::string>("db-user", "AF DB owner"),
+			mcfp::make_option<std::string>("db-password", "AF DB password"),
+			mcfp::make_option<std::string>("db-host", "AF DB host"),
+			mcfp::make_option<std::string>("db-port", "AF DB port"),
+
+			mcfp::make_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries"),
+
+			mcfp::make_option<std::string>("yasara", "/opt/yasara/yasara", "Location of the yasara executable, needed for optimising"),
+
+			mcfp::make_hidden_option("test", "Run test code")
 			);
 
 		// config.set_ignore_unknown(true);
@@ -184,14 +203,7 @@ int main(int argc, char *const argv[])
 		if (config.has("validate-fasta"))
 			return validateFastA(config.get<std::string>("pdb-fasta"), config.get<std::string>("pdb-dir"), std::thread::hardware_concurrency());
 
-		if (config.has("test-af-id"))
-		{
-			data_service::instance().exists_in_afdb(config.get<std::string>("test-af-id"));
-			return 0;
-		}
-
 		// --------------------------------------------------------------------
-
 
 		std::string command;
 		if (not config.operands().empty())
@@ -201,10 +213,14 @@ int main(int argc, char *const argv[])
 			result = server_main(argc - 1, argv + 1);
 		else if (command == "process")
 			result = alphafill_main(argc - 1, argv + 1);
+		else if (command == "rebuild-db")
+			result = rebuild_db_main(argc - 1, argv + 1);
 		else if (command == "validate")
 			std::cerr << "unimplemented" << std::endl;
 		else if (command == "prepare-pdb-list")
-			result = GeneratePDBList();
+			result = generate_PDB_list();
+		else if (command == "test")
+			result = test_main(argc - 1, argv + 1);
 		else 
 		{
 			std::cerr << "Usage: alphafill command [options...]" << std::endl

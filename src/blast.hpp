@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <cassert>
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <thread>

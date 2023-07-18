@@ -29,7 +29,7 @@
 #include <iostream>
 
 #include <cif++.hpp>
-#include <cfp/cfp.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include "revision.hpp"
 #include "utilities.hpp"
@@ -38,13 +38,14 @@ namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
 
-file_locator::file_locator(cfp::config &config)
+file_locator::file_locator(mcfp::config &config)
 	: m_db_dir(config.get<std::string>("db-dir"))
 	, m_pdb_dir(config.get<std::string>("pdb-dir"))
 	, m_custom_dir(fs::path(config.get<std::string>("custom-dir")) / "out")
 	, m_structure_name_pattern(config.get<std::string>("structure-name-pattern"))
 	, m_pdb_name_pattern(config.get<std::string>("pdb-name-pattern"))
 	, m_metadata_name_pattern(config.get<std::string>("metadata-name-pattern"))
+	, m_pae_name_pattern(config.get<std::string>("pae-name-pattern"))
 {
 	// if (not fs::is_directory(m_db_dir))
 	// 	throw std::runtime_error("AlphfaFill data directory does not exist");
@@ -88,13 +89,29 @@ fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id)
 	return pdb_path;
 }
 
-std::vector<cif::mm::residue *> get_residuesForChain(cif::mm::structure &structure, const std::string &chain_id)
+std::vector<cif::mm::residue *> get_residuesForAsymID(cif::mm::structure &structure, const std::string &asym_id)
 {
 	std::vector<cif::mm::residue *> result;
 
 	for (auto &poly : structure.polymers())
 	{
-		if (poly.get_asym_id() != chain_id)
+		if (poly.get_asym_id() != asym_id)
+			continue;
+
+		for (auto &res : poly)
+			result.emplace_back(&res);
+	}
+
+	return result;
+}
+
+std::vector<cif::mm::residue *> get_residuesForChainID(cif::mm::structure &structure, const std::string &chain_id)
+{
+	std::vector<cif::mm::residue *> result;
+
+	for (auto &poly : structure.polymers())
+	{
+		if (poly.get_auth_asym_id() != chain_id)
 			continue;
 
 		for (auto &res : poly)

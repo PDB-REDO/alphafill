@@ -24,7 +24,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// #include "prsm-config.hpp"
+#include <iostream>
 
 #include "db-connection.hpp"
 

@@ -130,6 +130,20 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 		struct_conn.erase("ptnr1_label_asym_id"_key == asymID or "ptnr2_label_asym_id"_key == asymID);
 	}
 
+	// fix up pdbx_struct_assembly_gen, if it exists?
+	if (db.get("pdbx_struct_assembly_gen") != nullptr)
+	{
+		auto &pdbx_struct_assembly_gen = db["pdbx_struct_assembly_gen"];
+		for (auto r : pdbx_struct_assembly_gen)
+		{
+			auto asym_id_list = cif::split<std::string>(r["asym_id_list"].as<std::string>(), ",", true);
+
+			std::vector<std::string> new_asym_id_list;
+			std::set_intersection(asym_id_list.begin(), asym_id_list.end(), requestedAsyms.begin(), requestedAsyms.end(), std::back_insert_iterator(new_asym_id_list));
+			r["asym_id_list"] = cif::join(new_asym_id_list, ",");
+		}
+	}
+
 	db.set_validator(validator);
 
 	cif::mm::structure structure(db);
@@ -204,9 +218,12 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 	};
 }
 
-json optimizeWithYasara(const std::string &yasara, const std::string &af_id, std::set<std::string> requestedAsyms, std::ostream &os)
+json optimizeWithYasara(const std::string &af_id, std::set<std::string> requestedAsyms, std::ostream &os)
 {
 	using namespace std::literals;
+
+	auto &config = mcfp::config::instance();
+	auto yasara = config.get<std::string>("yasara");
 
 	static std::atomic<int> sYasaraRunNr = 1;
 
@@ -274,6 +291,9 @@ json optimizeWithYasara(const std::string &yasara, const std::string &af_id, std
 		close(efd);
 
 		closefrom(STDERR_FILENO + 1);
+
+		std::error_code ec;
+		fs::current_path(tmpdir, ec);
 
 		const char *env[] = {nullptr};
 		(void)execve(args.front(), const_cast<char *const *>(&args[0]), const_cast<char *const *>(env));
@@ -345,7 +365,24 @@ json optimizeWithYasara(const std::string &yasara, const std::string &af_id, std
 		status = WEXITSTATUS(status);
 
 	if (status != 0)
-		throw std::runtime_error("Error executing yasara, result is " + std::to_string(status));
+	{
+		std::stringstream msg;
+		msg << "Error executing yasara, exit code is: " << status << std::endl;
+
+		if (fs::exists(tmpdir / "errorexit.txt"))
+		{
+			try
+			{
+				std::ifstream errormsg(tmpdir / "errorexit.txt");
+				msg << errormsg.rdbuf();
+			}
+			catch (...)
+			{
+			}
+		}
+
+		throw std::runtime_error(msg.str());
+	}
 
 	auto score = mergeYasaraOutput(tmpdir / "input.cif", tmpdir / "output.cif", os);
 

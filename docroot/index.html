@@ -39,6 +39,14 @@
 			</p>
 		</div>
 
+		<div z:if="${error}" class="error_entry alert alert-danger" role="alert">
+			<h4>Error processing</h4>
+
+			<p>There was an error processing entry <span z:text="${error-id}"></span>.
+				The error message is <pre><span z:text="${error}"></span></pre>
+			</p>
+		</div>
+
 		<h4>AlphaFill</h4>
 		<p><em>AlphaFill</em> is an algorithm based on sequence and structure similarity that “transplants” missing
 			ligands, cofactors and (metal) ions to the AlphaFold models. By adding the molecular context to these
@@ -53,8 +61,8 @@
 		<p>Data for a single entry can be found at the corresponding entry page (search by UniProt ID above). Download
 			details for the complete databank can be found at the <a href="/download">download page</a>.</p>
 
-		<p>For more AlphaFill details: <a href="https://www.biorxiv.org/content/10.1101/2021.11.26.470110v1"
-				target="_BLANK">https://www.biorxiv.org/content/10.1101/2021.11.26.470110v1</a></p>
+		<p>For more AlphaFill details: <a href="https://www.nature.com/articles/s41592-022-01685-y"
+				target="_BLANK">https://www.nature.com/articles/s41592-022-01685-y</a></p>
 	</div>
 
 	<footer z:replace="~{footer::content}"></footer>
