@@ -253,42 +253,50 @@ int create_blast_index()
 			} });
 	}
 
-	for (fs::directory_iterator iter(pdbDir); iter != fs::directory_iterator(); ++iter)
+	try
 	{
-		if (not iter->is_directory())
-			continue;
-
-		if (iter->path().filename().string().length() != 2)
-			continue;
-
-		// Regular PDB layout
-		for (fs::directory_iterator fiter(iter->path()); fiter != fs::directory_iterator(); ++fiter)
+		for (fs::directory_iterator iter(pdbDir); iter != fs::directory_iterator(); ++iter)
 		{
-			if (not fiter->is_regular_file())
+			if (not iter->is_directory())
 				continue;
 
-			fs::path file = fiter->path();
-
-			std::string name = file.filename().string();
-			if (not cif::ends_with(name, ".cif.gz"))
+			if (iter->path().filename().string().length() != 2)
 				continue;
 
-			q1.push(file);
+			// Regular PDB layout
+			for (fs::directory_iterator fiter(iter->path()); fiter != fs::directory_iterator(); ++fiter)
+			{
+				if (not fiter->is_regular_file())
+					continue;
+
+				fs::path file = fiter->path();
+
+				std::string name = file.filename().string();
+				if (not cif::ends_with(name, ".cif.gz"))
+					continue;
+
+				q1.push(file);
+			}
+
+			// PDB-REDO layout
+			for (fs::recursive_directory_iterator fiter(iter->path()); fiter != fs::recursive_directory_iterator(); ++fiter)
+			{
+				fs::path file = fiter->path();
+
+				std::string name = file.filename().string();
+				if (not cif::ends_with(name, "_final.cif"))
+					continue;
+
+				q1.push(file);
+			}
+
+			progress.consumed(1);
 		}
-
-		// PDB-REDO layout
-		for (fs::recursive_directory_iterator fiter(iter->path()); fiter != fs::recursive_directory_iterator(); ++fiter)
-		{
-			fs::path file = fiter->path();
-
-			std::string name = file.filename().string();
-			if (not cif::ends_with(name, "_final.cif"))
-				continue;
-
-			q1.push(file);
-		}
-
-		progress.consumed(1);
+	}
+	catch (const std::exception &ex)
+	{
+		std::cerr << "Error in walking files: " << ex.what() << std::endl;
+		exit(1);
 	}
 
 	// signal end
@@ -308,12 +316,12 @@ int create_blast_index()
 	if (fs::exists(fastaFile, ec))
 		fs::remove(fastaFile, ec);
 	
-	if (ec != std::errc{})
+	if (ec)
 		throw std::runtime_error("Could not replace fasta file: " + ec.message());
 	
 	fs::rename(tmpFile, fastaFile, ec);
 
-	if (ec != std::errc{})
+	if (ec)
 		throw std::runtime_error("Could not rename fasta file: " + ec.message());
 
 	return 0;
