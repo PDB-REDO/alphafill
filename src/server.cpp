@@ -37,6 +37,7 @@
 #include <cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
+#include "alphafill.hpp"
 #include "data-service.hpp"
 #include "db-connection.hpp"
 #include "ligands.hpp"
@@ -1009,6 +1010,8 @@ int rebuild_db_main(int argc, char * const argv[])
 int server_main(int argc, char *const argv[])
 {
 	using namespace std::literals;
+
+	check_blast_index();
 
 	int result = 0;
 

@@ -105,7 +105,18 @@ std::vector<cif::mm::residue *> get_residuesForAsymID(cif::mm::structure &struct
 	return result;
 }
 
-std::vector<cif::mm::residue *> get_residuesForChainID(cif::mm::structure &structure, const std::string &chain_id)
+std::vector<std::string> get_chain_ids_for_entity_id(const cif::datablock &db, const std::string &entity_id)
+{
+	std::vector<std::string> result;
+	for (auto chain_ids : db["entity_poly"].find<std::string>(cif::key("entity_id") == entity_id, "pdbx_strand_id"))
+	{
+		for (auto chain_id : cif::split(chain_ids, ", ", true))
+			result.emplace_back(chain_id);
+	}
+	return result;
+}
+
+std::vector<cif::mm::residue *> get_residues_for_chain_id(cif::mm::structure &structure, const std::string &chain_id)
 {
 	std::vector<cif::mm::residue *> result;
 

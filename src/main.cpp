@@ -81,7 +81,7 @@ int main(int argc, char *const argv[])
 
 		auto &config = mcfp::config::instance();
 		config.init(
-			"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate', 'prepare-pdb-list' or 'rebuild-db'",
+			"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate', 'create-blast-index' or 'rebuild-db'",
 			mcfp::make_option("version", "Show version number"),
 			mcfp::make_option("verbose,v", "Show verbose output"),
 
@@ -117,9 +117,6 @@ int main(int argc, char *const argv[])
 			mcfp::make_option<std::string>("pdb-name-pattern", "${pdb-dir}/${id:1:2}/${id}/${id}_final.cif", "Pattern for locating PDB files"),
 
 			mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
-
-			mcfp::make_hidden_option("validate-fasta", "Validate the FastA file (check if all sequence therein are the same as in the corresponding PDB files)"),
-			mcfp::make_hidden_option("prepare-pdb-list", "Generate a list with PDB ID's that contain any of the ligands"),
 
 			mcfp::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
 
@@ -190,10 +187,6 @@ int main(int argc, char *const argv[])
 
 		// --------------------------------------------------------------------
 
-		std::string fasta = config.get<std::string>("pdb-fasta");
-		if (not fs::exists(fasta))
-			throw std::runtime_error("PDB-Fasta file does not exist (" + fasta + ")");
-
 		fs::path pdbDir = config.get<std::string>("pdb-dir");
 		if (not fs::is_directory(pdbDir))
 			throw std::runtime_error("PDB directory does not exist");
@@ -215,16 +208,16 @@ int main(int argc, char *const argv[])
 			result = alphafill_main(argc - 1, argv + 1);
 		else if (command == "rebuild-db")
 			result = rebuild_db_main(argc - 1, argv + 1);
-		else if (command == "validate")
-			std::cerr << "unimplemented" << std::endl;
-		else if (command == "prepare-pdb-list")
-			result = generate_PDB_list();
+		else if (command == "create-blast-index")
+			result = create_blast_index();
+#ifndef NDEBUG
 		else if (command == "test")
 			result = test_main(argc - 1, argv + 1);
+#endif
 		else 
 		{
 			std::cerr << "Usage: alphafill command [options...]" << std::endl
-					  << "  where command is one of: 'server', 'process', 'validate', 'prepare-pdb-list'" << std::endl;
+					  << "  where command is one of: 'server', 'process', 'create-blast-index' or 'rebuild-db'" << std::endl;
 			
 			exit(1);
 		}
