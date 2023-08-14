@@ -80,7 +80,7 @@ endif()
 
 # Create a revision file, containing the current git version info
 include(VersionString)
-write_version_header()
+write_version_header("${PROJECT_SOURCE_DIR}/src/")
 
 # Optionally use mrc to create resources
 find_package(Mrc QUIET)
