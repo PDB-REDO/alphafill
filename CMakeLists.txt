@@ -103,9 +103,8 @@ find_package(zeep 6.0.4 REQUIRED)
 find_package(cifpp 5.1.1 REQUIRED)
 find_package(libmcfp REQUIRED)
 
-# For the web interface
-pkg_check_modules(PQ libpq REQUIRED IMPORTED_TARGET)
-pkg_check_modules(PQXX libpqxx>=7.2 REQUIRED IMPORTED_TARGET)
+find_package(libpqxx 7.8 REQUIRED)
+
 pkg_check_modules(SSL libssl IMPORTED_TARGET)
 pkg_check_modules(CRYPTO libcrypto IMPORTED_TARGET)
 
@@ -176,10 +175,8 @@ target_link_libraries(alphafill
 	libmcfp::libmcfp
 	cifpp::cifpp
 	zeep::zeep
-	PkgConfig::PQXX
-	PkgConfig::PQ
-	PkgConfig::SSL
-	PkgConfig::CRYPTO
+	libpqxx::pqxx
+	PkgConfig::SSL PkgConfig::CRYPTO
 	std::filesystem)
 
 if(USE_RSRC)

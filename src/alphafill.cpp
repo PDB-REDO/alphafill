@@ -978,7 +978,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 		{ "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
 		{ "name", "alphafill" },
 		{ "version", kVersionNumber },
-		{ "date", kBuildDate },
+		{ "date", kRevisionDate },
 		{ "classification", "model annotation" } });
 
 	return result;
