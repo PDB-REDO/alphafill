@@ -185,7 +185,7 @@ int a_main(int argc, const char *argv[])
 
 	if (vm.count("help") or vm.count("xyzin") == 0)
 	{
-		std::cout << visible_options << std::endl;
+		std::cout << visible_options << '\n';
 		exit(vm.count("help") ? 0 : 1);
 	}
 
@@ -265,7 +265,7 @@ int a_main(int argc, const char *argv[])
 			{ "clash", CalculateClashScore(polyAtoms, resAtoms, maxDistance) }
 		};
 
-		std::cout << clash << std::endl;
+		std::cout << clash << '\n';
 	}
 
 	return 0;
@@ -276,7 +276,7 @@ int a_main(int argc, const char *argv[])
 // recursively print exception whats:
 void print_what(const std::exception &e)
 {
-	std::cerr << e.what() << std::endl;
+	std::cerr << e.what() << '\n';
 	try
 	{
 		std::rethrow_if_nested(e);

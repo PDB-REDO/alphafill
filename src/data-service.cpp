@@ -115,7 +115,7 @@ data_service::data_service()
 {
 	auto &config = mcfp::config::instance();
 
-	fs::path dir = config.get<std::string>("custom-dir");
+	fs::path dir = config.get("custom-dir");
 	m_in_dir = dir / "in";
 	m_out_dir = dir / "out";
 	m_work_dir = dir / "work";
@@ -416,7 +416,7 @@ bool data_service::exists_in_afdb(const std::string &id) const
 
 	auto &config = mcfp::config::instance();
 
-	std::string url = config.get<std::string>("alphafold-3d-beacon");
+	std::string url = config.get("alphafold-3d-beacon");
 
 	std::string::size_type i;
 	while ((i = url.find("${id}")) != std::string::npos)
@@ -443,7 +443,7 @@ std::tuple<std::filesystem::path, std::string> data_service::fetch_from_afdb(con
 {
 	auto &config = mcfp::config::instance();
 
-	std::string url = config.get<std::string>("alphafold-3d-beacon");
+	std::string url = config.get("alphafold-3d-beacon");
 
 	std::string::size_type i;
 	while ((i = url.find("${id}")) != std::string::npos)
@@ -485,7 +485,7 @@ std::tuple<std::filesystem::path, std::string> data_service::fetch_from_afdb(con
 
 	std::string line;
 	while (getline(in, line))
-		result << line << std::endl;
+		result << line << '\n';
 
 	zeep::http::uri uri(url);
 
@@ -537,7 +537,7 @@ struct data_service_progress : public alphafill_progress_cb
 // recursively print exception whats:
 void print_what(std::ostream &os, const std::exception &e)
 {
-	os << e.what() << std::endl;
+	os << e.what() << '\n';
 	try
 	{
 		std::rethrow_if_nested(e);
@@ -563,11 +563,11 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 	m_progress = 0;
 
 	if (cif::VERBOSE > 0)
-		std::cerr << "Running ID " << m_running << std::endl;
+		std::cerr << "Running ID " << m_running << '\n';
 
 	fs::rename(xyzin, m_work_dir / xyzin.filename(), ec);
 	if (ec)
-		std::cerr << "Error moving input file to work dir: " << ec.message() << std::endl;
+		std::cerr << "Error moving input file to work dir: " << ec.message() << '\n';
 
 	auto metadata = alphafill(f.front(), {}, data_service_progress{ m_progress });
 
@@ -578,7 +578,7 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 
 	fs::remove(m_work_dir / xyzin.filename(), ec);
 	if (ec)
-		std::cerr << "Error removing input file from work dir: " << ec.message() << std::endl;
+		std::cerr << "Error removing input file from work dir: " << ec.message() << '\n';
 
 	// int pid = fork();
 
@@ -601,7 +601,7 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 	// 	catch (const std::exception &ex)
 	// 	{
 	// 		std::ofstream errorFile(m_out_dir / ("CS-" + next + ".error"));
-	// 		errorFile << ex.what() << std::endl;
+	// 		errorFile << ex.what() << '\n';
 	// 		exit(1);
 	// 	}
 	// }
@@ -717,6 +717,7 @@ status_reply data_service::get_status(const std::string &af_id) const
 
 	fs::path jsonFile = file_locator::get_metadata_file(type, id, chunkNr, version);
 	fs::path cifFile = file_locator::get_structure_file(type, id, chunkNr, version);
+	// fs::path paeFile = file_locator::get_pae_file(type, id, chunkNr, version);
 
 	// See if this ID might have been processed already
 	if ((not fs::exists(jsonFile) or not fs::exists(cifFile)) and not m[4].matched)
@@ -819,7 +820,7 @@ std::string data_service::queue_af_id(const std::string &id)
 void data_service::queue_3d_beacon_request(const std::string &id)
 {
 	if (not m_queue_3db.push(id))
-		std::cerr << "Not queuing " << id << " since queue is full" << std::endl;
+		std::cerr << "Not queuing " << id << " since queue is full\n";
 }
 
 void data_service::run_3db()
@@ -860,13 +861,52 @@ void data_service::run_3db()
 		}
 		catch (const std::exception &ex)
 		{
-			std::cerr << "queuing 3d beacon request failed: " << ex.what() << std::endl;
+			std::cerr << "queuing 3d beacon request failed: " << ex.what() << '\n';
 		}
 	}
 }
 
 // --------------------------------------------------------------------
 // PAE support
+
+std::vector<cif::matrix<uint8_t>> data_service::load_pae_from_file(const std::filesystem::path &file)
+{
+	zeep::json::element data;
+
+	cif::gzio::ifstream in(file);
+
+	if (not in.is_open())
+		throw std::runtime_error("Could not open PAE file " + file.string());
+
+	zeep::json::parse_json(in, data);
+
+	if (not data.is_array())
+		throw std::runtime_error("Unexpected JSON result for PAE");
+
+	std::vector<cif::matrix<uint8_t>> result;
+
+	for (auto e : data)
+	{
+		if (not e.is_object())
+			throw std::runtime_error("Unexpected JSON result for PAE");
+		
+		auto &pae = e["predicted_aligned_error"];
+		if (not pae.is_array())
+			throw std::runtime_error("Unexpected JSON result for PAE");
+
+		size_t len = pae.size();
+
+		cif::matrix<uint8_t> &m = result.emplace_back(len, len);
+
+		for (size_t i = 0; i < len; ++i)
+		{
+			for (size_t j = 0; j < len; ++j)
+				m(i, j) = pae[i][j].as<int>();
+		}
+	}
+
+	return result;
+}
 
 std::vector<cif::matrix<uint8_t>> data_service::get_pae(const std::string &id, int chunk, int version) const
 {
@@ -887,7 +927,7 @@ std::vector<cif::matrix<uint8_t>> data_service::get_pae(const std::string &id, i
 	{
 		auto &config = mcfp::config::instance();
 
-		std::string url = config.get<std::string>("pae-url");
+		std::string url = config.get("pae-url");
 
 		std::string::size_type i;
 

@@ -238,19 +238,19 @@ double Align(std::vector<cif::mm::atom> &aA, std::vector<cif::mm::atom> &aB)
 	auto ta = center_points(pA);
 
 	if (cif::VERBOSE > 0)
-		std::cerr << "translate A: " << -ta << std::endl;
+		std::cerr << "translate A: " << -ta << '\n';
 
 	auto tb = center_points(pB);
 
 	if (cif::VERBOSE > 0)
-		std::cerr << "translate B: " << -tb << std::endl;
+		std::cerr << "translate B: " << -tb << '\n';
 
 	auto rotation = align_points(pB, pA);
 
 	if (cif::VERBOSE > 0)
 	{
 		const auto &[angle, axis] = cif::quaternion_to_angle_axis(rotation);
-		std::cerr << "rotation: " << angle << " degrees rotation around axis " << axis << std::endl;
+		std::cerr << "rotation: " << angle << " degrees rotation around axis " << axis << '\n';
 	}
 
 	for (auto b : aB)
@@ -262,7 +262,7 @@ double Align(std::vector<cif::mm::atom> &aA, std::vector<cif::mm::atom> &aB)
 	double result = CalculateRMSD(pA, pB);
 
 	if (cif::VERBOSE > 0)
-		std::cerr << "RMSd: " << result << std::endl;
+		std::cerr << "RMSd: " << result << '\n';
 
 	return result;
 }
@@ -273,19 +273,19 @@ double Align(const cif::mm::structure &a, cif::mm::structure &b,
 	auto ta = center_points(cAlphaA);
 
 	if (cif::VERBOSE > 0)
-		std::cerr << "translate A: " << -ta << std::endl;
+		std::cerr << "translate A: " << -ta << '\n';
 
 	auto tb = center_points(cAlphaB);
 
 	if (cif::VERBOSE > 0)
-		std::cerr << "translate B: " << -tb << std::endl;
+		std::cerr << "translate B: " << -tb << '\n';
 
 	auto rotation = align_points(cAlphaB, cAlphaA);
 
 	if (cif::VERBOSE > 0)
 	{
 		const auto &[angle, axis] = cif::quaternion_to_angle_axis(rotation);
-		std::cerr << "rotation: " << angle << " degrees rotation around axis " << axis << std::endl;
+		std::cerr << "rotation: " << angle << " degrees rotation around axis " << axis << '\n';
 	}
 
 	b.translate_rotate_and_translate(-tb, rotation, ta);
@@ -296,7 +296,7 @@ double Align(const cif::mm::structure &a, cif::mm::structure &b,
 	double result = CalculateRMSD(cAlphaA, cAlphaB);
 
 	if (cif::VERBOSE > 0)
-		std::cerr << "RMSd: " << result << std::endl;
+		std::cerr << "RMSd: " << result << '\n';
 
 	return result;
 }
@@ -761,7 +761,7 @@ std::tuple<float,float,float> validateCif(cif::datablock &db, const std::string 
 			if (caA.empty())
 			{
 				if (cif::VERBOSE > 0)
-					std::cerr << "No CA atoms mapped, skipping" << std::endl;
+					std::cerr << "No CA atoms mapped, skipping\n";
 				continue;
 			}
 
@@ -806,7 +806,7 @@ std::tuple<float,float,float> validateCif(cif::datablock &db, const std::string 
 				catch (const std::exception &ex)
 				{
 					if (cif::VERBOSE > 0)
-						std::cerr << ex.what() << std::endl;
+						std::cerr << ex.what() << '\n';
 				}
 			}
 
@@ -827,7 +827,7 @@ std::tuple<float,float,float> validateCif(cif::datablock &db, const std::string 
 			if (pA.empty())
 			{
 				if (cif::VERBOSE > 0)
-					std::cerr << "Could not find poly atoms near " << afRes << std::endl;
+					std::cerr << "Could not find poly atoms near " << afRes << '\n';
 				continue;
 			}
 
@@ -895,12 +895,12 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 
 					result = -1;
 
-					std::cerr << "Mismatch for " << id << " strand " << strand << std::endl;
+					std::cerr << "Mismatch for " << id << " strand " << strand << '\n';
 
-					std::cerr << std::endl
-								<< decode(a) << std::endl
-								<< seq << std::endl
-								<< std::endl;
+					std::cerr << '\n'
+								<< decode(a) << '\n'
+								<< seq << '\n'
+								<< '\n';
 
 					mismatch.push_back(id);
 
@@ -923,7 +923,7 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 				}
 				catch (std::exception const &ex)
 				{
-					std::cerr << ex.what() << std::endl;
+					std::cerr << ex.what() << '\n';
 				}
 			}
 		});
@@ -961,18 +961,18 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 		unequal_length.erase(std::unique(unequal_length.begin(), unequal_length.end()), unequal_length.end());
 		not_x_related.erase(std::unique(not_x_related.begin(), not_x_related.end()), not_x_related.end());
 
-		std::cout << "Report for fasta check" << std::endl
-				  << std::string(80, '-') << std::endl
-				  << std::endl
-				  << "PDB ID's with mismatches" << std::endl
-				  << cif::join(mismatch, ", ") << std::endl
-				  << std::endl
-				  << "PDB ID's with differing sequence length" << std::endl
-				  << cif::join(unequal_length, ", ") << std::endl
-				  << std::endl
-				  << "PDB ID's with mismatches that do not involve X" << std::endl
-				  << cif::join(not_x_related, ", ") << std::endl
-				  << std::endl;
+		std::cout << "Report for fasta check\n"
+				  << std::string(80, '-') << '\n'
+				  << '\n'
+				  << "PDB ID's with mismatches\n"
+				  << cif::join(mismatch, ", ") << '\n'
+				  << '\n'
+				  << "PDB ID's with differing sequence length\n"
+				  << cif::join(unequal_length, ", ") << '\n'
+				  << '\n'
+				  << "PDB ID's with mismatches that do not involve X\n"
+				  << cif::join(not_x_related, ", ") << '\n'
+				  << '\n';
 	}
 
 	return result;
@@ -1006,13 +1006,13 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 
 // 	if (vm.count("db-dir") == 0)
 // 	{
-// 		std::cout << "AlphaFill data directory not specified" << std::endl;
+// 		std::cout << "AlphaFill data directory not specified\n";
 // 		exit(1);
 // 	}
 
 // 	if (vm.count("pdb-dir") == 0)
 // 	{
-// 		std::cout << "PDB directory not specified" << std::endl;
+// 		std::cout << "PDB directory not specified\n";
 // 		exit(1);
 // 	}
 
@@ -1024,7 +1024,7 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 
 // 	if (vm.count("af-id") == 0 or vm.count("pdb-id") == 0)
 // 	{
-// 		std::cout << "AlphaFold ID or ligand not specified" << std::endl;
+// 		std::cout << "AlphaFold ID or ligand not specified\n";
 // 		exit(1);
 // 	}
 
@@ -1033,7 +1033,7 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 // 	fs::path ligandsFile = vm["ligands"].as<std::string>();
 // 	if (not fs::exists(ligandsFile))
 // 	{
-// 		std::cerr << "Ligands file not found" << std::endl;
+// 		std::cerr << "Ligands file not found\n";
 // 		exit(1);
 // 	}
 
@@ -1102,7 +1102,7 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 // 				if (caA.empty())
 // 				{
 // 					if (cif::VERBOSE > 0)
-// 						std::cerr << "No CA atoms mapped, skipping" << std::endl;
+// 						std::cerr << "No CA atoms mapped, skipping\n";
 // 					continue;
 // 				}
 
@@ -1147,7 +1147,7 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 // 					catch (const std::exception &ex)
 // 					{
 // 						if (cif::VERBOSE > 0)
-// 							std::cerr << ex.what() << std::endl;
+// 							std::cerr << ex.what() << '\n';
 // 					}
 // 				}
 
@@ -1168,7 +1168,7 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 // 				if (pA.empty())
 // 				{
 // 					if (cif::VERBOSE > 0)
-// 						std::cerr << "Could not find poly atoms near " << afRes << std::endl;
+// 						std::cerr << "Could not find poly atoms near " << afRes << '\n';
 // 					continue;
 // 				}
 
@@ -1191,13 +1191,13 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 // 						<< std::setprecision(5) << rmsd2 << '\t'
 // 						<< std::setprecision(5) << rmsd3 << '\t'
 // 						<< pA.size() << '\t'
-// 						<< lA.size() << std::endl;
+// 						<< lA.size() << '\n';
 // 			}
 // 			catch (const std::exception &ex)
 // 			{
 // 				if (cif::VERBOSE >= 0)
-// 					std::cerr << "Failed to process asym " << asymID << " in " << pdbID << std::endl
-// 							  << ex.what() << std::endl;
+// 					std::cerr << "Failed to process asym " << asymID << " in " << pdbID << '\n'
+// 							  << ex.what() << '\n';
 
 // 				std::cout << afID << '\t'
 // 						<< pdbID << '\t'
@@ -1209,7 +1209,7 @@ int validateFastA(fs::path fasta, fs::path dbDir, int threads)
 // 						<< 0 << '\t'
 // 						<< 0 << '\t'
 // 						<< 0 << '\t'
-// 						<< 0 << std::endl;
+// 						<< 0 << '\n';
 // 			}
 // 		}
 // 	}

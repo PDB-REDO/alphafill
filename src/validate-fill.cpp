@@ -188,13 +188,13 @@ int a_main(int argc, char *const argv[])
 
 	if (vm.count("db-dir") == 0)
 	{
-		std::cout << "AlphaFill data directory not specified" << std::endl;
+		std::cout << "AlphaFill data directory not specified\n";
 		exit(1);
 	}
 
 	if (vm.count("pdb-dir") == 0)
 	{
-		std::cout << "PDB directory not specified" << std::endl;
+		std::cout << "PDB directory not specified\n";
 		exit(1);
 	}
 
@@ -206,7 +206,7 @@ int a_main(int argc, char *const argv[])
 
 	if (vm.count("af-id") == 0 or vm.count("pdb-id") == 0)
 	{
-		std::cout << "AlphaFold ID or ligand not specified" << std::endl;
+		std::cout << "AlphaFold ID or ligand not specified\n";
 		exit(1);
 	}
 
@@ -215,7 +215,7 @@ int a_main(int argc, char *const argv[])
 	fs::path ligandsFile = vm["ligands"].as<std::string>();
 	if (not fs::exists(ligandsFile))
 	{
-		std::cerr << "Ligands file not found" << std::endl;
+		std::cerr << "Ligands file not found\n";
 		exit(1);
 	}
 
@@ -284,7 +284,7 @@ int a_main(int argc, char *const argv[])
 				if (caA.empty())
 				{
 					if (cif::VERBOSE > 0)
-						std::cerr << "No CA atoms mapped, skipping" << std::endl;
+						std::cerr << "No CA atoms mapped, skipping\n";
 					continue;
 				}
 
@@ -329,7 +329,7 @@ int a_main(int argc, char *const argv[])
 					catch (const std::exception &ex)
 					{
 						if (cif::VERBOSE > 0)
-							std::cerr << ex.what() << std::endl;
+							std::cerr << ex.what() << '\n';
 					}
 				}
 
@@ -350,7 +350,7 @@ int a_main(int argc, char *const argv[])
 				if (pA.empty())
 				{
 					if (cif::VERBOSE > 0)
-						std::cerr << "Could not find poly atoms near " << afRes << std::endl;
+						std::cerr << "Could not find poly atoms near " << afRes << '\n';
 					continue;
 				}
 
@@ -373,13 +373,13 @@ int a_main(int argc, char *const argv[])
 						<< std::setprecision(5) << rmsd2 << '\t'
 						<< std::setprecision(5) << rmsd3 << '\t'
 						<< pA.size() << '\t'
-						<< lA.size() << std::endl;
+						<< lA.size() << '\n';
 			}
 			catch (const std::exception &ex)
 			{
 				if (cif::VERBOSE >= 0)
-					std::cerr << "Failed to process asym " << asymID << " in " << pdbID << std::endl
-							  << ex.what() << std::endl;
+					std::cerr << "Failed to process asym " << asymID << " in " << pdbID << '\n'
+							  << ex.what() << '\n';
 
 				std::cout << afID << '\t'
 						<< pdbID << '\t'
@@ -391,7 +391,7 @@ int a_main(int argc, char *const argv[])
 						<< 0 << '\t'
 						<< 0 << '\t'
 						<< 0 << '\t'
-						<< 0 << std::endl;
+						<< 0 << '\n';
 			}
 		}
 	}

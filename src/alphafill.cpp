@@ -28,6 +28,7 @@
 #include "blast.hpp"
 #include "data-service.hpp"
 #include "ligands.hpp"
+#include "main.hpp"
 #include "queue.hpp"
 #include "revision.hpp"
 #include "utilities.hpp"
@@ -140,19 +141,62 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 }
 
 // --------------------------------------------------------------------
-// 
+//
 
-int create_blast_index()
+int create_index(int argc, char *const argv[])
 {
-	auto &config = mcfp::config::instance();
+	auto &config = load_and_init_config("alphafill create-index [options]",
+		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
+		mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
+		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
+		mcfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
+		mcfp::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"));
 
-	fs::path pdbDir = config.get<std::string>("pdb-dir");
+	parse_argv(argc, argv, config);
 
-	// fs::path ligandsFile = config.get<std::string>("ligands");
-	// if (not fs::exists(ligandsFile))
-	// 	throw std::runtime_error("Ligands file not found");
+	// --------------------------------------------------------------------
 
-	// LigandsTable ligands(ligandsFile);
+	if (not config.has("pdb-fasta"))
+	{
+		std::cout << "fasta file not specified\n";
+		return 1;
+	}
+
+	if (not config.has("pdb-dir"))
+	{
+		std::cout << "PDB directory not specified\n";
+		return 1;
+	}
+
+	// --------------------------------------------------------------------
+
+	fs::path pdbDir = config.get("pdb-dir");
+	if (not fs::is_directory(pdbDir))
+		throw std::runtime_error("PDB directory does not exist");
+
+	// --------------------------------------------------------------------
+
+	std::set<std::string> pdb_ids, ligand_ids;
+
+	fs::path tmpPDBIdsListFile = config.get("pdb-id-list") + ".tmp";
+	std::ofstream tmpPDBIdsList(tmpPDBIdsListFile);
+
+	if (not tmpPDBIdsList.is_open())
+		throw std::runtime_error("Could not open temporary file for writing (" + tmpPDBIdsListFile.string() + ")");
+
+	if (config.has("ligands"))
+	{
+		fs::path ligandsFile = config.get("ligands");
+		if (not fs::exists(ligandsFile))
+			throw std::runtime_error("Ligands file not found");
+
+		cif::file lgf(ligandsFile);
+		for (auto &db : lgf)
+		{
+			if (db["ligand"].count(cif::key("priority") == "y"))
+				ligand_ids.emplace(db.name());
+		}
+	}
 
 	size_t N = 0;
 	for (fs::directory_iterator iter(pdbDir); iter != fs::directory_iterator(); ++iter)
@@ -173,27 +217,27 @@ int create_blast_index()
 		nrOfThreads = std::thread::hardware_concurrency();
 
 	blocking_queue<fs::path> q1;
-	blocking_queue<std::tuple<std::string,std::string,std::string>> q2;
+	blocking_queue<std::tuple<std::string, std::string, std::string, bool>> q2;
 
 	std::vector<std::thread> t;
 	std::vector<std::vector<std::string>> t_result(nrOfThreads);
 
-	fs::path tmpFile = config.get<std::string>("pdb-fasta") + ".tmp";
-	std::ofstream tmpFastA(tmpFile);
+	fs::path tmpFastAFile = config.get("pdb-fasta") + ".tmp";
+	std::ofstream tmpFastA(tmpFastAFile);
 
 	if (not tmpFastA.is_open())
-		throw std::runtime_error("Could not open temporary file for writing (" + tmpFile.string() + ")");
+		throw std::runtime_error("Could not open temporary file for writing (" + tmpFastAFile.string() + ")");
 
 	// The writing thread
-	std::thread tc([&q2,&tmpFastA]()
-	{
+	std::thread tc([&q2, &tmpFastA, &tmpPDBIdsList]()
+		{
 		for (;;)
 		{
-			const auto &[pdb_id, entity_id, seq] = q2.pop();
+			const auto &[pdb_id, entity_id, seq, incl] = q2.pop();
 			if (pdb_id.empty())
 				break;
 			
-			tmpFastA << ">pdb-entity|" << pdb_id << '|' << entity_id << std::endl;
+			tmpFastA << ">pdb-entity|" << pdb_id << '|' << entity_id << '\n';
 
 			size_t o = 0;
 			for (char l : seq)
@@ -205,19 +249,21 @@ int create_blast_index()
 				if (++o == 80)
 				{
 					o = 0;
-					tmpFastA << std::endl;
+					tmpFastA << '\n';
 				}
 			}
 
 			if (o != 0)
-				tmpFastA << std::endl;
-		}
-	});
+				tmpFastA << '\n';
+			
+			if (incl)
+				tmpPDBIdsList << pdb_id << '\n';
+		} });
 
 	for (int i = 0; i < nrOfThreads; ++i)
 	{
-		t.emplace_back([&q1, &q2, ix = i]()
-		{
+		t.emplace_back([&q1, &q2, ix = i, &ligand_ids]()
+			{
 			for (;;)
 			{
 				fs::path f = q1.pop();
@@ -236,6 +282,17 @@ int create_blast_index()
 
 					auto &db = pdbFile.front();
 					auto pdbID = db.name();
+					bool include = false;
+
+					auto &chem_comp = db["chem_comp"];
+					for (auto &comp_id : chem_comp.rows<std::string>("id"))
+					{
+						if (ligand_ids.count(comp_id))
+						{
+							include = true;
+							break;
+						}
+					}
 
 					auto &entity_poly = db["entity_poly"];
 
@@ -243,12 +300,12 @@ int create_blast_index()
 						entity_poly.find<std::string,std::string,std::string>(cif::key("type") == "polypeptide(L)",
 							"entity_id", "type", "pdbx_seq_one_letter_code_can"))
 					{
-						q2.push({pdbID, entity_id, seq});
+						q2.push({pdbID, entity_id, seq, include});
 					}
 				}
 				catch(const std::exception& e)
 				{
-					std::cerr << e.what() << std::endl;
+					std::cerr << e.what() << '\n';
 				}
 			} });
 	}
@@ -295,8 +352,8 @@ int create_blast_index()
 	}
 	catch (const std::exception &ex)
 	{
-		std::cerr << "Error in walking files: " << ex.what() << std::endl;
-		exit(1);
+		std::cerr << "Error in walking files: " << ex.what() << '\n';
+		return 1;
 	}
 
 	// signal end
@@ -309,20 +366,35 @@ int create_blast_index()
 
 	tc.join();
 
-	// replace the old one
+	// replace the old files
 	std::error_code ec;
-	fs::path fastaFile = config.get<std::string>("pdb-fasta");
+	fs::path fastaFile = config.get("pdb-fasta");
 
 	if (fs::exists(fastaFile, ec))
 		fs::remove(fastaFile, ec);
-	
+
 	if (ec)
 		throw std::runtime_error("Could not replace fasta file: " + ec.message());
-	
-	fs::rename(tmpFile, fastaFile, ec);
+
+	fs::rename(tmpFastAFile, fastaFile, ec);
 
 	if (ec)
 		throw std::runtime_error("Could not rename fasta file: " + ec.message());
+
+	// pdb-id-list
+
+	fs::path pdbIdsListFile = config.get("pdb-id-list");
+
+	if (fs::exists(pdbIdsListFile, ec))
+		fs::remove(pdbIdsListFile, ec);
+
+	if (ec)
+		throw std::runtime_error("Could not replace pdb-id-list file: " + ec.message());
+
+	fs::rename(tmpPDBIdsListFile, pdbIdsListFile, ec);
+
+	if (ec)
+		throw std::runtime_error("Could not rename pdb-id-list file: " + ec.message());
 
 	return 0;
 }
@@ -335,14 +407,14 @@ void check_blast_index()
 	std::ifstream file(indexFile);
 	if (not file.is_open())
 		throw std::runtime_error("Could not open blast index file (pdb-fasta option)");
-	
+
 	std::string line;
 	if (not getline(file, line) or line.empty())
 		throw std::runtime_error("blast index file (pdb-fasta option) seems to be empty");
 
 	std::regex rx(R"(>pdb-entity\|(\w{4,})\|(\w+)( .+)?)");
 	if (not std::regex_match(line, rx))
-		throw std::runtime_error("The first line in the blast index file does not seem to be correct, please re-create a blast index using the create-blast-index command");
+		throw std::runtime_error("The first line in the blast index file does not seem to be correct, please re-create a blast index using the create-index command");
 }
 
 zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae)
@@ -408,7 +480,7 @@ zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_
 
 	result["scores"] = s;
 
-// std::cout << std::setw(1) << result << std::endl;
+	// std::cout << std::setw(1) << result << '\n';
 
 	return result;
 }
@@ -422,12 +494,12 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 
 	auto &config = mcfp::config::instance();
 
-	std::string fasta = config.get<std::string>("pdb-fasta");
-	fs::path pdbDir = config.get<std::string>("pdb-dir");
+	std::string fasta = config.get("pdb-fasta");
+	fs::path pdbDir = config.get("pdb-dir");
 
 	// --------------------------------------------------------------------
 
-	fs::path ligandsFile = config.get<std::string>("ligands");
+	fs::path ligandsFile = config.get("ligands");
 	if (not fs::exists(ligandsFile))
 		throw std::runtime_error("Ligands file not found");
 
@@ -439,13 +511,13 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 
 	cif::iset pdbIDsContainingLigands;
 	if (config.has("test-pdb-id"))
-		pdbIDsContainingLigands.emplace(config.get<std::string>("test-pdb-id"));
+		pdbIDsContainingLigands.emplace(config.get("test-pdb-id"));
 	else if (config.has("pdb-id-list"))
 	{
-		std::ifstream file(config.get<std::string>("pdb-id-list"));
+		std::ifstream file(config.get("pdb-id-list"));
 
 		if (not file.is_open())
-			throw std::runtime_error("Could not open pdb-id-list " + config.get<std::string>("pdb-id-list"));
+			throw std::runtime_error("Could not open pdb-id-list " + config.get("pdb-id-list"));
 
 		std::string line;
 		while (std::getline(file, line))
@@ -510,9 +582,9 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 			seq.end());
 
 		if (cif::VERBOSE > 0)
-			std::cerr << "Blasting:" << std::endl
-					  << seq << std::endl
-					  << std::endl;
+			std::cerr << "Blasting:\n"
+					  << seq << '\n'
+					  << '\n';
 
 		int threads = config.get<int>("threads");
 		if (threads == 0)
@@ -521,7 +593,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 		auto result = BlastP(fasta, seq, "BLOSUM62", 3, 10, true, true, 11, 1, config.get<uint32_t>("blast-report-limit"), threads);
 
 		if (cif::VERBOSE > 0)
-			std::cerr << "Found " << result.size() << " hits" << std::endl;
+			std::cerr << "Found " << result.size() << " hits\n";
 
 		progress.set_max_1(result.size());
 
@@ -533,8 +605,8 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 			if (not regex_match(hit.mDefLine, m, kIDRx))
 			{
 				if (cif::VERBOSE > 0)
-					std::cerr << "Could not interpret defline from blast hit:" << std::endl
-							  << hit.mDefLine << std::endl;
+					std::cerr << "Could not interpret defline from blast hit:\n"
+							  << hit.mDefLine << '\n';
 				continue;
 			}
 
@@ -547,7 +619,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 				continue;
 
 			if (cif::VERBOSE > 0)
-				std::cerr << "pdb id: " << pdb_id << '\t' << "entity id: " << entity_id << std::endl;
+				std::cerr << "pdb id: " << pdb_id << '\t' << "entity id: " << entity_id << '\n';
 
 			try
 			{
@@ -595,7 +667,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 					}
 					catch (const std::exception &ex)
 					{
-						std::cerr << ex.what() << std::endl;
+						std::cerr << ex.what() << '\n';
 						continue;
 					}
 				}
@@ -623,7 +695,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 					// no_compounds.insert(pdb_id);
 
 					if (cif::VERBOSE > 0)
-						std::cerr << "This structure does not contain any transplantable compound" << std::endl;
+						std::cerr << "This structure does not contain any transplantable compound\n";
 
 					continue;
 				}
@@ -632,7 +704,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 
 				// if (not validateHit(pdb_structure, hit))
 				// {
-				// 	std::cerr << "invalid fasta for hit " << hit.mDefLine << std::endl;
+				// 	std::cerr << "invalid fasta for hit " << hit.mDefLine << '\n';
 				// 	exit(1);
 				// }
 
@@ -642,26 +714,26 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 
 					if (pdb_res.size() == 0)
 					{
-						std::cerr << "Missing chain " << chain_id << " in " << pdb_id << std::endl;
+						std::cerr << "Missing chain " << chain_id << " in " << pdb_id << '\n';
 						continue;
 					}
 
 					for (auto &hsp : hit.mHsps)
 					{
 						if (cif::VERBOSE > 0)
-							std::cerr << "hsp, identity " << std::fixed << std::setprecision(2) << hsp.identity() << " length " << hsp.length() << std::endl;
+							std::cerr << "hsp, identity " << std::fixed << std::setprecision(2) << hsp.identity() << " length " << hsp.length() << '\n';
 
 						if (hsp.length() < minAlignmentLength)
 						{
 							if (cif::VERBOSE > 0)
-								std::cerr << "hsp not long enough" << std::endl;
+								std::cerr << "hsp not long enough\n";
 							continue;
 						}
 
 						if (hsp.identity() < minHspIdentity)
 						{
 							if (cif::VERBOSE > 0)
-								std::cerr << "hsp not identical enough" << std::endl;
+								std::cerr << "hsp not identical enough\n";
 							continue;
 						}
 
@@ -670,7 +742,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 						// sanity check, happened unfortunately when the fasta was out of sync with the real PDB
 						if (pdb_ix_trimmed.back() >= pdb_res.size())
 						{
-							std::cerr << "Probably incorrect fasta entry for " << hit.mDefLine << std::endl;
+							std::cerr << "Probably incorrect fasta entry for " << hit.mDefLine << '\n';
 							continue;
 						}
 
@@ -710,12 +782,12 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 							}
 
 							if (af_ca_trimmed.size() < af_ix_trimmed.size() and cif::VERBOSE > 0)
-								std::cerr << "Nr of missing CA: " << (af_ix_trimmed.size() - af_ca_trimmed.size()) << std::endl;
+								std::cerr << "Nr of missing CA: " << (af_ix_trimmed.size() - af_ca_trimmed.size()) << '\n';
 
 							if (af_ca_trimmed.empty())
 							{
 								if (cif::VERBOSE > 0)
-									std::cerr << "No CA atoms mapped, skipping" << std::endl;
+									std::cerr << "No CA atoms mapped, skipping\n";
 								continue;
 							}
 
@@ -746,12 +818,12 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								if (pdb_near_r.size() == 0)
 								{
 									if (cif::VERBOSE > 0)
-										std::cerr << "There are no atoms found near residue " << res << std::endl;
+										std::cerr << "There are no atoms found near residue " << res << '\n';
 									continue;
 								}
 
 								if (cif::VERBOSE > 1)
-									std::cerr << "Found " << pdb_near_r.size() << " atoms nearby" << std::endl;
+									std::cerr << "Found " << pdb_near_r.size() << " atoms nearby\n";
 
 								// realign based on these nearest atoms.
 								if (pdb_near_r.size() > 3)
@@ -760,7 +832,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								{
 									rmsd = 0;
 									if (cif::VERBOSE > 0)
-										std::cerr << "There are not enough atoms found near residue " << res << " to fine tune rotation" << std::endl;
+										std::cerr << "There are not enough atoms found near residue " << res << " to fine tune rotation\n";
 								}
 
 								auto analogue = ligand.analogueID();
@@ -775,7 +847,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 									case UniqueType::Seen:
 									{
 										if (cif::VERBOSE > 0)
-											std::cerr << "Residue " << res << " is not unique enough" << std::endl;
+											std::cerr << "Residue " << res << " is not unique enough\n";
 										continue;
 									}
 
@@ -784,7 +856,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 										if (cif::VERBOSE > 0)
 										{
 											auto &rep_res = af_structure.get_residue(replace_id);
-											std::cerr << "Residue " << res << " has more atoms than the first transplant " << rep_res << std::endl;
+											std::cerr << "Residue " << res << " has more atoms than the first transplant " << rep_res << '\n';
 
 											af_structure.remove_residue(rep_res);
 										}
@@ -846,7 +918,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								if (polyAtomCount == 0)
 								{
 									if (cif::VERBOSE > 0)
-										std::cerr << "Residue " << res << " skipped because there are no atoms nearby in the polymer" << std::endl;
+										std::cerr << "Residue " << res << " skipped because there are no atoms nearby in the polymer\n";
 									continue;
 								}
 
@@ -882,8 +954,8 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								for (auto atom : res.atoms())
 								{
 									for (auto conn : pdb_struct_conn.find(
-											("ptnr1_label_asym_id"_key == atom.get_label_asym_id() and "ptnr1_label_atom_id"_key == atom.get_label_atom_id()) or
-											("ptnr2_label_asym_id"_key == atom.get_label_asym_id() and "ptnr2_label_atom_id"_key == atom.get_label_atom_id())))
+											 ("ptnr1_label_asym_id"_key == atom.get_label_asym_id() and "ptnr1_label_atom_id"_key == atom.get_label_atom_id()) or
+											 ("ptnr2_label_asym_id"_key == atom.get_label_asym_id() and "ptnr2_label_atom_id"_key == atom.get_label_atom_id())))
 									{
 										std::string a_type, a_comp;
 										if (conn["ptnr1_label_asym_id"].as<std::string>() == atom.get_label_asym_id() and
@@ -904,7 +976,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 										if (not a_a)
 										{
 											if (cif::VERBOSE > 0)
-												std::cerr << "Could not create a connection to " << atom << std::endl;
+												std::cerr << "Could not create a connection to " << atom << '\n';
 											continue;
 										}
 
@@ -944,7 +1016,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 										auto asym_id_list = cif::split<std::string>(r["asym_id_list"].as<std::string>(), ",", true);
 										if (find(asym_id_list.begin(), asym_id_list.end(), af_res.front()->get_asym_id()) == asym_id_list.end())
 											continue;
-										
+
 										asym_id_list.push_back(asym_id);
 										r["asym_id_list"] = cif::join(asym_id_list, ",");
 										break;
@@ -955,7 +1027,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								ligand.modify(af_structure, asym_id);
 
 								if (cif::VERBOSE > 0)
-									std::cerr << "Created asym " << asym_id << " for " << res << std::endl;
+									std::cerr << "Created asym " << asym_id << " for " << res << '\n';
 							}
 
 							if (not r_hsp["transplants"].empty())
@@ -974,8 +1046,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 	af_structure.cleanup_empty_categories();
 
 	auto &software = af_structure.get_category("software");
-	software.emplace({
-		{ "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
+	software.emplace({ { "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
 		{ "name", "alphafill" },
 		{ "version", kVersionNumber },
 		{ "date", kRevisionDate },
@@ -1015,20 +1086,78 @@ struct my_progress : public alphafill_progress_cb
 
 int alphafill_main(int argc, char *const argv[])
 {
-	check_blast_index();
+	auto &config = load_and_init_config("usage: alphafill process <inputfile> [--pae-file=<paefile>] [<outputfile>] [options]",
 
-	auto &config = mcfp::config::instance();
+		mcfp::make_option<std::string>("pae-file", "Specify a specific file containing PAE information, default is to use a filename based on inputfile"),
 
-	if (config.operands().size() < 2)
+		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
+		mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
+
+		mcfp::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"),
+		mcfp::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
+
+		mcfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
+
+		mcfp::make_option<float>("max-ligand-to-backbone-distance", 6, "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure"),
+		mcfp::make_option<float>("min-hsp-identity", 0.25, "The minimal identity for a high scoring pair (note, value between 0 and 1)"),
+		mcfp::make_option<int>("min-alignment-length", 85, "The minimal length of an alignment"),
+		mcfp::make_option<float>("min-separation-distance", 3.5, "The centroids of two identical ligands should be at least this far apart to count as separate occurrences"),
+		mcfp::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
+
+		mcfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
+
+		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
+
+		mcfp::make_hidden_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries")
+
+	);
+
+	parse_argv(argc, argv, config);
+
+	if (config.operands().size() > 2 or config.operands().size() < 1)
 	{
-		std::cout << "Input file not specified" << std::endl;
-		exit(1);
+		std::cerr << config << '\n';
+		return 1;
 	}
 
-	fs::path xyzin = config.operands()[1];
+	// --------------------------------------------------------------------
 
-	std::vector<PAE_matrix> v_pae;
-	if (config.has("fetch-pae"))
+	if (not config.has("pdb-fasta"))
+	{
+		std::cout << "fasta file not specified\n";
+		return 1;
+	}
+
+	check_blast_index();
+
+	if (not config.has("pdb-dir"))
+	{
+		std::cout << "PDB directory not specified\n";
+		return 1;
+	}
+
+	// --------------------------------------------------------------------
+
+	if (config.operands().size() < 1)
+	{
+		std::cout << "Input file not specified\n";
+		return 1;
+	}
+
+	fs::path xyzin = config.operands().front();
+
+	cif::file f(xyzin);
+	if (f.empty())
+	{
+		std::cerr << "Empty cif file?\n";
+		return 1;
+	}
+
+	fs::path paein;
+
+	if (config.has("pae-file"))
+		paein = config.get("pae-file");
+	else
 	{
 		auto filename = xyzin.filename();
 
@@ -1040,21 +1169,22 @@ int alphafill_main(int argc, char *const argv[])
 
 		const auto &[type, af_id, chunk, version] = parse_af_id(filename);
 
-		v_pae = data_service::instance().get_pae(af_id, chunk, version);
+		// paein = xyzin.parent_path() / std::format("AF-{}-F{}-predicted_aligned_error_v{}.json", af_id, chunk, version);
+		paein = xyzin.parent_path() / cif::format("AF-%s-F%d-predicted_aligned_error_v%d.json", af_id, chunk, version).str();
 	}
 
-	cif::file f(xyzin);
-	if (f.empty())
-		throw std::runtime_error("Empty cif file?");
+	std::vector<PAE_matrix> v_pae;
+	if (fs::exists(paein))
+		v_pae = data_service::load_pae_from_file(paein);
 
-	if (config.operands().size() >= 3)
+	json metadata = alphafill(f.front(), v_pae, my_progress{});
+
+	if (config.operands().size() == 2)
 	{
 		fs::path output = config.operands()[2];
 
 		if (output.has_parent_path() and not fs::exists(output.parent_path()))
 			fs::create_directories(output.parent_path());
-
-		json metadata = alphafill(f.front(), v_pae, my_progress{});
 
 		cif::gzio::ofstream xyzout(output);
 		f.save(xyzout);
@@ -1066,10 +1196,7 @@ int alphafill_main(int argc, char *const argv[])
 		outfile << metadata;
 	}
 	else
-	{
-		alphafill(f.front(), v_pae, my_progress{});
 		f.save(std::cout);
-	}
 
 	return 0;
 }

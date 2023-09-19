@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2022 NKI/AVL, Netherlands Cancer Institute
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -45,8 +45,7 @@ struct alphafill_progress_cb
 using PAE_matrix = cif::matrix<uint8_t>;
 
 zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> &pae, alphafill_progress_cb &&progress);
-int alphafill_main(int argc, char * const argv[]);
+int alphafill_main(int argc, char *const argv[]);
 
-int create_blast_index();
+int create_index(int argc, char *const argv[]);
 void check_blast_index();
-

@@ -39,13 +39,13 @@ namespace fs = std::filesystem;
 // --------------------------------------------------------------------
 
 file_locator::file_locator(mcfp::config &config)
-	: m_db_dir(config.get<std::string>("db-dir"))
-	, m_pdb_dir(config.get<std::string>("pdb-dir"))
-	, m_custom_dir(fs::path(config.get<std::string>("custom-dir")) / "out")
-	, m_structure_name_pattern(config.get<std::string>("structure-name-pattern"))
-	, m_pdb_name_pattern(config.get<std::string>("pdb-name-pattern"))
-	, m_metadata_name_pattern(config.get<std::string>("metadata-name-pattern"))
-	, m_pae_name_pattern(config.get<std::string>("pae-name-pattern"))
+	: m_db_dir(config.get("db-dir"))
+	, m_pdb_dir(config.get("pdb-dir"))
+	, m_custom_dir(fs::path(config.get("custom-dir")) / "out")
+	, m_structure_name_pattern(config.get("structure-name-pattern"))
+	, m_pdb_name_pattern(config.get("pdb-name-pattern"))
+	, m_metadata_name_pattern(config.get("metadata-name-pattern"))
+	, m_pae_name_pattern(config.get("pae-name-pattern"))
 {
 	// if (not fs::is_directory(m_db_dir))
 	// 	throw std::runtime_error("AlphfaFill data directory does not exist");

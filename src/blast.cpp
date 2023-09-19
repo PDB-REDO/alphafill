@@ -1511,8 +1511,8 @@ void BlastQuery<WORDSIZE>::WriteAsFasta(std::ostream &inStream)
 			seq += kResidues[r];
 		}
 
-		inStream << hit->mDefLine << std::endl
-				 << seq << std::endl;
+		inStream << hit->mDefLine << '\n'
+				 << seq << '\n';
 	}
 }
 

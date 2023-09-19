@@ -26,3 +26,26 @@
 
 #pragma once
 
+#include <mcfp.hpp>
+
+template <typename... Options>
+mcfp::config &load_and_init_config(std::string_view usage, Options... options)
+{
+	auto &config = mcfp::config::instance();
+
+	config.init(usage,
+		mcfp::make_option("version", "Show version number"),
+		mcfp::make_option("verbose,v", "Show verbose output"),
+
+		mcfp::make_option("help,h", "Display help message"),
+		mcfp::make_option("quiet", "Do not produce warnings"),
+
+		mcfp::make_option<std::string>("config", "alphafill.conf", "Configuration file to use"),
+
+		options...
+	);
+
+	return config;
+}
+
+void parse_argv(int argc, char * const argv[], mcfp::config &config);

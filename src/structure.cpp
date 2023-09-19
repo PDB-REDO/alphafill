@@ -221,7 +221,7 @@ json optimizeWithYasara(const std::string &af_id, std::set<std::string> requeste
 	using namespace std::literals;
 
 	auto &config = mcfp::config::instance();
-	auto yasara = config.get<std::string>("yasara");
+	auto yasara = config.get("yasara");
 
 	static std::atomic<int> sYasaraRunNr = 1;
 
@@ -365,7 +365,7 @@ json optimizeWithYasara(const std::string &af_id, std::set<std::string> requeste
 	if (status != 0)
 	{
 		std::stringstream msg;
-		msg << "Error executing yasara, exit code is: " << status << std::endl;
+		msg << "Error executing yasara, exit code is: " << status << '\n';
 
 		if (fs::exists(tmpdir / "errorexit.txt"))
 		{

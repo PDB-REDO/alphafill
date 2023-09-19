@@ -248,7 +248,7 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 			else if (error)
 			{
 				if (mcfp::config::instance().has("verbose"))
-					std::cerr << error << std::endl;
+					std::cerr << error << '\n';
 				break;
 			}
 		}

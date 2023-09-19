@@ -72,7 +72,7 @@ bool db_error_handler::create_error_reply(const zeep::http::request& req, std::e
 	}
 	catch (pqxx::broken_connection& ex)
 	{
-		std::cerr << ex.what() << std::endl;
+		std::cerr << ex.what() << '\n';
 		db_connection::instance().reset();
 	}
 	catch (...)
