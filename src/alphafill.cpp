@@ -1138,12 +1138,6 @@ int alphafill_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	if (config.operands().size() < 1)
-	{
-		std::cout << "Input file not specified\n";
-		return 1;
-	}
-
 	fs::path xyzin = config.operands().front();
 
 	cif::file f(xyzin);
@@ -1181,7 +1175,7 @@ int alphafill_main(int argc, char *const argv[])
 
 	if (config.operands().size() == 2)
 	{
-		fs::path output = config.operands()[2];
+		fs::path output = config.operands().back();
 
 		if (output.has_parent_path() and not fs::exists(output.parent_path()))
 			fs::create_directories(output.parent_path());
