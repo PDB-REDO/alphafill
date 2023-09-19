@@ -39,8 +39,6 @@
 #include <zeep/http/uri.hpp>
 #include <zeep/json/parser.hpp>
 
-#include "mrsrc.hpp"
-
 #include "alphafill.hpp"
 #include "data-service.hpp"
 #include "db-connection.hpp"
@@ -353,32 +351,19 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 {
 	pqxx::work tx(db_connection::instance());
 
-#if USE_RSRC
-	mrsrc::rsrc schema("db-schema.sql");
+	auto schema = cif::load_resource("db-schema.sql");
 	if (not schema)
-		throw std::runtime_error("database schema not found, did you include the resource?");
+		throw std::runtime_error("database schema not found (looking for db-schema.sql)");
 
-	std::string s(schema.data(), schema.size());
+	std::ostringstream os;
+	os << schema->rdbuf();
+
+	std::string s(os.str());
 
 	cif::replace_all(s, "$OWNER", db_user);
 
 	tx.exec0(s);
 	tx.commit();
-#else
-	try
-	{
-		auto r = tx.exec1("select count(*) from af_structure");
-		tx.commit();
-
-		if (r.front().as<uint32_t>() > 0)
-			throw std::runtime_error("not empty");
-	}
-	catch (const std::exception &e)
-	{
-		std::cerr << "Not built using resources, please create and/or empty the tables manually before running rebuild-db" << std::endl;
-		exit(1);
-	}
-#endif
 
 	std::vector<fs::path> files;
 	for (auto di = fs::recursive_directory_iterator(db_dir); di != fs::recursive_directory_iterator(); ++di)

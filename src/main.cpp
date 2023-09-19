@@ -75,8 +75,8 @@ int main(int argc, char *const argv[])
 
 	try
 	{
-#if defined(DATA_DIR)
-		cif::add_data_directory(DATA_DIR);
+#if defined(ALPHAFILL_DATA_DIR)
+		cif::add_data_directory(ALPHAFILL_DATA_DIR);
 #endif
 
 		auto &config = mcfp::config::instance();

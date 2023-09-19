@@ -1064,13 +1064,7 @@ int server_main(int argc, char *const argv[])
 
 	zh::daemon server([&]()
 	{
-		// auto sc = new zh::security_context(secret, ibs_user_service::instance());
-		// sc->add_rule("/admin", { "ADMIN" });
-		// sc->add_rule("/admin/**", { "ADMIN" });
-		// sc->add_rule("/media,/media/**", { "ADMIN", "EDITOR" });
-		// sc->add_rule("/", {});
-
-		/* auto &ds = */ data_service::instance();
+		data_service::instance();
 
 		auto s = new zeep::http::server(/*sc*/);
 
@@ -1080,13 +1074,13 @@ int server_main(int argc, char *const argv[])
 		s->add_error_handler(new db_error_handler());
 		s->add_error_handler(new missing_entry_error_handler());
 
-#ifndef NDEBUG
+#if not defined(NDEBUG)
 		s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
+#elif defined(ALPHAFILL_DATA_DIR)
+		s->set_template_processor(new zeep::http::file_based_html_template_processor(ALPHAFILL_DATA_DIR "docroot"));
 #else
 		s->set_template_processor(new zeep::http::rsrc_based_html_template_processor());
 #endif
-		// s->add_controller(new zh::login_controller());
-		// s->add_controller(new user_admin_rest_controller());
 
 		s->add_controller(new affd_html_controller());
 		s->add_controller(new affd_rest_controller());

@@ -44,8 +44,6 @@
 #include <zeep/http/reply.hpp>
 #include <zeep/json/parser.hpp>
 
-#include "mrsrc.hpp"
-
 #include "bsd-closefrom.h"
 
 #include "data-service.hpp"
@@ -238,10 +236,10 @@ json optimizeWithYasara(const std::string &af_id, std::set<std::string> requeste
 
 	std::string script_s = (tmpdir / "refine.mcr").c_str();
 	std::ofstream script(script_s);
-	mrsrc::istream r_script("refine.mcr");
+	auto r_script = cif::load_resource("refine.mcr");
 	if (not r_script)
-		throw std::runtime_error("Missing resource");
-	script << r_script.rdbuf();
+		throw std::runtime_error("Missing resource refine.mcr");
+	script << r_script->rdbuf();
 	script.close();
 
 	std::string modelin = ("modelin='" + (tmpdir / "input.cif").string() + "'");

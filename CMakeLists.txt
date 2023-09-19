@@ -34,11 +34,11 @@ include(CheckFunctionExists)
 include(CheckIncludeFiles)
 include(CheckLibraryExists)
 include(CMakePackageConfigHelpers)
-include(Dart)
 include(FindFilesystem)
 include(FindPkgConfig)
 include(GenerateExportHeader)
 include(AddGitSubmodule)
+include(CTest)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
@@ -82,31 +82,12 @@ endif()
 include(VersionString)
 write_version_header("${PROJECT_SOURCE_DIR}/src/")
 
-# Optionally use mrc to create resources
-find_package(Mrc QUIET)
-
-if(MRC_FOUND)
-	option(USE_RSRC "Use mrc to create resources" ON)
-else()
-	message(STATUS "Not using resources since mrc was not found")
-endif()
-
-if(USE_RSRC)
-	message("Using resources compiled with ${MRC_EXECUTABLE}")
-	add_compile_definitions(USE_RSRC WEBAPP_USES_RESOURCES)
-
-	mrc_write_header(${CMAKE_BINARY_DIR}/mrsrc.hpp)
-endif()
-
 find_package(Filesystem REQUIRED)
 find_package(zeep 6.0.4 REQUIRED)
 find_package(cifpp 5.1.2 REQUIRED)
 find_package(libmcfp REQUIRED)
-
 find_package(libpqxx 7.8 REQUIRED)
-
-pkg_check_modules(SSL libssl IMPORTED_TARGET)
-pkg_check_modules(CRYPTO libcrypto IMPORTED_TARGET)
+find_package(OpenSSL REQUIRED)
 
 find_program(YARN yarn REQUIRED)
 
@@ -147,6 +128,7 @@ add_executable(alphafill
 	${PROJECT_SOURCE_DIR}/src/matrix.cpp
 	${PROJECT_SOURCE_DIR}/src/main.cpp
 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
+
 	# ${PROJECT_SOURCE_DIR}/src/af-filledd.cpp
 	${PROJECT_SOURCE_DIR}/src/db-connection.cpp
 	${PROJECT_SOURCE_DIR}/src/data-service.cpp
@@ -171,15 +153,21 @@ target_compile_definitions(alphafill PUBLIC
 
 add_dependencies(alphafill webpack)
 
-target_link_libraries(alphafill
-	libmcfp::libmcfp
-	cifpp::cifpp
-	zeep::zeep
-	libpqxx::pqxx
-	PkgConfig::SSL PkgConfig::CRYPTO
-	std::filesystem)
+target_link_libraries(alphafill libmcfp::libmcfp cifpp::cifpp zeep::zeep libpqxx::pqxx OpenSSL::SSL OpenSSL::Crypto std::filesystem)
+
+# Optionally use mrc to create resources
+find_package(Mrc QUIET)
+
+if(MRC_FOUND)
+	option(USE_RSRC "Use mrc to create resources" ON)
+else()
+	message(STATUS "Not using resources since mrc was not found")
+endif()
 
 if(USE_RSRC)
+	message("Using resources compiled with ${MRC_EXECUTABLE}")
+	add_compile_definitions(USE_RSRC WEBAPP_USES_RESOURCES)
+
 	mrc_target_resources(alphafill
 
 		${PROJECT_SOURCE_DIR}/docroot/
@@ -189,4 +177,29 @@ if(USE_RSRC)
 		${CIFPP_SHARE_DIR}/mmcif_pdbx.dic
 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic
 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_ma.dic)
+else()
+	set(ALPHAFILL_DATA_DIR $<IF:$<CONFIG:Debug>,${PROJECT_SOURCE_DIR}/rsrc,${CMAKE_INSTALL_FULL_DATADIR}/alphafill> )
+	add_compile_definitions(ALPHAFILL_DATA_DIR="${ALPHAFILL_DATA_DIR}")
+endif()
+
+# installation
+install(TARGETS alphafill RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# If we do not use resources, install the resource data in a share directory
+if(NOT USE_RSRC)
+	install(FILES
+		${PROJECT_SOURCE_DIR}/db-schema.sql
+		${PROJECT_SOURCE_DIR}/scripts/refine.mcr
+
+		${CIFPP_SHARE_DIR}/mmcif_pdbx.dic
+		${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic
+		${PROJECT_SOURCE_DIR}/rsrc/mmcif_ma.dic
+
+		DESTINATION ${ALPHAFILL_DATA_DIR}
+	)
+
+	install(DIRECTORY
+		${PROJECT_SOURCE_DIR}/docroot
+		DESTINATION ${ALPHAFILL_DATA_DIR}
+	)
 endif()
