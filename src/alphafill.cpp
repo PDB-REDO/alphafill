@@ -447,18 +447,33 @@ zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_
 		}
 	}
 
+	cif::symmetric_matrix<float> distances(af_res.size());
+
+	for (size_t i = 0; i + 1 < af_res.size(); ++i)
+	{
+		for (size_t j = i + 1; j < af_res.size(); ++j)
+			distances(i, j) = distance(af_res[i]->get_atom_by_atom_id("CA"), af_res[j]->get_atom_by_atom_id("CA"));
+	}
+
 	zeep::json::element result;
 	auto &pae_s = result["pae"];
+	auto &pae_ss = result["pae-scaled"];
 
 	std::vector<float> s(32);
 
 	for (size_t i = 0; i < index.size(); ++i)
 	{
 		std::vector<uint8_t> v(index.size());
+		std::vector<float> vs(index.size());
 
 		for (size_t j = 0; j < index.size(); ++j)
+		{
 			v[j] = pae(index[i], index[j]);
+			if (distances(i, j) != 0)
+				vs[j] = v[j] / distances(i, j);
+		}
 		pae_s.push_back(v);
+		pae_ss.push_back(vs);
 	}
 
 	for (size_t i = 0; i < index.size(); ++i)

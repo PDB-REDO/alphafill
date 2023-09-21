@@ -50,7 +50,7 @@ namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
 
-std::regex kAF_ID_Rx(R"((?:(AF|CS)-)?(.+?)(?:-F(\d+)(?:-model_v(\d))?)?)");
+std::regex kAF_ID_Rx(R"((?:(AF|CS)-)?(.+?)(?:-F(\d+)(?:-(?:model|filled)_v(\d))?)?)");
 
 std::tuple<EntryType, std::string, int, int> parse_af_id(std::string af_id)
 {
@@ -692,7 +692,7 @@ status_reply data_service::get_status(const std::string &af_id) const
 	status_reply reply;
 
 	EntryType type = EntryType::Unknown;
-	int chunkNr = 1, version = 2;
+	int chunkNr = 1, version = 4;
 	std::string id;
 
 	std::smatch m;
@@ -719,12 +719,12 @@ status_reply data_service::get_status(const std::string &af_id) const
 	fs::path cifFile = file_locator::get_structure_file(type, id, chunkNr, version);
 	// fs::path paeFile = file_locator::get_pae_file(type, id, chunkNr, version);
 
-	// See if this ID might have been processed already
-	if ((not fs::exists(jsonFile) or not fs::exists(cifFile)) and not m[4].matched)
-	{
-		jsonFile = file_locator::get_metadata_file(type, id, chunkNr, 3);
-		cifFile = file_locator::get_structure_file(type, id, chunkNr, 3);
-	}
+	// // See if this ID might have been processed already
+	// if ((not fs::exists(jsonFile) or not fs::exists(cifFile)) and not m[4].matched)
+	// {
+	// 	jsonFile = file_locator::get_metadata_file(type, id, chunkNr, 3);
+	// 	cifFile = file_locator::get_structure_file(type, id, chunkNr, 3);
+	// }
 
 	if (fs::exists(jsonFile) and fs::exists(cifFile))
 		reply.status = CustomStatus::Finished;

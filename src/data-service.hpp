@@ -42,7 +42,7 @@ enum class EntryType { Unknown, AlphaFold, Custom };
 
 /// \brief Return the UniprotID and chunk number for an AlphaFold ID.
 ///
-/// Split an id in the form of AF-UNIPROTID-F<CHUNKNR>-model_v<VERSION>
+/// Split an id in the form of AF-UNIPROTID-F<CHUNKNR>-(model|filled)_v<VERSION>
 std::tuple<EntryType,std::string,int,int> parse_af_id(std::string af_id);
 
 // --------------------------------------------------------------------
@@ -60,7 +60,6 @@ struct compound
 	{
 		ar & zeep::make_nvp("id", id)
 		   & zeep::make_nvp("analogue", analogue)
-		//    & zeep::make_nvp("name", name)
 		   & zeep::make_nvp("structure-count", count_structures)
 		   & zeep::make_nvp("transplant-count", count_transplants);
 	}
