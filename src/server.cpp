@@ -24,12 +24,12 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "server.hpp"
 #include "alphafill.hpp"
 #include "data-service.hpp"
 #include "db-connection.hpp"
 #include "ligands.hpp"
 #include "main.hpp"
-#include "server.hpp"
 #include "structure.hpp"
 #include "utilities.hpp"
 
@@ -49,7 +49,7 @@
 namespace fs = std::filesystem;
 namespace zh = zeep::http;
 
-const std::array<uint32_t, 6> kIdentities{70, 60, 50, 40, 30, 25};
+const std::array<uint32_t, 6> kIdentities{ 70, 60, 50, 40, 30, 25 };
 
 const int
 	kPageSize = 20,
@@ -376,10 +376,10 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 			}
 
 			throw missing_entry_error(af_id);
-		
+
 		case CustomStatus::Finished:
 			break;
-		
+
 		case CustomStatus::Error:
 		{
 			const auto &[type, afId, chunkNr, version] = parse_af_id(af_id);
@@ -387,7 +387,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 
 			sub.put("error-id", af_id);
 			sub.put("error", status.message.value_or("<< message is missing >>"));
-			
+
 			get_template_processor().create_reply_from_template("index", sub, reply);
 			return;
 		}
@@ -398,7 +398,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 			get_template_processor().create_reply_from_template("wait", sub, reply);
 			return;
 	}
-	
+
 	const auto &[type, afId, chunkNr, version] = parse_af_id(af_id);
 
 	fs::path jsonFile = file_locator::get_metadata_file(type, afId, chunkNr, version);
@@ -484,7 +484,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 				hit["rmsd"].as<double>(),
 				transplant["asym_id"].as<std::string>(),
 				transplant["clash"]["score"].as<double>(),
-				transplant["rmsd"].as<double>()});
+				transplant["rmsd"].as<double>() });
 		}
 	}
 
@@ -543,8 +543,8 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 	// 11.43, 3.04 voor global, en 3.10 en 0.92 voor local
 	sub.put("cutoff", json{
 						  // {"global", {{"unreliable", 11.43}, {"suspect", 3.04}}},
-						  {"local", {{"unreliable", 3.10}, {"suspect", 0.92}}},
-						  {"tcs", {{"unreliable", 1.27}, {"suspect", 0.64}}}});
+						  { "local", { { "unreliable", 3.10 }, { "suspect", 0.92 } } },
+						  { "tcs", { { "unreliable", 1.27 }, { "suspect", 0.64 } } } });
 
 	get_template_processor().create_reply_from_template("model", sub, reply);
 }
@@ -684,14 +684,14 @@ status_reply affd_rest_controller::get_aff_status(const std::string &af_id)
 
 zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
 {
-	zeep::http::reply rep(zeep::http::ok, {1, 1});
+	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
 
 	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
 
 	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
-		return zeep::http::reply(zeep::http::not_found, {1, 1});
+		return zeep::http::reply(zeep::http::not_found, { 1, 1 });
 
 	if (get_header("accept-encoding").find("gzip") != std::string::npos)
 	{
@@ -703,8 +703,8 @@ zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
 		cif::gzio::ifstream in(file);
 
 		if (not in.is_open())
-			return zeep::http::reply(zeep::http::not_found, {1, 1});
-		
+			return zeep::http::reply(zeep::http::not_found, { 1, 1 });
+
 		std::ostringstream os;
 		os << in.rdbuf();
 
@@ -719,7 +719,7 @@ zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
 
 zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af_id, const std::string &asyms, int identity)
 {
-	zeep::http::reply rep(zeep::http::ok, {1, 1});
+	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
 
 	auto requestedAsyms = cif::split(asyms, ",");
 	std::set<std::string> requestedAsymSet{ requestedAsyms.begin(), requestedAsyms.end() };
@@ -750,7 +750,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 		auto filename = file.filename();
 		if (filename.extension() == ".gz")
 			filename.replace_extension("");
-		
+
 		rep.set_header("content-disposition", "attachement; filename = \"" + filename.string() + "\"");
 	}
 
@@ -759,7 +759,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 
 zh::reply affd_rest_controller::get_aff_structure_optimized(const std::string &af_id, const std::string &asyms)
 {
-	zeep::http::reply rep(zeep::http::ok, {1, 1});
+	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
 
 	auto requestedAsyms = cif::split(asyms, ",");
 	std::set<std::string> requestedAsymSet{ requestedAsyms.begin(), requestedAsyms.end() };
@@ -786,7 +786,7 @@ zh::reply affd_rest_controller::get_aff_structure_optimized(const std::string &a
 
 zh::reply affd_rest_controller::get_aff_structure_optimized_with_stats(const std::string &af_id, const std::string &asyms)
 {
-	zeep::http::reply rep(zeep::http::ok, {1, 1});
+	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
 
 	auto requestedAsyms = cif::split(asyms, ",");
 	std::set<std::string> requestedAsymSet{ requestedAsyms.begin(), requestedAsyms.end() };
@@ -855,13 +855,13 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 		throw zeep::http::not_found;
 	}
 
-	int version_major = 1, version_minor = 0;
+	int version_major = 1 /* , version_minor = 0 */;
 	std::smatch m;
 	if (std::regex_match(version_3dbeacons, m, KVersionRX))
 	{
 		version_major = std::stoi(m[1]);
-		if (m.length() >= 2)
-			version_minor = std::stoi(m[2]);
+		// if (m.length() >= 2)
+		// 	version_minor = std::stoi(m[2]);
 	}
 
 	using namespace std::chrono;
@@ -889,24 +889,25 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 	std::string db_code = struct_ref.front()["db_code"].as<std::string>();
 
 	zeep::json::element result{
-		{"uniprot_entry", {{"ac", id},
-							  {"id", db_code},
-							  {"sequence_length", uniprot_end - uniprot_start + 1}}}};
+		{ "uniprot_entry", { { "ac", id },
+							   { "id", db_code },
+							   { "sequence_length", uniprot_end - uniprot_start + 1 } } }
+	};
 
 	if (version_major >= 2)
 	{
 		zeep::json::element summary{
-			{"model_identifier", id},
-			{"model_category", "TEMPLATE-BASED"},
-			{"model_url", "https://alphafill.eu/v1/aff/" + id},
-			{"model_format", "MMCIF"},
-			{"model_page_url", "https://alphafill.eu/model?id=" + id},
-			{"provider", "AlphaFill"},
-			{"created", ss.str()},
-			{"sequence_identity", 1.0},
-			{"uniprot_start", uniprot_start},
-			{"uniprot_end", uniprot_end},
-			{"coverage", 1.0},
+			{ "model_identifier", id },
+			{ "model_category", "TEMPLATE-BASED" },
+			{ "model_url", "https://alphafill.eu/v1/aff/" + id },
+			{ "model_format", "MMCIF" },
+			{ "model_page_url", "https://alphafill.eu/model?id=" + id },
+			{ "provider", "AlphaFill" },
+			{ "created", ss.str() },
+			{ "sequence_identity", 1.0 },
+			{ "uniprot_start", uniprot_start },
+			{ "uniprot_end", uniprot_end },
+			{ "coverage", 1.0 },
 		};
 
 		auto &entities = summary["entities"];
@@ -916,17 +917,17 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 		{
 			if (type == "polymer")
 			{
-				entities.push_back({{"entity_type", "POLYMER"},
-					{"entity_poly_type", "POLYPEPTIDE(L)"},
-					{"description", description}});
+				entities.push_back({ { "entity_type", "POLYMER" },
+					{ "entity_poly_type", "POLYPEPTIDE(L)" },
+					{ "description", description } });
 				entities.back()["chain_ids"].push_back("A");
 				continue;
 			}
 
 			if (type == "non-polymer")
 			{
-				entities.push_back({{"entity_type", "NON-POLYMER"},
-					{"description", description}});
+				entities.push_back({ { "entity_type", "NON-POLYMER" },
+					{ "description", description } });
 
 				auto &chain_ids = entities.back()["chain_ids"];
 
@@ -937,21 +938,21 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 			}
 		}
 
-		result["structures"].push_back({{"summary", summary}});
+		result["structures"].push_back({ { "summary", summary } });
 	}
 	else
 	{
-		result["structures"].push_back({{"model_identifier", id},
-			{"model_category", "DEEP-LEARNING"},
-			{"model_url", "https://alphafill.eu/v1/aff/" + id},
-			{"model_page_url", "https://alphafill.eu/model?id=" + id},
-			{"model_format", "MMCIF"},
-			{"provider", "AlphaFill"},
-			{"created", ss.str()},
-			{"sequence_identity", 1.0},
-			{"coverage", 1.0},
-			{"uniprot_start", uniprot_start},
-			{"uniprot_end", uniprot_end}});
+		result["structures"].push_back({ { "model_identifier", id },
+			{ "model_category", "DEEP-LEARNING" },
+			{ "model_url", "https://alphafill.eu/v1/aff/" + id },
+			{ "model_page_url", "https://alphafill.eu/model?id=" + id },
+			{ "model_format", "MMCIF" },
+			{ "provider", "AlphaFill" },
+			{ "created", ss.str() },
+			{ "sequence_identity", 1.0 },
+			{ "coverage", 1.0 },
+			{ "uniprot_start", uniprot_start },
+			{ "uniprot_end", uniprot_end } });
 	}
 
 	return result;
@@ -979,112 +980,109 @@ zeep::json::element affd_rest_controller::post_custom_structure(const std::strin
 
 // --------------------------------------------------------------------
 
-int rebuild_db_main(int argc, char * const argv[])
+int rebuild_db_main(int argc, char *const argv[])
 {
 	using namespace std::literals;
 
 	auto &config = mcfp::config::instance();
 
+	// auto &config = mcfp::config::instance();
+	// config.init(
+	// 	"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate', 'create-blast-index' or 'rebuild-db'",
+	// 	mcfp::make_option("version", "Show version number"),
+	// 	mcfp::make_option("verbose,v", "Show verbose output"),
 
-		// auto &config = mcfp::config::instance();
-		// config.init(
-		// 	"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate', 'create-blast-index' or 'rebuild-db'",
-		// 	mcfp::make_option("version", "Show version number"),
-		// 	mcfp::make_option("verbose,v", "Show verbose output"),
+	// 	mcfp::make_option("help,h", "Display help message"),
+	// 	mcfp::make_option("quiet", "Do not produce warnings"),
 
-		// 	mcfp::make_option("help,h", "Display help message"),
-		// 	mcfp::make_option("quiet", "Do not produce warnings"),
+	// 	mcfp::make_option<std::string>("config", "alphafill.conf", "Configuration file to use"),
 
-		// 	mcfp::make_option<std::string>("config", "alphafill.conf", "Configuration file to use"),
+	// 	mcfp::make_option<std::string>("af-dir", "Directory containing the alphafold data"),
+	// 	mcfp::make_option<std::string>("db-dir", "Directory containing the alphafilled data"),
+	// 	mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 
-		// 	mcfp::make_option<std::string>("af-dir", "Directory containing the alphafold data"),
-		// 	mcfp::make_option<std::string>("db-dir", "Directory containing the alphafilled data"),
-		// 	mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
+	// 	mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
+	// 	mcfp::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"),
 
-		// 	mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
-		// 	mcfp::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"),
+	// 	mcfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
 
-		// 	mcfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
+	// 	mcfp::make_option<float>("max-ligand-to-backbone-distance", 6, "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure"),
+	// 	mcfp::make_option<float>("min-hsp-identity", 0.25, "The minimal identity for a high scoring pair (note, value between 0 and 1)"),
+	// 	mcfp::make_option<int>("min-alignment-length", 85, "The minimal length of an alignment"),
+	// 	mcfp::make_option<float>("min-separation-distance", 3.5, "The centroids of two identical ligands should be at least this far apart to count as separate occurrences"),
+	// 	mcfp::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
 
-		// 	mcfp::make_option<float>("max-ligand-to-backbone-distance", 6, "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure"),
-		// 	mcfp::make_option<float>("min-hsp-identity", 0.25, "The minimal identity for a high scoring pair (note, value between 0 and 1)"),
-		// 	mcfp::make_option<int>("min-alignment-length", 85, "The minimal length of an alignment"),
-		// 	mcfp::make_option<float>("min-separation-distance", 3.5, "The centroids of two identical ligands should be at least this far apart to count as separate occurrences"),
-		// 	mcfp::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
+	// 	mcfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
 
-		// 	mcfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
+	// 	mcfp::make_option<std::string>("compounds", "Location of the components.cif file from CCD"),
+	// 	mcfp::make_option<std::string>("components", "Location of the components.cif file from CCD, alias"),
+	// 	mcfp::make_option<std::string>("extra-compounds", "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file"),
+	// 	mcfp::make_option<std::string>("mmcif-dictionary", "Path to the mmcif_pdbx.dic file to use instead of default"),
 
-		// 	mcfp::make_option<std::string>("compounds", "Location of the components.cif file from CCD"),
-		// 	mcfp::make_option<std::string>("components", "Location of the components.cif file from CCD, alias"),
-		// 	mcfp::make_option<std::string>("extra-compounds", "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file"),
-		// 	mcfp::make_option<std::string>("mmcif-dictionary", "Path to the mmcif_pdbx.dic file to use instead of default"),
+	// 	mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.gz", "Pattern for locating structure files"),
+	// 	mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.json", "Pattern for locating metadata files"),
+	// 	mcfp::make_option<std::string>("pdb-name-pattern", "${pdb-dir}/${id:1:2}/${id}/${id}_final.cif", "Pattern for locating PDB files"),
 
-		// 	mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.gz", "Pattern for locating structure files"),
-		// 	mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.json", "Pattern for locating metadata files"),
-		// 	mcfp::make_option<std::string>("pdb-name-pattern", "${pdb-dir}/${id:1:2}/${id}/${id}_final.cif", "Pattern for locating PDB files"),
+	// 	mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
 
-		// 	mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
+	// 	mcfp::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
 
-		// 	mcfp::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
+	// 	mcfp::make_option<std::string>("alphafold-3d-beacon", "https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${id}.json?provider=alphafold",
+	// 		"The URL of the 3d-beacons service for alphafold"),
 
-		// 	mcfp::make_option<std::string>("alphafold-3d-beacon", "https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${id}.json?provider=alphafold",
-		// 		"The URL of the 3d-beacons service for alphafold"),
+	// 	mcfp::make_option<std::string>("pae-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.pae.json",
+	// 		"Pattern for location cached PAE scores"),
+	// 	mcfp::make_option<std::string>("pae-url", "https://alphafold.ebi.ac.uk/files/AF-${id}-F${chunk}-predicted_aligned_error_v${version}.json",
+	// 		"The URL to use to retrieve PAE scores from the EBI"),
 
-		// 	mcfp::make_option<std::string>("pae-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.pae.json",
-		// 		"Pattern for location cached PAE scores"),
-		// 	mcfp::make_option<std::string>("pae-url", "https://alphafold.ebi.ac.uk/files/AF-${id}-F${chunk}-predicted_aligned_error_v${version}.json",
-		// 		"The URL to use to retrieve PAE scores from the EBI"),
+	// 	mcfp::make_option("fetch-pae", "Try to fetch the PAE scores based on the input file name"),
 
-		// 	mcfp::make_option("fetch-pae", "Try to fetch the PAE scores based on the input file name"),
+	// 	mcfp::make_option("no-daemon,F", "Do not fork a background process"),
+	// 	mcfp::make_option<std::string>("address", "Address to listen to"),
+	// 	mcfp::make_option<unsigned short>("port", "Port to listen to"),
+	// 	mcfp::make_option<std::string>("user", "User to run as"),
+	// 	mcfp::make_option<std::string>("context", "Reverse proxy context"),
+	// 	mcfp::make_option<std::string>("db-link-template", "Template for links to pdb(-redo) entry"),
+	// 	mcfp::make_option<std::string>("db-dbname", "AF DB name"),
+	// 	mcfp::make_option<std::string>("db-user", "AF DB owner"),
+	// 	mcfp::make_option<std::string>("db-password", "AF DB password"),
+	// 	mcfp::make_option<std::string>("db-host", "AF DB host"),
+	// 	mcfp::make_option<std::string>("db-port", "AF DB port"),
 
-		// 	mcfp::make_option("no-daemon,F", "Do not fork a background process"),
-		// 	mcfp::make_option<std::string>("address", "Address to listen to"),
-		// 	mcfp::make_option<unsigned short>("port", "Port to listen to"),
-		// 	mcfp::make_option<std::string>("user", "User to run as"),
-		// 	mcfp::make_option<std::string>("context", "Reverse proxy context"),
-		// 	mcfp::make_option<std::string>("db-link-template", "Template for links to pdb(-redo) entry"),
-		// 	mcfp::make_option<std::string>("db-dbname", "AF DB name"),
-		// 	mcfp::make_option<std::string>("db-user", "AF DB owner"),
-		// 	mcfp::make_option<std::string>("db-password", "AF DB password"),
-		// 	mcfp::make_option<std::string>("db-host", "AF DB host"),
-		// 	mcfp::make_option<std::string>("db-port", "AF DB port"),
+	// 	mcfp::make_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries"),
 
-		// 	mcfp::make_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries"),
+	// 	mcfp::make_option<std::string>("yasara", "/opt/yasara/yasara", "Location of the yasara executable, needed for optimising"),
 
-		// 	mcfp::make_option<std::string>("yasara", "/opt/yasara/yasara", "Location of the yasara executable, needed for optimising"),
+	// 	mcfp::make_hidden_option("test", "Run test code")
+	// 	);
 
-		// 	mcfp::make_hidden_option("test", "Run test code")
-		// 	);
+	// // --------------------------------------------------------------------
 
+	// if (not config.has("pdb-fasta"))
+	// {
+	// 	std::cout << "fasta file not specified\n";
+	// 	exit(1);
+	// }
 
-		// // --------------------------------------------------------------------
+	// if (not config.has("pdb-dir"))
+	// {
+	// 	std::cout << "PDB directory not specified\n";
+	// 	exit(1);
+	// }
 
-		// if (not config.has("pdb-fasta"))
-		// {
-		// 	std::cout << "fasta file not specified\n";
-		// 	exit(1);
-		// }
+	// // --------------------------------------------------------------------
 
-		// if (not config.has("pdb-dir"))
-		// {
-		// 	std::cout << "PDB directory not specified\n";
-		// 	exit(1);
-		// }
+	// fs::path pdbDir = config.get("pdb-dir");
+	// if (not fs::is_directory(pdbDir))
+	// 	throw std::runtime_error("PDB directory does not exist");
 
-		// // --------------------------------------------------------------------
-
-		// fs::path pdbDir = config.get("pdb-dir");
-		// if (not fs::is_directory(pdbDir))
-		// 	throw std::runtime_error("PDB directory does not exist");
-
-		// // --------------------------------------------------------------------
-		
+	// // --------------------------------------------------------------------
 
 	fs::path dbDir = config.get("db-dir");
 
 	std::vector<std::string> vConn;
 	std::string db_user;
-	for (std::string opt : {"db-host", "db-port", "db-dbname", "db-user", "db-password"})
+	for (std::string opt : { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
 	{
 		if (not config.has(opt))
 			continue;
@@ -1107,126 +1105,97 @@ int server_main(int argc, char *const argv[])
 {
 	using namespace std::literals;
 
-	auto &config = load_and_init_config("usage: alphafill process <inputfile> [options]"
+	auto &config = load_and_init_config(
+		R"(usage: alphafill server <command> [options]
+
+  where command is one of:
+
+    start          Start a new webserver instance
+    stop           Stop the currently running webserver instance
+    status         Report the status of a currently running webserver
+    reload         Reload the configuration, re-open log files and restart
+                   the currently running webserver
+)",
+
+		mcfp::make_option<std::string>("af-dir", "Directory containing the alphafold data"),
+		mcfp::make_option<std::string>("db-dir", "Directory containing the alphafilled data"),
+		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
+
+		mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
+		mcfp::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"),
+
+		mcfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
+
+		mcfp::make_option<float>("max-ligand-to-backbone-distance", 6, "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure"),
+		mcfp::make_option<float>("min-hsp-identity", 0.25, "The minimal identity for a high scoring pair (note, value between 0 and 1)"),
+		mcfp::make_option<int>("min-alignment-length", 85, "The minimal length of an alignment"),
+		mcfp::make_option<float>("min-separation-distance", 3.5, "The centroids of two identical ligands should be at least this far apart to count as separate occurrences"),
+		mcfp::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
+
+		mcfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
+
+		mcfp::make_option<std::string>("compounds", "Location of the components.cif file from CCD"),
+		mcfp::make_option<std::string>("components", "Location of the components.cif file from CCD, alias"),
+		mcfp::make_option<std::string>("extra-compounds", "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file"),
+		mcfp::make_option<std::string>("mmcif-dictionary", "Path to the mmcif_pdbx.dic file to use instead of default"),
+
+		mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.gz", "Pattern for locating structure files"),
+		mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.json", "Pattern for locating metadata files"),
+		mcfp::make_option<std::string>("pdb-name-pattern", "${pdb-dir}/${id:1:2}/${id}/${id}_final.cif", "Pattern for locating PDB files"),
+
+		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
+
+		mcfp::make_option<std::string>("alphafold-3d-beacon", "https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${id}.json?provider=alphafold",
+			"The URL of the 3d-beacons service for alphafold"),
+
+		mcfp::make_option<std::string>("pae-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.pae.json",
+			"Pattern for location cached PAE scores"),
+		mcfp::make_option<std::string>("pae-url", "https://alphafold.ebi.ac.uk/files/AF-${id}-F${chunk}-predicted_aligned_error_v${version}.json",
+			"The URL to use to retrieve PAE scores from the EBI"),
+
+		mcfp::make_option("no-daemon,F", "Do not fork a background process"),
+		mcfp::make_option<std::string>("address", "Address to listen to"),
+		mcfp::make_option<unsigned short>("port", "Port to listen to"),
+		mcfp::make_option<std::string>("user", "User to run as"),
+		mcfp::make_option<std::string>("context", "Reverse proxy context"),
+		mcfp::make_option<std::string>("db-link-template", "Template for links to pdb(-redo) entry"),
+		mcfp::make_option<std::string>("db-dbname", "AF DB name"),
+		mcfp::make_option<std::string>("db-user", "AF DB owner"),
+		mcfp::make_option<std::string>("db-password", "AF DB password"),
+		mcfp::make_option<std::string>("db-host", "AF DB host"),
+		mcfp::make_option<std::string>("db-port", "AF DB port"),
+
+		mcfp::make_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries"),
+
+		mcfp::make_option<std::string>("yasara", "/opt/yasara/yasara", "Location of the yasara executable, needed for optimising")
 
 	);
-		// config.init(
-		// 	"usage: alphafill command [options]\n       (where command is one of 'server', 'process', 'validate', 'create-blast-index' or 'rebuild-db'",
-		// 	mcfp::make_option("version", "Show version number"),
-		// 	mcfp::make_option("verbose,v", "Show verbose output"),
 
-		// 	mcfp::make_option("help,h", "Display help message"),
-		// 	mcfp::make_option("quiet", "Do not produce warnings"),
+	parse_argv(argc, argv, config);
 
-		// 	mcfp::make_option<std::string>("config", "alphafill.conf", "Configuration file to use"),
-
-		// 	mcfp::make_option<std::string>("af-dir", "Directory containing the alphafold data"),
-		// 	mcfp::make_option<std::string>("db-dir", "Directory containing the alphafilled data"),
-		// 	mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
-
-		// 	mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
-		// 	mcfp::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"),
-
-		// 	mcfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
-
-		// 	mcfp::make_option<float>("max-ligand-to-backbone-distance", 6, "The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure"),
-		// 	mcfp::make_option<float>("min-hsp-identity", 0.25, "The minimal identity for a high scoring pair (note, value between 0 and 1)"),
-		// 	mcfp::make_option<int>("min-alignment-length", 85, "The minimal length of an alignment"),
-		// 	mcfp::make_option<float>("min-separation-distance", 3.5, "The centroids of two identical ligands should be at least this far apart to count as separate occurrences"),
-		// 	mcfp::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
-
-		// 	mcfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
-
-		// 	mcfp::make_option<std::string>("compounds", "Location of the components.cif file from CCD"),
-		// 	mcfp::make_option<std::string>("components", "Location of the components.cif file from CCD, alias"),
-		// 	mcfp::make_option<std::string>("extra-compounds", "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file"),
-		// 	mcfp::make_option<std::string>("mmcif-dictionary", "Path to the mmcif_pdbx.dic file to use instead of default"),
-
-		// 	mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.gz", "Pattern for locating structure files"),
-		// 	mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.json", "Pattern for locating metadata files"),
-		// 	mcfp::make_option<std::string>("pdb-name-pattern", "${pdb-dir}/${id:1:2}/${id}/${id}_final.cif", "Pattern for locating PDB files"),
-
-		// 	mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
-
-		// 	mcfp::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
-
-		// 	mcfp::make_option<std::string>("alphafold-3d-beacon", "https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${id}.json?provider=alphafold",
-		// 		"The URL of the 3d-beacons service for alphafold"),
-
-		// 	mcfp::make_option<std::string>("pae-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.pae.json",
-		// 		"Pattern for location cached PAE scores"),
-		// 	mcfp::make_option<std::string>("pae-url", "https://alphafold.ebi.ac.uk/files/AF-${id}-F${chunk}-predicted_aligned_error_v${version}.json",
-		// 		"The URL to use to retrieve PAE scores from the EBI"),
-
-		// 	mcfp::make_option("fetch-pae", "Try to fetch the PAE scores based on the input file name"),
-
-		// 	mcfp::make_option("no-daemon,F", "Do not fork a background process"),
-		// 	mcfp::make_option<std::string>("address", "Address to listen to"),
-		// 	mcfp::make_option<unsigned short>("port", "Port to listen to"),
-		// 	mcfp::make_option<std::string>("user", "User to run as"),
-		// 	mcfp::make_option<std::string>("context", "Reverse proxy context"),
-		// 	mcfp::make_option<std::string>("db-link-template", "Template for links to pdb(-redo) entry"),
-		// 	mcfp::make_option<std::string>("db-dbname", "AF DB name"),
-		// 	mcfp::make_option<std::string>("db-user", "AF DB owner"),
-		// 	mcfp::make_option<std::string>("db-password", "AF DB password"),
-		// 	mcfp::make_option<std::string>("db-host", "AF DB host"),
-		// 	mcfp::make_option<std::string>("db-port", "AF DB port"),
-
-		// 	mcfp::make_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries"),
-
-		// 	mcfp::make_option<std::string>("yasara", "/opt/yasara/yasara", "Location of the yasara executable, needed for optimising"),
-
-		// 	mcfp::make_hidden_option("test", "Run test code")
-		// 	);
-
-
-		// // --------------------------------------------------------------------
-
-		// if (not config.has("pdb-fasta"))
-		// {
-		// 	std::cout << "fasta file not specified\n";
-		// 	exit(1);
-		// }
-
-		// if (not config.has("pdb-dir"))
-		// {
-		// 	std::cout << "PDB directory not specified\n";
-		// 	exit(1);
-		// }
-
-		// // --------------------------------------------------------------------
-
-		// fs::path pdbDir = config.get("pdb-dir");
-		// if (not fs::is_directory(pdbDir))
-		// 	throw std::runtime_error("PDB directory does not exist");
-
-		// // --------------------------------------------------------------------
-		
-
+	// --------------------------------------------------------------------
 
 	check_blast_index();
 
 	int result = 0;
 
-	zeep::value_serializer<CustomStatus>::instance("CustomStatus")
-		("unknown", CustomStatus::Unknown)
-		("queued", CustomStatus::Queued)
-		("running", CustomStatus::Running)
-		("finished", CustomStatus::Finished)
+	zeep::value_serializer<CustomStatus>::instance("CustomStatus") //
+		("unknown", CustomStatus::Unknown)                         //
+		("queued", CustomStatus::Queued)                           //
+		("running", CustomStatus::Running)                         //
+		("finished", CustomStatus::Finished)                       //
 		("error", CustomStatus::Error);
 
-	zeep::value_serializer<EntryType>::instance("EntryType")
-		("unknown", EntryType::Unknown)
-		("alphafold", EntryType::AlphaFold)
+	zeep::value_serializer<EntryType>::instance("EntryType") //
+		("unknown", EntryType::Unknown)                      //
+		("alphafold", EntryType::AlphaFold)                  //
 		("custom", EntryType::Custom);
-
-	fs::path dbDir = config.get("db-dir");
 
 	LigandsTable::init(config.get("ligands"));
 
 	std::vector<std::string> vConn;
 	std::string db_user;
-	for (std::string opt : {"db-host", "db-port", "db-dbname", "db-user", "db-password"})
+	for (std::string opt : { "db-host", "db-port", "db-dbname", "db-user", "db-password" })
 	{
 		if (not config.has(opt))
 			continue;
@@ -1240,7 +1209,7 @@ int server_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	if (config.operands().size() < 2)
+	if (config.operands().size() != 1)
 	{
 		std::cout << "No command specified, use of of start, stop, status or reload\n";
 		exit(1);
@@ -1251,10 +1220,10 @@ int server_main(int argc, char *const argv[])
 	if (config.has("db-link-template"))
 		s_af_object.set_template(config.get("db-link-template"));
 
-	std::string command = config.operands()[1];
+	std::string command = config.operands().front();
 
 	zh::daemon server([&]()
-	{
+		{
 		data_service::instance();
 
 		auto s = new zeep::http::server(/*sc*/);
@@ -1276,8 +1245,8 @@ int server_main(int argc, char *const argv[])
 		s->add_controller(new affd_html_controller());
 		s->add_controller(new affd_rest_controller());
 
-		return s;
-	}, "alphafill");
+		return s; },
+		"alphafill");
 
 	if (command == "start")
 	{

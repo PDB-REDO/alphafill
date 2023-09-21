@@ -120,6 +120,7 @@ R"(usage: alphafill command [options]
 )");
 
 		std::error_code ec;
+		config.set_ignore_unknown(true);
 		config.parse(argc, argv, ec);
 
 		if (config.has("version"))
