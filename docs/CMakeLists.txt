@@ -1,0 +1,16 @@
+find_package(Sphinx REQUIRED)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/conf.py.in ${CMAKE_CURRENT_SOURCE_DIR}/conf.py @ONLY)
+
+set(SPHINX_SOURCE ${CMAKE_CURRENT_SOURCE_DIR})
+set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sphinx)
+
+add_custom_target("Sphinx-${PROJECT_NAME}" ALL
+	COMMAND ${SPHINX_EXECUTABLE} -b html
+	${SPHINX_SOURCE} ${SPHINX_BUILD}
+	COMMENT "Generating documentation with Sphinx")
+
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/sphinx/
+	DESTINATION ${CMAKE_INSTALL_DOCDIR}
+	PATTERN .doctrees EXCLUDE
+	PATTERN .buildinfo EXCLUDE)
