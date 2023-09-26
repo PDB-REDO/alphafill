@@ -21,3 +21,5 @@ test/*.cif
 perf.data*
 AF-*-filled.*
 src/revision.hpp
+docs/conf.py
+new-alphafill.conf
