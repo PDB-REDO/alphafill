@@ -312,6 +312,8 @@ struct transplant_info
 	std::string asym_id;
 	double clashScore;
 	double lRMSd;
+	std::vector<uint8_t> pae;
+	double paeMean;
 	bool firstHit = false;
 	bool firstTransplant = false;
 	int hitCount = 1;
@@ -320,7 +322,20 @@ struct transplant_info
 	template <typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
-		ar &zeep::make_nvp("compound_id", compound_id) & zeep::make_nvp("analogue_id", analogue_id) & zeep::make_nvp("pdb_id", pdb_id) & zeep::make_nvp("identity", identity) & zeep::make_nvp("global-rmsd", gRMSd) & zeep::make_nvp("asym_id", asym_id) & zeep::make_nvp("local-rmsd", lRMSd) & zeep::make_nvp("clash-score", clashScore) & zeep::make_nvp("first-hit", firstHit) & zeep::make_nvp("first-transplant", firstTransplant) & zeep::make_nvp("hit-count", hitCount) & zeep::make_nvp("transplant-count", transplantCount);
+		ar &zeep::make_nvp("compound_id", compound_id)             //
+			& zeep::make_nvp("analogue_id", analogue_id)           //
+			& zeep::make_nvp("pdb_id", pdb_id)                     //
+			& zeep::make_nvp("identity", identity)                 //
+			& zeep::make_nvp("global-rmsd", gRMSd)                 //
+			& zeep::make_nvp("asym_id", asym_id)                   //
+			& zeep::make_nvp("local-rmsd", lRMSd)                  //
+			& zeep::make_nvp("pae", pae)                           //
+			& zeep::make_nvp("pae-mean", paeMean)                  //
+			& zeep::make_nvp("clash-score", clashScore)            //
+			& zeep::make_nvp("first-hit", firstHit)                //
+			& zeep::make_nvp("first-transplant", firstTransplant)  //
+			& zeep::make_nvp("hit-count", hitCount)                //
+			& zeep::make_nvp("transplant-count", transplantCount); //
 	}
 
 	bool operator<(const transplant_info &rhs) const
@@ -475,6 +490,16 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 		++hit_nr;
 		for (auto &transplant : hit["transplants"])
 		{
+			std::vector<uint8_t> pae;
+			if (transplant["pae"].is_object() and transplant["pae"]["raw"].is_array())
+			{
+				for (auto &row : transplant["pae"]["raw"])
+				{
+					for (auto &f : row)
+						pae.push_back(f.as<uint8_t>());
+				}
+			}
+
 			transplants.emplace_back(transplant_info{
 				transplant["compound_id"].as<std::string>(),
 				transplant["analogue_id"].as<std::string>(),
@@ -484,7 +509,9 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 				hit["rmsd"].as<double>(),
 				transplant["asym_id"].as<std::string>(),
 				transplant["clash"]["score"].as<double>(),
-				transplant["rmsd"].as<double>() });
+				transplant["rmsd"].as<double>(),
+				std::move(pae),
+				transplant["pae"]["mean"].as<double>() });
 		}
 	}
 

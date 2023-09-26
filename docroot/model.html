@@ -1,5 +1,4 @@
-<!DOCTYPE html SYSTEM "about:legacy-compat" [ <!ENTITY mdash "&#8212;">
-]>
+<!DOCTYPE html SYSTEM "about:legacy-compat">
 
 <html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">
 
@@ -128,6 +127,9 @@
 							<th><abbr
 									title="Transplant clash score, RMSd of the van der Waals overlap between ligand and polymer atoms">TCS</abbr>
 							</th>
+							<th><abbr
+									title="PAE scoring matrix for polymer atoms nearby">PAE</abbr>
+							</th>
 							<th style="white-space: no-wrap;">
 								<div class="form-check">
 									<input class="form-check-input" checked="checked" type="checkbox" id="show-all" />
@@ -181,6 +183,11 @@
 										title="This transplant is considered suspect">?</abbr></span>
 								<span z:if="${c.clash-score gt cutoff.tcs.unreliable}" class="float-end"><abbr
 										title="This transplant is considered unreliable">?</abbr></span>
+							</td>
+
+							<td z:data-asym-id="${c.asym_id}" class="pae-matrix">
+								<!-- <canvas width="32" height="32" z:data-pae="${c.pae}"></canvas> -->
+								<span z:text="${#numbers.formatDecimal(c.pae-mean, 1, 1)}"></span>
 							</td>
 
 							<td colspan="2">

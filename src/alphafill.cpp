@@ -448,18 +448,21 @@ zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_
 	}
 
 	cif::symmetric_matrix<float> distances(af_res.size());
+	cif::matrix<float> scaled_pae(af_res.size(), af_res.size());
 
 	for (size_t i = 0; i + 1 < af_res.size(); ++i)
 	{
 		for (size_t j = i + 1; j < af_res.size(); ++j)
+		{
 			distances(i, j) = distance(af_res[i]->get_atom_by_atom_id("CA"), af_res[j]->get_atom_by_atom_id("CA"));
+			scaled_pae(i, j) = pae(i, j) / distances(i, j);
+			scaled_pae(j, i) = pae(j, i) / distances(i, j);
+		}
 	}
 
 	zeep::json::element result;
-	auto &pae_s = result["pae"];
-	auto &pae_ss = result["pae-scaled"];
-
-	std::vector<float> s(32);
+	auto &pae_s = result["raw"];
+	auto &pae_ss = result["scaled"];
 
 	for (size_t i = 0; i < index.size(); ++i)
 	{
@@ -469,33 +472,50 @@ zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_
 		for (size_t j = 0; j < index.size(); ++j)
 		{
 			v[j] = pae(index[i], index[j]);
-			if (distances(i, j) != 0)
-				vs[j] = v[j] / distances(i, j);
+			vs[j] = scaled_pae(index[i], index[j]);
 		}
 		pae_s.push_back(v);
 		pae_ss.push_back(vs);
 	}
 
-	for (size_t i = 0; i < index.size(); ++i)
+	size_t N = (index.size() * (index.size() - 1));
+
+	if (N > 1)
 	{
-		for (size_t j = i + 1; j < index.size(); ++j)
+		double sum = 0;
+
+		for (size_t i = 0; i < index.size(); ++i)
 		{
-			auto v = pae(index[i], index[j]);
-			if (v < pae(index[j], index[i]))
-				v = pae(index[j], index[i]);
+			for (size_t j = 0; j < index.size(); ++j)
+			{
+				if (i == j)
+					continue;
 
-			for (auto k = v; k < 32; ++k)
-				s[k] += 1;
+				auto v = pae(index[i], index[j]);
+				sum += v;
+			}
 		}
+
+		double avg = sum / N;
+		double sumsq = 0;
+
+		for (size_t i = 0; i < index.size(); ++i)
+		{
+			for (size_t j = 0; j < index.size(); ++j)
+			{
+				if (i == j)
+					continue;
+
+				auto v = pae(index[i], index[j]);
+				sumsq = (v - avg) * (v - avg);
+			}
+		}
+
+		double stddev = std::sqrt(sumsq / (N - 1));
+
+		result["mean"] = avg;
+		result["stddev"] = stddev;
 	}
-
-	float N = (index.size() * (index.size() - 1)) / 2.0f;
-	for (float &v : s)
-		v /= N;
-
-	result["scores"] = s;
-
-	// std::cout << std::setw(1) << result << '\n';
 
 	return result;
 }
