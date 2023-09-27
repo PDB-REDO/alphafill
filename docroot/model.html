@@ -118,17 +118,15 @@
 							<th><abbr
 									title="PDB-REDO identifier followed by chain that was used in the alignment">PDBID</abbr>
 							</th>
-							<th><abbr title="RMSD for the overall protein alignment based on Cα atoms">Global
-									RMSd</abbr></th>
+							<th><abbr title="RMSD for the overall protein alignment based on Cα atoms">g-RMSd</abbr></th>
 							<th><abbr title="The identifier for this transplant">Asym</abbr></th>
 							<th><abbr
-									title="RMSd of the alignment of all backbone atoms within 6Å of the compound that was transplanted by AlphaFill">Local
-									RMSd</abbr></th>
+									title="RMSd of the alignment of all backbone atoms within 6Å of the compound that was transplanted by AlphaFill">l-RMSd</abbr></th>
 							<th><abbr
 									title="Transplant clash score, RMSd of the van der Waals overlap between ligand and polymer atoms">TCS</abbr>
 							</th>
 							<th><abbr
-									title="PAE scoring matrix for polymer atoms nearby">PAE</abbr>
+									title="PAE mean and stddev for polymer residues nearby">PAE</abbr>
 							</th>
 							<th style="white-space: no-wrap;">
 								<div class="form-check">
@@ -187,7 +185,7 @@
 
 							<td z:data-asym-id="${c.asym_id}" class="pae-matrix">
 								<!-- <canvas width="32" height="32" z:data-pae="${c.pae}"></canvas> -->
-								<span z:text="${#numbers.formatDecimal(c.pae-mean, 1, 1)}"></span>
+								<span z:text="|${#numbers.formatDecimal(c.pae-mean, 1, 1)}/${#numbers.formatDecimal(c.pae-sd, 1, 1)}|"></span>
 							</td>
 
 							<td colspan="2">

@@ -27,4 +27,3 @@
 #pragma once
 
 int server_main(int argc, char * const argv[]);
-int rebuild_db_main(int argc, char * const argv[]);

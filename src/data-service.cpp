@@ -390,6 +390,9 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 
 	for (auto &f : files)
 	{
+		if (ep)
+			std::rethrow_exception(ep);
+
 		std::ifstream file(f);
 
 		zeep::json::element data;
