@@ -167,6 +167,9 @@ class affd_html_controller : public zh::html_controller
 		mount("favicon.ico", &affd_html_controller::handle_file);
 
 		mount("structure-table-page", &affd_html_controller::structures_table);
+
+		mount("{help,man,genindex}/", &affd_html_controller::handle_help_file);
+		mount("_static/", &affd_html_controller::handle_file);
 	}
 
 	void welcome(const zh::request &request, const zh::scope &scope, zh::reply &reply);
@@ -179,6 +182,7 @@ class affd_html_controller : public zh::html_controller
 	void schema(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 
 	void structures_table(const zh::request &request, const zh::scope &scope, zh::reply &reply);
+	void handle_help_file(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 };
 
 void affd_html_controller::welcome(const zh::request &request, const zh::scope &scope, zh::reply &reply)
@@ -654,6 +658,18 @@ void affd_html_controller::schema(const zh::request &request, const zh::scope &s
 	html_controller::handle_file(request, scope, reply);
 	if (reply.get_status() == zeep::http::ok)
 		reply.set_header("Content-Disposition", R"(attachment; filename="alphafill.json.schema")");
+}
+
+void affd_html_controller::handle_help_file(const zh::request &request, const zh::scope &scope, zh::reply &reply)
+{
+	zh::scope sub(scope);
+
+	fs::path file = scope["baseuri"].as<std::string>();
+	file /= "index.html";
+
+	sub.put("baseuri", file.string());
+
+	return get_template_processor().create_reply_from_template(file, sub, reply);
 }
 
 // --------------------------------------------------------------------

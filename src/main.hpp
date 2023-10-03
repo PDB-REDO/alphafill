@@ -38,7 +38,7 @@ mcfp::config &load_and_init_config(std::string_view usage, Options... options)
 		mcfp::make_option("verbose,v", "Show verbose output"),
 
 		mcfp::make_option("help,h", "Display help message"),
-		mcfp::make_option("quiet", "Do not produce warnings"),
+		mcfp::make_option("quiet", "Do not produce warnings or status messages"),
 
 		mcfp::make_option<std::string>("config", "alphafill.conf", "Configuration file to use"),
 

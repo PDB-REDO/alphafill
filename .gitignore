@@ -25,3 +25,10 @@ AF-*-filled.*
 src/revision.hpp
 docs/conf.py
 new-alphafill.conf
+docroot/_sources/
+docroot/_static/
+docroot/.doctrees/
+docroot/.buildinfo
+docroot/**/index.html
+docroot/objects.inv
+docroot/searchindex.js

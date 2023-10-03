@@ -150,7 +150,10 @@ void parse_argv(int argc, char *const argv[], mcfp::config &config)
 
 	config.set_ignore_unknown(true);
 
-	config.parse_config_file("config", "alphafill.conf", { fs::current_path().string(), "/etc/" });
+	std::error_code ec;
+	config.parse_config_file("config", "alphafill.conf", { fs::current_path().string(), "/etc/" }, ec);
+	if (ec and ec != mcfp::config_error::config_file_not_found)
+		throw std::system_error(ec, "Error parsing config file");
 }
 
 // --------------------------------------------------------------------
@@ -165,44 +168,70 @@ int main(int argc, char *const argv[])
 		cif::add_data_directory(ALPHAFILL_DATA_DIR);
 #endif
 
-		auto &config = load_and_init_config(
-			R"(usage: alphafill command [options]
+		std::string command;
+		const char *exe = strrchr(argv[0], '/');
+		if (exe == nullptr)
+			exe = argv[0];
+		else
+			++exe;
 
-  where command is one of
+		if (exe != nullptr and strncmp(exe, "alphafill-", 10) == 0)
+		{
+			auto &config = load_and_init_config(argv[0]);
 
-    create-index   Create a FastA file based on data in the PDB files
-                   (A FastA file is required to process files)
-    process        Process an AlphaFill structure
-    rebuild-db     Rebuild the databank
-    server         Start a web server instance
+			std::error_code ec;
+			config.set_ignore_unknown(true);
+			config.parse(argc, argv, ec);
+
+			if (config.has("version"))
+			{
+				write_version_string(std::cout, config.has("verbose"));
+				exit(0);
+			}
+
+			command = exe + 10;
+		}
+		else
+		{
+			auto &config = load_and_init_config(
+				R"(usage: alphafill command [options]
+
+where command is one of
+
+	create-index   Create a FastA file based on data in the PDB files
+				(A FastA file is required to process files)
+	process        Process an AlphaFill structure
+	rebuild-db     Rebuild the databank
+	server         Start a web server instance
 )");
 
-		std::error_code ec;
-		config.set_ignore_unknown(true);
-		config.parse(argc, argv, ec);
+			std::error_code ec;
+			config.set_ignore_unknown(true);
+			config.parse(argc, argv, ec);
 
-		if (config.has("version"))
-		{
-			write_version_string(std::cout, config.has("verbose"));
-			exit(0);
-		}
+			if (config.has("version"))
+			{
+				write_version_string(std::cout, config.has("verbose"));
+				exit(0);
+			}
 
-		if (config.operands().empty() or ec)
-		{
-			if (ec)
-				std::cerr << "Error parsing arguments: " << ec.message() << "\n\n";
+			if (config.operands().empty() or ec)
+			{
+				if (ec)
+					std::cerr << "Error parsing arguments: " << ec.message() << "\n\n";
 
-			if (config.operands().empty())
-				std::cerr << "Missing command"
-						  << "\n\n";
+				if (config.operands().empty())
+					std::cerr << "Missing command"
+							<< "\n\n";
 
-			std::cerr << config << '\n';
-			return config.has("help") ? 0 : 1;
+				std::cerr << config << '\n';
+				return config.has("help") ? 0 : 1;
+			}
+
+			command = config.operands().front();
 		}
 
 		// --------------------------------------------------------------------
-
-		std::string command = config.operands().front();
 
 		if (command == "create-index")
 			result = create_index(argc - 1, argv + 1);
@@ -214,8 +243,8 @@ int main(int argc, char *const argv[])
 			result = server_main(argc - 1, argv + 1);
 		else
 		{
-			std::cerr << "Unknown command\n\n"
-					  << config << '\n';
+			std::cerr << "Unknown command " << std::quoted(command) << "\n\n"
+					  << mcfp::config::instance() << '\n';
 			result = 1;
 		}
 	}

@@ -1,0 +1,43 @@
+{#
+    pdb-redo/layout.html
+    ~~~~~~~~~~~~~~~~~
+
+    Sphinx layout template for the PDB-REDO theme.
+
+    :copyright: Copyright 2023 NKI/AVL, Netherlands Cancer Institute
+    :license: BSD-2-Clause
+#}
+
+{%- extends "basic/layout.html" %}
+
+{%- set html_tag = '<html lang="en" xmlns:z="http://www.hekkelman.com/libzeep/m2" xmlns="http://www.w3.org/1999/xhtml">' %}
+	
+{# do not display relbars #}
+{% block relbar1 %}{% endblock %}
+{% block relbar2 %}{% endblock %}
+
+{% block doctype %}
+<!DOCTYPE html SYSTEM "about:legacy-compat">
+{% endblock %}
+
+{% block linktags %}
+	<link rel='stylesheet' type="text/css" z:href='@{/css/pdb-redo-bootstrap.css}' />
+{% endblock %}
+
+{% block body_tag %}
+	<body class="site">
+{% endblock %}
+	
+{% block content %}
+	<header z:replace="header::top('help')"></header>
+
+	<div class="container site-content document" role="main">
+		{{ relbar() }}
+	
+		{% block body %} {% endblock %}
+	</div>
+{% endblock %}
+
+{% block footer %}
+	<footer z:replace="~{footer::content}"></footer>
+{% endblock %}

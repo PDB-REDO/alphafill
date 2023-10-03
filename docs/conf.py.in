@@ -1,13 +1,15 @@
 project = '@PROJECT_NAME@'
-copyright = '2023, Maarten L. Hekkelman'
+copyright = 'Copyright 2023 NKI/AVL, Netherlands Cancer Institute'
 author = 'Maarten L. Hekkelman'
 release = '@PROJECT_VERSION@'
 
 # -- General configuration ---------------------------------------------------
 
-#extensions = [
-#    "myst_parser"
-#]
+root_doc = 'help'
+
+extensions = [
+    "myst_parser"
+]
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']

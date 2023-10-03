@@ -1065,7 +1065,7 @@ struct my_progress : public alphafill_progress_cb
 
 int alphafill_main(int argc, char *const argv[])
 {
-	auto &config = load_and_init_config("usage: alphafill process <inputfile> [--pae-file=<paefile>] [<outputfile>] [options]",
+	auto &config = load_and_init_config("usage: alphafill process [options] <inputfile> [<outputfile>]",
 
 		mcfp::make_option<std::string>("pae-file", "Specify a specific file containing PAE information, default is to use a filename based on inputfile"),
 
@@ -1074,8 +1074,6 @@ int alphafill_main(int argc, char *const argv[])
 
 		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 		mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
-
-		mcfp::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
 
 		mcfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
 
