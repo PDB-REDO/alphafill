@@ -48,6 +48,11 @@ using json = zeep::json::element;
 
 // --------------------------------------------------------------------
 
+// The regex to check and/or read FastA files
+const std::regex kIDRx(R"(^>pdb-entity\|(\w{4,})\|(\w+)\|([^ |]+)( .*)?)");
+
+// --------------------------------------------------------------------
+
 using cif::point;
 using cif::quaternion;
 
@@ -148,9 +153,7 @@ int create_index(int argc, char *const argv[])
 	auto &config = load_and_init_config("alphafill create-index [options]",
 		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 		mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
-		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
-		mcfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
-		mcfp::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"));
+		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"));
 
 	parse_argv(argc, argv, config);
 
@@ -176,28 +179,6 @@ int create_index(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	std::set<std::string> pdb_ids, ligand_ids;
-
-	fs::path tmpPDBIdsListFile = config.get("pdb-id-list") + ".tmp";
-	std::ofstream tmpPDBIdsList(tmpPDBIdsListFile);
-
-	if (not tmpPDBIdsList.is_open())
-		throw std::runtime_error("Could not open temporary file for writing (" + tmpPDBIdsListFile.string() + ")");
-
-	if (config.has("ligands"))
-	{
-		fs::path ligandsFile = config.get("ligands");
-		if (not fs::exists(ligandsFile))
-			throw std::runtime_error("Ligands file not found");
-
-		cif::file lgf(ligandsFile);
-		for (auto &db : lgf)
-		{
-			if (db["ligand"].count(cif::key("priority") == "y"))
-				ligand_ids.emplace(db.name());
-		}
-	}
-
 	size_t N = 0;
 	for (fs::directory_iterator iter(pdbDir); iter != fs::directory_iterator(); ++iter)
 	{
@@ -217,7 +198,7 @@ int create_index(int argc, char *const argv[])
 		nrOfThreads = std::thread::hardware_concurrency();
 
 	blocking_queue<fs::path> q1;
-	blocking_queue<std::tuple<std::string, std::string, std::string, bool>> q2;
+	blocking_queue<std::tuple<std::string, std::string>> q2;
 
 	std::vector<std::thread> t;
 	std::vector<std::vector<std::string>> t_result(nrOfThreads);
@@ -229,15 +210,15 @@ int create_index(int argc, char *const argv[])
 		throw std::runtime_error("Could not open temporary file for writing (" + tmpFastAFile.string() + ")");
 
 	// The writing thread
-	std::thread tc([&q2, &tmpFastA, &tmpPDBIdsList]()
+	std::thread tc([&q2, &tmpFastA]()
 		{
 		for (;;)
 		{
-			const auto &[pdb_id, entity_id, seq, incl] = q2.pop();
-			if (pdb_id.empty())
+			const auto &[id_line, seq] = q2.pop();
+			if (id_line.empty())
 				break;
 			
-			tmpFastA << ">pdb-entity|" << pdb_id << '|' << entity_id << '\n';
+			tmpFastA << ">pdb-entity|" << id_line << '\n';
 
 			size_t o = 0;
 			for (char l : seq)
@@ -255,14 +236,11 @@ int create_index(int argc, char *const argv[])
 
 			if (o != 0)
 				tmpFastA << '\n';
-			
-			if (incl)
-				tmpPDBIdsList << pdb_id << '\n';
 		} });
 
 	for (int i = 0; i < nrOfThreads; ++i)
 	{
-		t.emplace_back([&q1, &q2, ix = i, &ligand_ids]()
+		t.emplace_back([&q1, &q2, ix = i]()
 			{
 			for (;;)
 			{
@@ -282,16 +260,19 @@ int create_index(int argc, char *const argv[])
 
 					auto &db = pdbFile.front();
 					auto pdbID = db.name();
-					bool include = false;
+					std::vector<std::string> ligands;
 
 					auto &chem_comp = db["chem_comp"];
 					for (auto &comp_id : chem_comp.rows<std::string>("id"))
 					{
-						if (ligand_ids.count(comp_id))
+						if (cif::compound_factory::instance().is_known_peptide(comp_id) or
+							cif::compound_factory::instance().is_known_base(comp_id) or
+							comp_id == "HOH")
 						{
-							include = true;
-							break;
+							continue;
 						}
+
+						ligands.emplace_back(comp_id);
 					}
 
 					auto &entity_poly = db["entity_poly"];
@@ -300,7 +281,17 @@ int create_index(int argc, char *const argv[])
 						entity_poly.find<std::string,std::string,std::string>(cif::key("type") == "polypeptide(L)",
 							"entity_id", "type", "pdbx_seq_one_letter_code_can"))
 					{
-						q2.push({pdbID, entity_id, seq, include});
+						std::ostringstream os;
+						os << pdbID << '|' << entity_id << '|';
+						bool first = true;
+						for (auto &comp_id : ligands)
+						{
+							if (not std::exchange(first, false))
+								os << ';';
+							os << comp_id;
+						}
+
+						q2.push({os.str(), seq});
 					}
 				}
 				catch(const std::exception& e)
@@ -381,21 +372,6 @@ int create_index(int argc, char *const argv[])
 	if (ec)
 		throw std::runtime_error("Could not rename fasta file: " + ec.message());
 
-	// pdb-id-list
-
-	fs::path pdbIdsListFile = config.get("pdb-id-list");
-
-	if (fs::exists(pdbIdsListFile, ec))
-		fs::remove(pdbIdsListFile, ec);
-
-	if (ec)
-		throw std::runtime_error("Could not replace pdb-id-list file: " + ec.message());
-
-	fs::rename(tmpPDBIdsListFile, pdbIdsListFile, ec);
-
-	if (ec)
-		throw std::runtime_error("Could not rename pdb-id-list file: " + ec.message());
-
 	return 0;
 }
 
@@ -412,8 +388,7 @@ void check_blast_index()
 	if (not getline(file, line) or line.empty())
 		throw std::runtime_error("blast index file (pdb-fasta option) seems to be empty");
 
-	std::regex rx(R"(>pdb-entity\|(\w{4,})\|(\w+)( .+)?)");
-	if (not std::regex_match(line, rx))
+	if (not std::regex_match(line, kIDRx))
 		throw std::runtime_error("The first line in the blast index file does not seem to be correct, please re-create a blast index using the create-index command");
 }
 
@@ -527,23 +502,6 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 
 	// --------------------------------------------------------------------
 
-	cif::iset pdbIDsContainingLigands;
-	if (config.has("test-pdb-id"))
-		pdbIDsContainingLigands.emplace(config.get("test-pdb-id"));
-	else if (config.has("pdb-id-list"))
-	{
-		std::ifstream file(config.get("pdb-id-list"));
-
-		if (not file.is_open())
-			throw std::runtime_error("Could not open pdb-id-list " + config.get("pdb-id-list"));
-
-		std::string line;
-		while (std::getline(file, line))
-			pdbIDsContainingLigands.insert(line);
-	}
-
-	// --------------------------------------------------------------------
-
 	float minHspIdentity = config.get<float>("min-hsp-identity");
 	size_t minAlignmentLength = config.get<int>("min-alignment-length");
 	float minSeparationDistance = config.get<float>("min-separation-distance");
@@ -563,8 +521,6 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 
 	// --------------------------------------------------------------------
 	// fetch the (single) chain
-
-	const std::regex kIDRx(R"(^>pdb-entity\|(\w{4,})\|(\w+)( .*)?)");
 
 	std::string afID = db["entry"].front().get<std::string>("id");
 
@@ -608,7 +564,11 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 		if (threads == 0)
 			threads = std::thread::hardware_concurrency();
 
-		auto result = BlastP(fasta, seq, "BLOSUM62", 3, 10, true, true, 11, 1, config.get<uint32_t>("blast-report-limit"), threads);
+		auto result = BlastP(fasta, seq,
+			config.get("blast-matrix"), config.get<int>("blast-word-size"), config.get<double>("blast-expect"),
+			not config.has("blast-no-filter"), not config.has("blast-no-gapped"),
+			config.get<int>("blast-gap-open"),
+			config.get<int>("blast-gap-extend"), config.get<uint32_t>("blast-report-limit"), threads);
 
 		if (cif::VERBOSE > 0)
 			std::cerr << "Found " << result.size() << " hits\n";
@@ -630,10 +590,11 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 
 			std::string pdb_id = m[1].str();
 			std::string entity_id = m[2].str();
+			std::string compound_ids = m[3].str();
 
 			progress.message(pdb_id);
 
-			if (not(pdbIDsContainingLigands.empty() or pdbIDsContainingLigands.count(pdb_id)))
+			if (not ligands.contains_any(cif::split(compound_ids, ";")))
 				continue;
 
 			if (cif::VERBOSE > 0)
@@ -1114,7 +1075,6 @@ int alphafill_main(int argc, char *const argv[])
 		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 		mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
 
-		mcfp::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"),
 		mcfp::make_hidden_option<std::string>("test-pdb-id", "Test with single PDB ID"),
 
 		mcfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
@@ -1123,9 +1083,18 @@ int alphafill_main(int argc, char *const argv[])
 		mcfp::make_option<float>("min-hsp-identity", 0.25, "The minimal identity for a high scoring pair (note, value between 0 and 1)"),
 		mcfp::make_option<int>("min-alignment-length", 85, "The minimal length of an alignment"),
 		mcfp::make_option<float>("min-separation-distance", 3.5, "The centroids of two identical ligands should be at least this far apart to count as separate occurrences"),
-		mcfp::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
 
 		mcfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
+
+		mcfp::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
+
+		mcfp::make_option<std::string>("blast-matrix", "BLOSUM62", "Blast matrix to use"),
+		mcfp::make_option<int>("blast-word-size", 3, "Blast word size"),
+		mcfp::make_option<double>("blast-expect", 10, "Blast expect cut off"),
+		mcfp::make_option("blast-no-filter", "Blast option for filter, default is to use low complexity filter"),
+		mcfp::make_option("blast-no-gapped", "Blast option for gapped, default is to do gapped"),
+		mcfp::make_option<int>("blast-gap-open", 11, "Blast penalty for gap open"),
+		mcfp::make_option<int>("blast-gap-extend", 1, "Blast penalty for gap extend"),
 
 		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
 

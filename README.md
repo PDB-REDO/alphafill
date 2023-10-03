@@ -35,15 +35,13 @@ The building method is not OS-specific and has been tested on Ubuntu LTS 20:04. 
 
 ### alphafill
 
-For alphafill you need a copy of either PDB-REDO or PDB in mmCIF format. You also need a FastA formatted file for all sequences in this databank and an af-ligands.cif file. As a fasta file you can use the `others/pdbredo_seqdb.txt` file located inside the PDB-REDO directory. The af-ligands.cif file is supplied with the code. Using these, you can construct a pdb-id-list file using the command:
+For alphafill you need a copy of either PDB-REDO or PDB in mmCIF format. You also need a FastA formatted file for all sequences in this databank and an af-ligands.cif file. Since version 2.1 of alphafill This FastA file needs a custom format and can be created using alphafill itself:
 
 ```bash
-alphafill prepare-pdb-list --pdb-dir=${PDB_DIR} --pdb-fasta=${PDB_FASTA} --output pdb-id-list.txt
+alphafill create-index --pdb-dir=${PDB_DIR} --pdb-fasta=${PDB_FASTA}
 ```
 
-The pdb-id-list file is optional, but speeds up the process considerably (it records PDB id's that can be skipped since they do not contain interesting ligands).
-
-All basic options can be store in a file called alphafill.conf which can be located in either the current working directory or in the directory `.config` in your home directory.
+All basic options can be stored in a file called alphafill.conf which can be located in either the current working directory or in the directory `.config` in your home directory.
 
 Running alpafill is then as easy as:
 

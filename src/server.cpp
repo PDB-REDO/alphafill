@@ -1031,7 +1031,6 @@ int server_main(int argc, char *const argv[])
 		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 
 		mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
-		mcfp::make_option<std::string>("pdb-id-list", "Optional file containing the list of PDB ID's that have any of the transplantable ligands"),
 
 		mcfp::make_option<std::string>("ligands", "af-ligands.cif", "File in CIF format describing the ligands and their modifications"),
 
@@ -1040,6 +1039,14 @@ int server_main(int argc, char *const argv[])
 		mcfp::make_option<int>("min-alignment-length", 85, "The minimal length of an alignment"),
 		mcfp::make_option<float>("min-separation-distance", 3.5, "The centroids of two identical ligands should be at least this far apart to count as separate occurrences"),
 		mcfp::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
+
+		mcfp::make_option<std::string>("blast-matrix", "BLOSUM62", "Blast matrix to use"),
+		mcfp::make_option<int>("blast-word-size", 3, "Blast word size"),
+		mcfp::make_option<double>("blast-expect", 10, "Blast expect cut off"),
+		mcfp::make_option("blast-no-filter", "Blast option for filter, default is to use low complexity filter"),
+		mcfp::make_option("blast-no-gapped", "Blast option for gapped, default is to do gapped"),
+		mcfp::make_option<int>("blast-gap-open", 11, "Blast penalty for gap open"),
+		mcfp::make_option<int>("blast-gap-extend", 1, "Blast penalty for gap extend"),
 
 		mcfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
 

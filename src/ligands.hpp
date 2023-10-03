@@ -98,6 +98,8 @@ class LigandsTable
 		return {&mCifFile[id]};
 	}
 
+	bool contains_any(const std::vector<std::string_view> &compounds) const;
+
   private:
 	cif::file mCifFile;
 	static std::unique_ptr<LigandsTable> sInstance;

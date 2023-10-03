@@ -93,3 +93,20 @@ std::string Ligand::map(const std::string &atomID) const
 	
 	return result;
 }
+
+bool LigandsTable::contains_any(const std::vector<std::string_view> &compounds) const
+{
+	bool result = false;
+
+	for (auto compound_id : compounds)
+	{
+		Ligand l{ &mCifFile[compound_id] };
+		if (l)
+		{
+			result = true;
+			break;
+		}
+	}
+
+	return result;
+}
