@@ -11,5 +11,5 @@ Applications
 
    alphafill-create-index
    alphafill-process
-   alphafill-update-db
+   alphafill-rebuild-db
    alphafill-server

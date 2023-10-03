@@ -187,7 +187,7 @@ endif()
 install(TARGETS alphafill RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_hardlink ${CMAKE_INSTALL_FULL_BINDIR}/alphafill ${CMAKE_INSTALL_FULL_BINDIR}/alphafill-process)")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_hardlink ${CMAKE_INSTALL_FULL_BINDIR}/alphafill ${CMAKE_INSTALL_FULL_BINDIR}/alphafill-create-index)")
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_hardlink ${CMAKE_INSTALL_FULL_BINDIR}/alphafill ${CMAKE_INSTALL_FULL_BINDIR}/alphafill-update-db)")
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_hardlink ${CMAKE_INSTALL_FULL_BINDIR}/alphafill ${CMAKE_INSTALL_FULL_BINDIR}/alphafill-rebuild-db)")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_hardlink ${CMAKE_INSTALL_FULL_BINDIR}/alphafill ${CMAKE_INSTALL_FULL_BINDIR}/alphafill-server)")
 
 # If we do not use resources, install the resource data in a share directory

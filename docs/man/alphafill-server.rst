@@ -1,21 +1,20 @@
-alphafill-process
+alphafill-server
 =================
 
 Synopsis
 --------
 
-**alphafill-process** [*options*] <*inputfile*> [<*outputfile*>]
+**alphafill-server** [*options*] <*command*>
 
 Description
 -----------
 
-:program:`alphafill-process` is the program to create a new AlphaFill file based on an input model.
-
+:program:`alphafill-server` is the web application server for alphafill.
 
 Options
 -------
 
-.. program:: alphafill-process
+.. program:: alphafill-server
 
 
 .. option:: pae-file filename
@@ -123,4 +122,4 @@ Options
 See also
 --------
 
-:manpage:`alphafill-create-index`, :manpage:`alphafill-rebuild-db`, :manpage:`alphafill-server`
+:manpage:`alphafill-create-index`, :manpage:`alphafill-rebuild-db`, :manpage:`alphafill-process`

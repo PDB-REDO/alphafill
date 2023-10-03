@@ -83,7 +83,7 @@ class af_link_template_object : public zh::expression_utility_object<af_link_tem
 				std::regex rx(R"([0-9][0-9a-z]{3}(?:\.[a-z]+))", std::regex_constants::icase);
 
 				if (std::regex_match(id, rx))
-					id.erase(4, std::string::npos);
+					id.erase(4);
 
 				auto url = m_template;
 				std::string::size_type s;
@@ -1065,11 +1065,6 @@ int server_main(int argc, char *const argv[])
 		mcfp::make_option<int>("blast-gap-extend", 1, "Blast penalty for gap extend"),
 
 		mcfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
-
-		mcfp::make_option<std::string>("compounds", "Location of the components.cif file from CCD"),
-		mcfp::make_option<std::string>("components", "Location of the components.cif file from CCD, alias"),
-		mcfp::make_option<std::string>("extra-compounds", "File containing residue information for extra compounds in this specific target, should be either in CCD format or a CCP4 restraints file"),
-		mcfp::make_option<std::string>("mmcif-dictionary", "Path to the mmcif_pdbx.dic file to use instead of default"),
 
 		mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.gz", "Pattern for locating structure files"),
 		mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.json", "Pattern for locating metadata files"),
