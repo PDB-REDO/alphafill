@@ -179,16 +179,23 @@ if(USE_RSRC)
 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic
 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_ma.dic)
 else()
-	set(ALPHAFILL_DATA_DIR $<IF:$<CONFIG:Debug>,${PROJECT_SOURCE_DIR}/rsrc,${CMAKE_INSTALL_FULL_DATADIR}/alphafill> )
+	set(ALPHAFILL_DATA_DIR $<IF:$<CONFIG:Debug>,${PROJECT_SOURCE_DIR}/rsrc,${CMAKE_INSTALL_FULL_DATADIR}/alphafill>)
 	add_compile_definitions(ALPHAFILL_DATA_DIR="${ALPHAFILL_DATA_DIR}")
 endif()
 
 # installation
 install(TARGETS alphafill RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_hardlink ${CMAKE_INSTALL_FULL_BINDIR}/alphafill ${CMAKE_INSTALL_FULL_BINDIR}/alphafill-process)")
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_hardlink ${CMAKE_INSTALL_FULL_BINDIR}/alphafill ${CMAKE_INSTALL_FULL_BINDIR}/alphafill-create-index)")
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_hardlink ${CMAKE_INSTALL_FULL_BINDIR}/alphafill ${CMAKE_INSTALL_FULL_BINDIR}/alphafill-rebuild-db)")
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_hardlink ${CMAKE_INSTALL_FULL_BINDIR}/alphafill ${CMAKE_INSTALL_FULL_BINDIR}/alphafill-server)")
+
+list(APPEND hardlinks process create-index rebuild-db server)
+
+foreach(hardlink ${hardlinks})
+	install(CODE "set(link_from \"${CMAKE_INSTALL_FULL_BINDIR}/alphafill\")")
+	install(CODE "set(link_to \"${CMAKE_INSTALL_FULL_BINDIR}/alphafill-${hardlink}\")")
+	install(CODE [[
+message(STATUS "Creating hard link from ${link_from} to ${link_to}")
+execute_process(COMMAND ${CMAKE_COMMAND} -E create_hardlink ${link_from} ${link_to})
+]])
+endforeach()
 
 # If we do not use resources, install the resource data in a share directory
 if(NOT USE_RSRC)

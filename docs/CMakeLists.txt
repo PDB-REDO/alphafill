@@ -16,7 +16,10 @@ add_custom_target("Sphinx-${PROJECT_NAME}-man" ALL
 	${SPHINX_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/man
 	COMMENT "Generating manual pages with Sphinx")
 
-# install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/sphinx/
-# 	DESTINATION ${CMAKE_INSTALL_DOCDIR}
-# 	PATTERN .doctrees EXCLUDE
-# 	PATTERN .buildinfo EXCLUDE)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/man/alphafill.1
+	${CMAKE_CURRENT_BINARY_DIR}/man/alphafill-api.1
+	${CMAKE_CURRENT_BINARY_DIR}/man/alphafill-create-index.1
+	${CMAKE_CURRENT_BINARY_DIR}/man/alphafill-process.1
+	${CMAKE_CURRENT_BINARY_DIR}/man/alphafill-rebuild-db.1
+	${CMAKE_CURRENT_BINARY_DIR}/man/alphafill-server.1
+	DESTINATION ${CMAKE_INSTALL_DATADIR}/man/man1)
