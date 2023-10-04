@@ -1069,9 +1069,6 @@ int alphafill_main(int argc, char *const argv[])
 
 		mcfp::make_option<std::string>("pae-file", "Specify a specific file containing PAE information, default is to use a filename based on inputfile"),
 
-		// hidden because it should not be used, right?
-		mcfp::make_hidden_option<std::string>("db-dir", "Directory containing the alphafilled data"),
-
 		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 		mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
 

@@ -167,8 +167,8 @@ class file_locator
 		return pattern;
 	}
 
-	const std::filesystem::path m_db_dir, m_pdb_dir, m_custom_dir;
-	const std::string m_structure_name_pattern;
-	const std::string m_pdb_name_pattern;
-	const std::string m_metadata_name_pattern;
+	std::filesystem::path m_db_dir, m_pdb_dir, m_custom_dir;
+	std::string m_structure_name_pattern;
+	std::string m_pdb_name_pattern;
+	std::string m_metadata_name_pattern;
 };

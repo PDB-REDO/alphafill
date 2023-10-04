@@ -12,4 +12,5 @@ There are five manual pages for alphafill, you can find the links below:
    man/alphafill-process
    man/alphafill-rebuild-db
    man/alphafill-server
+   genindex
 

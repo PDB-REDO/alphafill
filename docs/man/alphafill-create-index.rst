@@ -27,19 +27,19 @@ Description
 
 	Do not print any status or progress information.
 
-.. option:: --config configfile
+.. option:: --config=configfile
 
 	Use the file *configfile* to collection options. The default is to look for a file called *alphafill.conf* in the current directory and then in the directory */etc*. Use this option to override this and specify your own configuration file.
 
-.. option:: pdb-dir dirname
+.. option:: --pdb-dir=dirname
 	
 	Directory containing the mmCIF files for the PDB
 
-.. option:: pdb-fasta filename
+.. option:: --pdb-fasta=filename
 	
 	The FastA file containing the PDB sequences
 
-.. option:: threads,t nr-of-threads
+.. option:: --threads=nr-of-threads, -t nr-of-threads
 	
 	Number of threads to use, zero means all available cores.
 

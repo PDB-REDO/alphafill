@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2021 Maarten L. Hekkelman, NKI-AVL
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -39,17 +39,32 @@ namespace fs = std::filesystem;
 // --------------------------------------------------------------------
 
 file_locator::file_locator(mcfp::config &config)
-	: m_db_dir(config.get("db-dir"))
-	, m_pdb_dir(config.get("pdb-dir"))
-	, m_custom_dir(fs::path(config.get("custom-dir")) / "out")
-	, m_structure_name_pattern(config.get("structure-name-pattern"))
-	, m_pdb_name_pattern(config.get("pdb-name-pattern"))
-	, m_metadata_name_pattern(config.get("metadata-name-pattern"))
 {
-	// if (not fs::is_directory(m_db_dir))
-	// 	throw std::runtime_error("AlphfaFill data directory does not exist");
-	// if (not fs::is_directory(m_pdb_dir))
-	// 	throw std::runtime_error("PDB directory does not exist");
+	if (config.has("db-dir"))
+	{
+		m_db_dir = config.get("db-dir");
+		if (not fs::is_directory(m_db_dir))
+			throw std::runtime_error("AlphfaFill data directory does not exist");
+	}
+
+	if (config.has("pdb-dir"))
+	{
+		m_pdb_dir = config.get("pdb-dir");
+		if (not fs::is_directory(m_pdb_dir))
+			throw std::runtime_error("PDB directory does not exist");
+	}
+
+	if (config.has("custom-dir"))
+		m_custom_dir = fs::path(config.get("custom-dir")) / "out";
+
+	if (config.has("structure-name-pattern"))
+		m_structure_name_pattern = config.get("structure-name-pattern");
+
+	if (config.has("pdb-name-pattern"))
+		m_pdb_name_pattern = config.get("pdb-name-pattern");
+
+	if (config.has("metadata-name-pattern"))
+		m_metadata_name_pattern = config.get("metadata-name-pattern");
 }
 
 std::vector<std::filesystem::path> file_locator::get_all_structure_files(const std::string &id, int version)
@@ -62,11 +77,11 @@ std::vector<std::filesystem::path> file_locator::get_all_structure_files(const s
 		fs::path chunk = instance().get_structure_file(id, i, version);
 		if (not fs::exists(chunk))
 			break;
-		
+
 		result.emplace_back(std::move(chunk));
 		++i;
 	}
-	
+
 	return result;
 }
 
@@ -148,7 +163,7 @@ std::tuple<std::vector<point>, std::vector<point>> selectAtomsNearResidue(
 	{
 		bool nearby = false;
 
-		for (const char *atom_id : {"C", "CA", "N", "O"})
+		for (const char *atom_id : { "C", "CA", "N", "O" })
 		{
 			assert(pdb_ix[i] < pdb.size());
 
@@ -175,7 +190,7 @@ std::tuple<std::vector<point>, std::vector<point>> selectAtomsNearResidue(
 		if (not nearby)
 			continue;
 
-		for (const char *atom_id : {"C", "CA", "N", "O"})
+		for (const char *atom_id : { "C", "CA", "N", "O" })
 		{
 			assert(af_ix[i] < af.size());
 			assert(pdb_ix[i] < pdb.size());
@@ -183,7 +198,7 @@ std::tuple<std::vector<point>, std::vector<point>> selectAtomsNearResidue(
 			auto pt_a = pdb[pdb_ix[i]]->get_atom_by_atom_id(atom_id);
 			auto pt_b = af[af_ix[i]]->get_atom_by_atom_id(atom_id);
 
-			if (not (pt_a and pt_b))
+			if (not(pt_a and pt_b))
 				continue;
 
 			ra.push_back(pt_a.get_location());
@@ -191,9 +206,8 @@ std::tuple<std::vector<point>, std::vector<point>> selectAtomsNearResidue(
 		}
 	}
 
-	return {ra, rb};
+	return { ra, rb };
 }
-
 
 // --------------------------------------------------------------------
 

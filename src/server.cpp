@@ -1042,7 +1042,6 @@ int server_main(int argc, char *const argv[])
                    the currently running webserver
 )",
 
-		mcfp::make_option<std::string>("af-dir", "Directory containing the alphafold data"),
 		mcfp::make_option<std::string>("db-dir", "Directory containing the alphafilled data"),
 		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 
@@ -1102,6 +1101,12 @@ int server_main(int argc, char *const argv[])
 	// --------------------------------------------------------------------
 
 	check_blast_index();
+
+	if (not config.has("db-dir"))
+	{
+		std::cout << "Data directory not specified\n";
+		return 1;
+	}
 
 	int result = 0;
 

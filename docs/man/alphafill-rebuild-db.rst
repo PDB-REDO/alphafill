@@ -29,53 +29,53 @@ This program will drop an already existing database and will recreate a new one 
 
 	Do not print any status or progress information.
 
-.. option:: --config configfile
+.. option:: --config=configfile
 
 	Use the file *configfile* to collection options. The default is to look for a file called *alphafill.conf* in the current directory and then in the directory */etc*. Use this option to override this and specify your own configuration file.
 
-.. option:: db-dir dirname
+.. option:: --db-dir=dirname
 	
 	Directory containing the alphafilled data
 
-.. option:: pdb-dir dirname
+.. option:: --pdb-dir=dirname
 	
 	Directory containing the mmCIF files for the PDB
 
-.. option:: structure-name-pattern
+.. option:: --structure-name-pattern=value
 	
 	Pattern for locating structure files.
 
-	Default is `${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.gz`
+	Default is ``${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.gz``
 
-.. option:: metadata-name-pattern
+.. option:: --metadata-name-pattern=value
 	
 	Pattern for locating metadata files.
 
-	Default is `${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.json`
+	Default is ``${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.json``
 
-.. option:: pdb-name-pattern
+.. option:: --pdb-name-pattern=value
 	
 	Pattern for locating PDB files.
 
-	Default is `${pdb-dir}/${id:1:2}/${id}/${id}_final.cif`
+	Default is ``${pdb-dir}/${id:1:2}/${id}/${id}_final.cif``
 
-.. option:: db-dbname
+.. option:: --db-dbname=name
 	
 	AlphaFill database name
 
-.. option:: db-user
+.. option:: --db-user=name
 	
 	AlphaFill database owner
 
-.. option:: db-password
+.. option:: --db-password=value
 	
 	AlphaFill database password
 
-.. option:: db-host
+.. option:: --db-host=value
 	
 	AlphaFill database host
 
-.. option:: db-port
+.. option:: --db-port=value
 	
 	AlphaFill database port
 

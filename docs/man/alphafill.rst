@@ -21,10 +21,10 @@ Description
 
 *AlphaFill* is an algorithm based on sequence and structure similarity that “transplants” missing ligands, cofactors and (metal) ions to the AlphaFold models. By adding the molecular context to these protein structures, the models can be more easily appreciated in terms of function and structural integrity. Consequently, the *AlphaFill* models can be helpful in designing downstream wet-lab experiments and/or computational studies.
 
+The PDB files used by *AlphaFill* are normally `PDB-REDO <https://pdb-redo.eu>`_ files. These files should be located in a directory specified by the :option:`--db-dir` option. The default for the :option:`--pdb-name-pattern` option assumes you are using these *PDB-REDO* files. If you opt to use another source of PDB files, you will have to change the value for this option.
 
+E.g. for regular PDB files, the value should be: ``${pdb-dir}/${id:1:2}/${id}.cif.gz``
 
-Options
--------
 
 All programs accept at least the following options
 
