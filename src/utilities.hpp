@@ -90,11 +90,6 @@ class file_locator
 		return instance().get_metadata_file_1(id, chunk_nr, version);
 	}
 
-	static std::filesystem::path get_pae_file(const std::string &id, int chunk_nr, int version)
-	{
-		return instance().get_pae_file_1(id, chunk_nr, version);
-	}
-
 	static std::vector<std::filesystem::path> get_all_structure_files(const std::string &id, int version);
 
   private:
@@ -148,20 +143,6 @@ class file_locator
 		return s;
 	}
 
-	std::filesystem::path get_pae_file_1(const std::string &id, int chunk_nr, int version)
-	{
-		std::string s = get_file(id, chunk_nr, m_pae_name_pattern);
-
-		std::string::size_type i;
-		while ((i = s.find("${db-dir}")) != std::string::npos)
-			s.replace(i, strlen("${db-dir}"), m_db_dir);
-		
-		while ((i = s.find("${version}")) != std::string::npos)
-			s.replace(i, strlen("${version}"), std::to_string(version));
-
-		return s;
-	}
-
 	std::string get_file(const std::string &id, int chunk_nr, std::string pattern)
 	{
 		std::string::size_type i;
@@ -190,5 +171,4 @@ class file_locator
 	const std::string m_structure_name_pattern;
 	const std::string m_pdb_name_pattern;
 	const std::string m_metadata_name_pattern;
-	const std::string m_pae_name_pattern;
 };

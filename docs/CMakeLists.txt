@@ -6,10 +6,15 @@ set(SPHINX_SOURCE ${CMAKE_CURRENT_SOURCE_DIR})
 # set(SPHINX_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sphinx)
 set(SPHINX_BUILD ${PROJECT_SOURCE_DIR}/docroot)
 
-add_custom_target("Sphinx-${PROJECT_NAME}" ALL
+add_custom_target("Sphinx-${PROJECT_NAME}-html" ALL
 	COMMAND ${SPHINX_EXECUTABLE} -b dirhtml
 	${SPHINX_SOURCE} ${SPHINX_BUILD}
 	COMMENT "Generating documentation with Sphinx")
+
+add_custom_target("Sphinx-${PROJECT_NAME}-man" ALL
+	COMMAND ${SPHINX_EXECUTABLE} -b man
+	${SPHINX_SOURCE} ${CMAKE_CURRENT_BINARY_DIR}/man
+	COMMENT "Generating manual pages with Sphinx")
 
 # install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/sphinx/
 # 	DESTINATION ${CMAKE_INSTALL_DOCDIR}

@@ -11,12 +11,25 @@ Description
 
 :program:`alphafill-process` is the program to create a new AlphaFill file based on an input model.
 
+.. option:: --help
 
-Options
--------
+	Display the options allowed for this program.
 
-.. program:: alphafill-process
+.. option:: --version
 
+	Display the version of this program.
+
+.. option:: --verbose
+
+	Use a more verbose output, printing status and progress information.
+
+.. option:: --quiet
+
+	Do not print any status or progress information.
+
+.. option:: --config configfile
+
+	Use the file *configfile* to collection options. The default is to look for a file called *alphafill.conf* in the current directory and then in the directory */etc*. Use this option to override this and specify your own configuration file.
 
 .. option:: pae-file filename
 	

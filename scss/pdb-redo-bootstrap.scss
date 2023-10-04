@@ -248,3 +248,31 @@ td.suspect {
 // 	// color: black;
 // 	// font-weight: bold;
 // }
+
+// for manual pages and such
+
+.manual {
+
+	dl {
+		margin-bottom: 15px;
+
+		dd {
+			margin-top: 3px;
+			margin-bottom: 10px;
+			margin-left: 30px;
+
+			&:first-child {
+				margin-top: 0px;
+			}
+
+			ul, table {
+				margin-bottom: 10px;
+			}
+			
+			&:last-child,
+			&:last-child > :last-child {
+				margin-bottom: 0;
+			}
+		}
+	}
+}

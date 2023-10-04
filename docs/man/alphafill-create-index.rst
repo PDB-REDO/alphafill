@@ -11,10 +11,25 @@ Description
 
 :program:`alphafill-create-index` is the program that creates a new *FastA* file for the sequences found in the PDB or PDB-REDO files.
 
-Options
--------
+.. option:: --help
 
-.. program:: alphafill-create-index
+	Display the options allowed for this program.
+
+.. option:: --version
+
+	Display the version of this program.
+
+.. option:: --verbose
+
+	Use a more verbose output, printing status and progress information.
+
+.. option:: --quiet
+
+	Do not print any status or progress information.
+
+.. option:: --config configfile
+
+	Use the file *configfile* to collection options. The default is to look for a file called *alphafill.conf* in the current directory and then in the directory */etc*. Use this option to override this and specify your own configuration file.
 
 .. option:: pdb-dir dirname
 	

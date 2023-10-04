@@ -1,5 +1,5 @@
 alphafill-rebuild-db
-=================
+====================
 
 Synopsis
 --------
@@ -13,10 +13,25 @@ Description
 
 This program will drop an already existing database and will recreate a new one and fill it with the information found. The `db-*` options are not required, the default user credentials are used if they are not specified.
 
-Options
--------
+.. option:: --help
 
-.. program:: alphafill-rebuild-db
+	Display the options allowed for this program.
+
+.. option:: --version
+
+	Display the version of this program.
+
+.. option:: --verbose
+
+	Use a more verbose output, printing status and progress information.
+
+.. option:: --quiet
+
+	Do not print any status or progress information.
+
+.. option:: --config configfile
+
+	Use the file *configfile* to collection options. The default is to look for a file called *alphafill.conf* in the current directory and then in the directory */etc*. Use this option to override this and specify your own configuration file.
 
 .. option:: db-dir dirname
 	
@@ -30,25 +45,19 @@ Options
 	
 	Pattern for locating structure files.
 
-	Default is `${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.gz`
+	Default is `${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.gz`
 
 .. option:: metadata-name-pattern
 	
 	Pattern for locating metadata files.
 
-	Default is `${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.json`
+	Default is `${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.json`
 
 .. option:: pdb-name-pattern
 	
 	Pattern for locating PDB files.
 
 	Default is `${pdb-dir}/${id:1:2}/${id}/${id}_final.cif`
-
-.. option:: pae-name-pattern
-	
-	Pattern for location cached PAE scores.
-
-	Default is `${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.pae.json`
 
 .. option:: db-dbname
 	

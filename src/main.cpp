@@ -45,8 +45,6 @@ namespace fs = std::filesystem;
 
 int test_main(int argc, char *const argv[])
 {
-	data_service::instance().get_pae("P29376", 1, 3);
-
 	return 0;
 }
 
@@ -61,11 +59,9 @@ int rebuild_db_main(int argc, char *const argv[])
 		mcfp::make_option<std::string>("db-dir", "Directory containing the alphafilled data"),
 		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 
-		mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.gz", "Pattern for locating structure files"),
-		mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.json", "Pattern for locating metadata files"),
+		mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.gz", "Pattern for locating structure files"),
+		mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.json", "Pattern for locating metadata files"),
 		mcfp::make_option<std::string>("pdb-name-pattern", "${pdb-dir}/${id:1:2}/${id}/${id}_final.cif", "Pattern for locating PDB files"),
-		mcfp::make_option<std::string>("pae-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.pae.json",
-			"Pattern for location cached PAE scores"),
 
 		mcfp::make_option<std::string>("db-dbname", "AF DB name"),
 		mcfp::make_option<std::string>("db-user", "AF DB owner"),

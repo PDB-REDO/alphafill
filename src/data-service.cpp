@@ -720,7 +720,6 @@ status_reply data_service::get_status(const std::string &af_id) const
 
 	fs::path jsonFile = file_locator::get_metadata_file(type, id, chunkNr, version);
 	fs::path cifFile = file_locator::get_structure_file(type, id, chunkNr, version);
-	// fs::path paeFile = file_locator::get_pae_file(type, id, chunkNr, version);
 
 	// // See if this ID might have been processed already
 	// if ((not fs::exists(jsonFile) or not fs::exists(cifFile)) and not m[4].matched)
@@ -896,74 +895,6 @@ std::vector<cif::matrix<uint8_t>> data_service::load_pae_from_file(const std::fi
 		auto &pae = e["predicted_aligned_error"];
 		if (not pae.is_array())
 			throw std::runtime_error("Unexpected JSON result for PAE");
-
-		size_t len = pae.size();
-
-		cif::matrix<uint8_t> &m = result.emplace_back(len, len);
-
-		for (size_t i = 0; i < len; ++i)
-		{
-			for (size_t j = 0; j < len; ++j)
-				m(i, j) = pae[i][j].as<int>();
-		}
-	}
-
-	return result;
-}
-
-std::vector<cif::matrix<uint8_t>> data_service::get_pae(const std::string &id, int chunk, int version) const
-{
-	auto f = file_locator::get_pae_file(id, chunk, version);
-
-	zeep::json::element data;
-
-	std::error_code ec;
-	if (fs::exists(f, ec))
-	{
-		cif::gzio::ifstream file(f);
-		if (not file.is_open())
-			throw std::runtime_error("Could not open PAE file " + f.string());
-
-		zeep::json::parse_json(file, data);
-	}
-	else
-	{
-		auto &config = mcfp::config::instance();
-
-		std::string url = config.get("pae-url");
-
-		std::string::size_type i;
-
-		while ((i = url.find("${id}")) != std::string::npos)
-			url.replace(i, strlen("${id}"), id);
-
-		while ((i = url.find("${chunk}")) != std::string::npos)
-			url.replace(i, strlen("${chunk}"), std::to_string(chunk));
-
-		while ((i = url.find("${version}")) != std::string::npos)
-			url.replace(i, strlen("${version}"), std::to_string(version));
-
-		auto rep = simple_request(url);
-
-		if (rep.get_status() != zeep::http::ok)
-			throw std::runtime_error("No PAE found for ID " + id + " in AlphaFold");
-
-		zeep::json::parse_json(rep.get_content(), data);
-	}
-
-	if (not data.is_array())
-		throw std::runtime_error("Unexpected JSON result for PAE data " + id);
-
-	std::vector<cif::matrix<uint8_t>> result;
-
-	for (auto e : data)
-	{
-		if (not e.is_object())
-			throw std::runtime_error("Unexpected JSON result for PAE data " + id);
-		
-		auto &pae = e["predicted_aligned_error"];
-		if (not pae.is_array())
-			throw std::runtime_error("Unexpected JSON result for PAE data " + id);
 
 		size_t len = pae.size();
 

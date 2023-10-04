@@ -5,7 +5,7 @@ release = '@PROJECT_VERSION@'
 
 # -- General configuration ---------------------------------------------------
 
-root_doc = 'help'
+root_doc = 'manual'
 
 extensions = [
     "myst_parser"
@@ -28,6 +28,16 @@ html_static_path = ['_static']
 
 html_theme_options = {
 }
+
+man_pages = [
+    ('man/alphafill', 'alphafill', 'Generic AlphaFill manual page', author, 1),
+    ('man/alphafill-create-index', 'alphafill-create-index', 'Generic AlphaFill manual page', author, 1),
+    ('man/alphafill-process', 'alphafill-process', 'Generic AlphaFill manual page', author, 1),
+    ('man/alphafill-rebuild-db', 'alphafill-rebuild-db', 'Generic AlphaFill manual page', author, 1),
+    ('man/alphafill-server', 'alphafill-server', 'Generic AlphaFill manual page', author, 1)
+]
+
+man_show_urls = True
 
 from os import path
 

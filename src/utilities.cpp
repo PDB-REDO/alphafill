@@ -45,7 +45,6 @@ file_locator::file_locator(mcfp::config &config)
 	, m_structure_name_pattern(config.get("structure-name-pattern"))
 	, m_pdb_name_pattern(config.get("pdb-name-pattern"))
 	, m_metadata_name_pattern(config.get("metadata-name-pattern"))
-	, m_pae_name_pattern(config.get("pae-name-pattern"))
 {
 	// if (not fs::is_directory(m_db_dir))
 	// 	throw std::runtime_error("AlphfaFill data directory does not exist");

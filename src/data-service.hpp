@@ -129,8 +129,6 @@ class data_service
 	std::string queue_af_id(const std::string &id);
 	void queue_3d_beacon_request(const std::string &id);
 
-	std::vector<cif::matrix<uint8_t>> get_pae(const std::string &id, int chunk, int version) const;
-
 	static std::vector<cif::matrix<uint8_t>> load_pae_from_file(const std::filesystem::path &file);
 
   private:

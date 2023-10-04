@@ -168,7 +168,7 @@ class affd_html_controller : public zh::html_controller
 
 		mount("structure-table-page", &affd_html_controller::structures_table);
 
-		mount("{help,man,genindex}/", &affd_html_controller::handle_help_file);
+		mount("{manual,man,genindex}/", &affd_html_controller::handle_help_file);
 		mount("_static/", &affd_html_controller::handle_file);
 	}
 
@@ -1066,8 +1066,8 @@ int server_main(int argc, char *const argv[])
 
 		mcfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
 
-		mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.gz", "Pattern for locating structure files"),
-		mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.cif.json", "Pattern for locating metadata files"),
+		mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.gz", "Pattern for locating structure files"),
+		mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.json", "Pattern for locating metadata files"),
 		mcfp::make_option<std::string>("pdb-name-pattern", "${pdb-dir}/${id:1:2}/${id}/${id}_final.cif", "Pattern for locating PDB files"),
 
 		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
@@ -1075,17 +1075,16 @@ int server_main(int argc, char *const argv[])
 		mcfp::make_option<std::string>("alphafold-3d-beacon", "https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${id}.json?provider=alphafold",
 			"The URL of the 3d-beacons service for alphafold"),
 
-		mcfp::make_option<std::string>("pae-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-model_v${version}.pae.json",
-			"Pattern for location cached PAE scores"),
 		mcfp::make_option<std::string>("pae-url", "https://alphafold.ebi.ac.uk/files/AF-${id}-F${chunk}-predicted_aligned_error_v${version}.json",
 			"The URL to use to retrieve PAE scores from the EBI"),
 
 		mcfp::make_option("no-daemon,F", "Do not fork a background process"),
-		mcfp::make_option<std::string>("address", "Address to listen to"),
-		mcfp::make_option<unsigned short>("port", "Port to listen to"),
-		mcfp::make_option<std::string>("user", "User to run as"),
+		mcfp::make_option<std::string>("address", "127.0.0.1", "Address to listen to"),
+		mcfp::make_option<unsigned short>("port", 10342, "Port to listen to"),
+		mcfp::make_option<std::string>("user", "www-data", "User to run as"),
 		mcfp::make_option<std::string>("context", "Reverse proxy context"),
 		mcfp::make_option<std::string>("db-link-template", "Template for links to pdb(-redo) entry"),
+
 		mcfp::make_option<std::string>("db-dbname", "AF DB name"),
 		mcfp::make_option<std::string>("db-user", "AF DB owner"),
 		mcfp::make_option<std::string>("db-password", "AF DB password"),
@@ -1177,17 +1176,9 @@ int server_main(int argc, char *const argv[])
 
 	if (command == "start")
 	{
-		std::string address = "127.0.0.1";
-		if (config.has("address"))
-			address = config.get("address");
-
-		unsigned short port = 10342;
-		if (config.has("port"))
-			port = config.get<unsigned short>("port");
-
-		std::string user = "www-data";
-		if (config.has("user"))
-			user = config.get("user");
+		std::string address = config.get("address");
+		unsigned short port = config.get<unsigned short>("port");
+		std::string user = config.get("user");
 
 		std::cout << "starting server at http://" << address << ':' << port << '/' << '\n';
 
@@ -1204,7 +1195,7 @@ int server_main(int argc, char *const argv[])
 		result = server.reload();
 	else
 	{
-		std::cerr << "Invalid command\n";
+		std::cerr << "Invalid command " << std::quoted(command) << "\n";
 		result = 1;
 	}
 
