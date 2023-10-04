@@ -844,11 +844,14 @@ void data_service::queue(const std::string &data, const std::optional<std::strin
 
 	if (pae.has_value())
 	{
+		membuf b2(const_cast<char *>(pae->data()), pae->length());
+		cif::gzio::istream in(&b2);
+
 		cif::gzio::ofstream out(m_in_dir / (id + ".pae.gz"));
 		if (not out.is_open())
 			throw std::runtime_error("Could not create temporary file");
 
-		out << *pae;
+		out << in.rdbuf();
 		out.close();
 	}
 

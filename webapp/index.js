@@ -8,14 +8,17 @@ window.addEventListener('load', () => {
 	const uploadBtn = document.getElementById('upload-btn');
 	if (uploadBtn) {
 		uploadBtn.addEventListener('click', (evt) => {
-			const customFile = document.getElementById('custom-file');
-			const files = customFile.files;
+			evt.preventDefault();
 
-			if (files.length == 1) {
+			const customFile = document.getElementById('custom-file');
+			const paeFile = document.getElementById('custom-pae-file');
+
+			if (customFile.files.length == 1) {
 
 				const fd = new FormData();
 
-				fd.append("structure", files[0]);
+				fd.append("structure", customFile.files[0]);
+				fd.append("pae", paeFile.files[0])
 
 				var resultOK = false;
 
