@@ -692,7 +692,7 @@ class affd_rest_controller : public zh::rest_controller
 		map_get_request("aff/{id}/optimized/{asymlist}", &affd_rest_controller::get_aff_structure_optimized, "id", "asymlist");
 		map_get_request("aff/{id}/optimized-with-stats/{asymlist}", &affd_rest_controller::get_aff_structure_optimized_with_stats, "id", "asymlist");
 
-		map_post_request("aff", &affd_rest_controller::post_custom_structure, "structure");
+		map_post_request("aff", &affd_rest_controller::post_custom_structure, "structure", "pae");
 	}
 
 	zh::reply get_aff_structure(const std::string &af_id);
@@ -701,19 +701,19 @@ class affd_rest_controller : public zh::rest_controller
 	zeep::json::element get_aff_structure_json(const std::string &af_id);
 	zeep::json::element get_aff_3d_beacon(std::string id, std::string version);
 
-	zh::reply get_aff_structure_stripped_def(const std::string &id, const std::string &asyms)
+	zh::reply get_aff_structure_stripped_def(const std::string &id, const std::optional<std::string> &asyms)
 	{
 		return get_aff_structure_stripped(id, asyms, 0);
 	}
 
-	zh::reply get_aff_structure_stripped(const std::string &af_id, const std::string &asyms, int identity);
+	zh::reply get_aff_structure_stripped(const std::string &af_id, const std::optional<std::string> &asyms, int identity);
 
 	zh::reply get_aff_structure_optimized(const std::string &af_id, const std::string &asyms);
 	zh::reply get_aff_structure_optimized_with_stats(const std::string &af_id, const std::string &asyms);
 
 	// --------------------------------------------------------------------
 
-	zeep::json::element post_custom_structure(const std::string &data);
+	zeep::json::element post_custom_structure(const std::string &data, const std::optional<std::string> pae);
 };
 
 status_reply affd_rest_controller::get_aff_status(const std::string &af_id)
@@ -763,11 +763,11 @@ zh::reply affd_rest_controller::get_aff_structure(const std::string &af_id)
 	return rep;
 }
 
-zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af_id, const std::string &asyms, int identity)
+zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af_id, const std::optional<std::string> &asyms, int identity)
 {
 	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
 
-	auto requestedAsyms = cif::split(asyms, ",");
+	auto requestedAsyms = cif::split(asyms.value_or(""), ",");
 	std::set<std::string> requestedAsymSet{ requestedAsyms.begin(), requestedAsyms.end() };
 
 	std::unique_ptr<std::iostream> s(new std::stringstream);
@@ -1006,7 +1006,7 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 
 // --------------------------------------------------------------------
 
-zeep::json::element affd_rest_controller::post_custom_structure(const std::string &data)
+zeep::json::element affd_rest_controller::post_custom_structure(const std::string &data, const std::optional<std::string> pae)
 {
 	auto id = "CS-" + zeep::encode_hex(zeep::sha1(data));
 
@@ -1014,7 +1014,7 @@ zeep::json::element affd_rest_controller::post_custom_structure(const std::strin
 
 	if (status.status == CustomStatus::Unknown)
 	{
-		data_service::instance().queue(data, id);
+		data_service::instance().queue(data, pae, id);
 		status.status = CustomStatus::Queued;
 	}
 
@@ -1073,9 +1073,6 @@ int server_main(int argc, char *const argv[])
 
 		mcfp::make_option<std::string>("alphafold-3d-beacon", "https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${id}.json?provider=alphafold",
 			"The URL of the 3d-beacons service for alphafold"),
-
-		mcfp::make_option<std::string>("pae-url", "https://alphafold.ebi.ac.uk/files/AF-${id}-F${chunk}-predicted_aligned_error_v${version}.json",
-			"The URL to use to retrieve PAE scores from the EBI"),
 
 		mcfp::make_option("no-daemon,F", "Do not fork a background process"),
 		mcfp::make_option<std::string>("address", "127.0.0.1", "Address to listen to"),

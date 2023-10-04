@@ -1141,10 +1141,10 @@ int alphafill_main(int argc, char *const argv[])
 		auto filename = xyzin.filename();
 
 		if (filename.extension() == ".gz")
-			filename.replace_extension("");
+			filename.replace_extension();
 
 		if (filename.extension() == ".cif")
-			filename.replace_extension("");
+			filename.replace_extension();
 
 		const auto &[type, af_id, chunk, version] = parse_af_id(filename);
 

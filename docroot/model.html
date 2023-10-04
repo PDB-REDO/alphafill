@@ -37,13 +37,13 @@
 		<table z:if="${type=='alphafold'}" class="table table-sm mt-4">
 			<tr>
 				<td>Structure file</td>
-				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}|"
-						z:text="|https://alphafill.eu/v1/aff/${af_id}|"></a></td>
+				<td><a z:href="@{/v1/aff/${af_id}}"
+						z:text="${af_id}"></a></td>
 			</tr>
 			<tr>
 				<td>Metadata</td>
-				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}/json|"
-						z:text="|https://alphafill.eu/v1/aff/${af_id}/json|"></a></td>
+				<td><a z:href="@{/v1/aff/${af_id}/json}"
+						z:text="|${af_id}/json|"></a></td>
 			</tr>
 			<tr>
 				<td>Original AlphaFold model</td>
@@ -55,26 +55,26 @@
 		<table z:if="${type=='custom'}" class="table table-sm mt-4">
 			<tr>
 				<td>Structure file</td>
-				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}|"
-						z:text="|https://alphafill.eu/v1/aff/${af_id}|"></a></td>
+				<td><a z:href="@{/v1/aff/${af_id}}"
+						z:text="${af_id}"></a></td>
 			</tr>
 			<tr>
 				<td>Metadata</td>
-				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}/json|"
-						z:text="|https://alphafill.eu/v1/aff/${af_id}/json|"></a></td>
+				<td><a z:href="@{/v1/aff/${af_id}/json}"
+						z:text="|${af_id}/json|"></a></td>
 			</tr>
 		</table>
 
 		<table z:if="${type=='custom'}" class="table table-sm mt-4">
 			<tr>
 				<td>Structure file</td>
-				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}|"
-						z:text="|https://alphafill.eu/v1/aff/${af_id}|"></a></td>
+				<td><a z:href="@{/v1/aff/${af_id}}"
+						z:text="${af_id}"></a></td>
 			</tr>
 			<tr>
 				<td>Metadata</td>
-				<td><a z:href="|https://alphafill.eu/v1/aff/${af_id}/json|"
-						z:text="|https://alphafill.eu/v1/aff/${af_id}/json|"></a></td>
+				<td><a z:href="@{/v1/aff/${af_id}/json}"
+						z:text="|${af_id}/json|"></a></td>
 			</tr>
 		</table>
 

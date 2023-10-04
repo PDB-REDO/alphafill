@@ -85,7 +85,7 @@ include(VersionString)
 write_version_header("${PROJECT_SOURCE_DIR}/src/")
 
 find_package(Filesystem REQUIRED)
-find_package(zeep 6.0.4 REQUIRED)
+find_package(zeep 6.0.8 REQUIRED)
 find_package(cifpp 5.1.2 REQUIRED)
 find_package(libmcfp REQUIRED)
 find_package(libpqxx 7.8 REQUIRED)

@@ -72,7 +72,7 @@ class file_locator
 		if (type == EntryType::Custom)
 			return instance().m_custom_dir / ("CS-" + id + ".json");
 		else
-			return instance().m_custom_dir / ("AF-" + id + "-F" + std::to_string(chunk_nr) + "-model_v" + std::to_string(version) + ".json");
+			return instance().m_custom_dir / ("AF-" + id + "-F" + std::to_string(chunk_nr) + "-filled_v" + std::to_string(version) + ".json");
 	}
 
 	static std::filesystem::path get_structure_file(const std::string &id, int chunk_nr, int version)

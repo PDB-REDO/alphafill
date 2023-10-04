@@ -442,7 +442,7 @@ bool data_service::exists_in_afdb(const std::string &id) const
 	return result;
 }
 
-std::tuple<std::filesystem::path, std::string> data_service::fetch_from_afdb(const std::string &id) const
+std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_from_afdb(const std::string &id) const
 {
 	auto &config = mcfp::config::instance();
 
@@ -461,6 +461,11 @@ std::tuple<std::filesystem::path, std::string> data_service::fetch_from_afdb(con
 	zeep::json::parse_json(rep.get_content(), rep_j);
 
 	url = rep_j["structures"][0]["summary"]["model_url"].as<std::string>();
+
+	zeep::http::uri uri(url);
+
+	if (uri.get_path().get_segments().empty())
+		throw std::runtime_error("Empy uri returned");
 
 	rep = simple_request(url, { { "Accept-Encoding", "gzip" } });
 
@@ -485,17 +490,51 @@ std::tuple<std::filesystem::path, std::string> data_service::fetch_from_afdb(con
 	cif::gzio::istream in(&buffer);
 
 	std::ostringstream result;
+	result << in.rdbuf();
 
-	std::string line;
-	while (getline(in, line))
-		result << line << '\n';
+	std::ostringstream pae_data;
 
-	zeep::http::uri uri(url);
+	// Try PAE data
+	auto o = url.find("-model_v");
+	if (o != std::string::npos)
+	{
+		url.replace(o + 1, 5, "predicted_aligned_error");
+		
+		o = url.rfind(".cif");
+		if (o != std::string::npos)
+			url.replace(o + 1, 3, "json");
 
-	if (uri.get_path().get_segments().empty())
-		throw std::runtime_error("Empy uri returned");
+		rep = simple_request(url, { { "Accept-Encoding", "gzip" } });
 
-	return { uri.get_path().get_segments().back(), result.str() };
+		try
+		{
+			if (rep.get_status() != zeep::http::ok)
+				throw std::runtime_error("Could not download PAE data");
+
+			std::string enc = rep.get_header("Content-Encoding");
+			if (enc != "gzip")
+			 	throw std::runtime_error("Unexpected content encoding from server");
+
+			const std::string &content = rep.get_content();
+
+			struct membuf : public std::streambuf
+			{
+				membuf(char *text, size_t length)
+				{
+					this->setg(text, text, text + length);
+				}
+			} buffer(const_cast<char *>(content.data()), content.length());
+
+			cif::gzio::istream in(&buffer);
+			pae_data << in.rdbuf();
+		}
+		catch (const std::exception &ex)
+		{
+			std::cerr << "Error loading PAE data from " << std::quoted(url) << ": " << ex.what() << '\n';
+		}
+	}
+
+	return { uri.get_path().get_segments().back(), result.str(), pae_data.str() };
 }
 
 // --------------------------------------------------------------------
@@ -552,7 +591,8 @@ void print_what(std::ostream &os, const std::exception &e)
 	}
 }
 
-void data_service::process_queued(const std::filesystem::path &xyzin, const std::filesystem::path &xyzout, const std::filesystem::path &jsonout)
+void data_service::process_queued(const std::filesystem::path &xyzin, const std::filesystem::path &paein,
+	const std::filesystem::path &xyzout, const std::filesystem::path &jsonout)
 {
 	std::error_code ec;
 
@@ -572,7 +612,15 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 	if (ec)
 		std::cerr << "Error moving input file to work dir: " << ec.message() << '\n';
 
-	auto metadata = alphafill(f.front(), {}, data_service_progress{ m_progress });
+	std::vector<PAE_matrix> pae_data;
+
+	if (not paein.empty())
+	{
+		pae_data = load_pae_from_file(paein);
+		fs::rename(paein, m_work_dir / paein.filename(), ec);
+	}
+
+	auto metadata = alphafill(f.front(), pae_data, data_service_progress{ m_progress });
 
 	f.save(xyzout);
 
@@ -625,12 +673,12 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 void data_service::run()
 {
 	using namespace std::literals;
-	std::regex rx(R"(((?:AF|CS)-.+?)(?:\.cif\.gz)?)");
+	std::regex rx(R"(((?:AF|CS)-.+?)(?:\.cif\.gz))");
 
 	for (;;)
 	{
 		std::error_code ec;
-		std::filesystem::path xyzin;
+		std::filesystem::path xyzin, paein;
 
 		auto &&[timeout, next] = m_queue.pop(5s);
 
@@ -647,12 +695,18 @@ void data_service::run()
 					continue;
 
 				xyzin = *iter;
+
 				next = m[1].str();
 				break;
 			}
 
 			if (xyzin.empty())
 				continue;
+
+			paein = xyzin;
+			paein.replace_extension().replace_extension("pae.gz");
+			if (not fs::exists(paein, ec))
+				paein.clear();
 		}
 		else if (next == "stop")
 			break;
@@ -667,6 +721,8 @@ void data_service::run()
 		{
 			// results already exist. Skip this.
 			fs::remove(xyzin, ec);
+			if (not paein.empty())
+				fs::remove(paein, ec);
 			continue;
 		}
 
@@ -674,7 +730,7 @@ void data_service::run()
 
 		try
 		{
-			process_queued(xyzin, xyzout, jsonout);
+			process_queued(xyzin, paein, xyzout, jsonout);
 		}
 		catch (const std::exception &ex)
 		{
@@ -687,6 +743,9 @@ void data_service::run()
 
 		if (fs::exists(xyzin, ec))
 			fs::remove(xyzin, ec);
+
+		if (fs::exists(paein, ec))
+			fs::remove(paein, ec);
 	}
 }
 
@@ -754,7 +813,7 @@ status_reply data_service::get_status(const std::string &af_id) const
 	return reply;
 }
 
-void data_service::queue(const std::string &data, const std::string &id)
+void data_service::queue(const std::string &data, const std::optional<std::string> pae, const std::string &id)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -783,6 +842,16 @@ void data_service::queue(const std::string &data, const std::string &id)
 	f.save(out);
 	out.close();
 
+	if (pae.has_value())
+	{
+		cif::gzio::ofstream out(m_in_dir / (id + ".pae.gz"));
+		if (not out.is_open())
+			throw std::runtime_error("Could not create temporary file");
+
+		out << *pae;
+		out.close();
+	}
+
 	m_queue.push(id);
 }
 
@@ -791,25 +860,38 @@ std::string data_service::queue_af_id(const std::string &id)
 	if (m_queue.is_full())
 		throw std::runtime_error("The server is too busy to handle your request, please try again later");
 
-	auto &&[filename, data] = fetch_from_afdb(id);
+	auto &&[filename, data, pae] = fetch_from_afdb(id);
 
 	if (filename.extension() == ".cif")
-		filename.replace_extension("");
-
-	const auto &[type, af_id, chunk, version] = parse_af_id(filename);
-
-	auto outfile = file_locator::get_structure_file(af_id, chunk, version);
+		filename.replace_extension();
 
 	std::lock_guard<std::mutex> lock(m_mutex);
 
-	cif::gzio::ofstream out(m_in_dir / outfile.filename());
+	cif::gzio::ofstream out(m_in_dir / (filename.string() + ".cif.gz"));
 	if (not out.is_open())
 		throw std::runtime_error("Could not create temporary file");
 
 	out << data;
 	out.close();
 
+	if (not pae.empty())
+	{
+		auto paefile = m_in_dir / filename;
+		paefile.replace_extension().replace_extension("pae.gz");
+		
+		cif::gzio::ofstream out(m_in_dir / paefile.filename());
+		if (not out.is_open())
+			throw std::runtime_error("Could not create temporary PAE file");
+
+		out << pae;
+		out.close();
+	}
+
 	// create output directory, if needed.
+
+	const auto &[type, af_id, chunk, version] = parse_af_id(filename);
+	auto outfile = file_locator::get_structure_file(af_id, chunk, version);
+
 	assert(not outfile.empty());
 	if (not fs::exists(outfile.parent_path()))
 		fs::create_directories(outfile.parent_path());
@@ -843,7 +925,7 @@ void data_service::run_3db()
 
 		try
 		{
-			auto &&[filename, data] = fetch_from_afdb(id);
+			auto &&[filename, data, pae] = fetch_from_afdb(id);
 
 			if (filename.extension() == ".cif")
 				filename.replace_extension("");
@@ -860,6 +942,18 @@ void data_service::run_3db()
 
 			out << data;
 			out.close();
+
+			if (not pae.empty())
+			{
+				auto paefile = m_in_dir / (outfile.filename().replace_extension().replace_extension("pae.gz"));
+				
+				cif::gzio::ofstream out(m_in_dir / paefile.filename());
+				if (not out.is_open())
+					throw std::runtime_error("Could not create temporary PAE file");
+
+				out << pae;
+				out.close();
+			}
 		}
 		catch (const std::exception &ex)
 		{

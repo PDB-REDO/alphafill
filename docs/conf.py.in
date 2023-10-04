@@ -31,10 +31,11 @@ html_theme_options = {
 
 man_pages = [
     ('man/alphafill', 'alphafill', 'Generic AlphaFill manual page', author, 1),
-    ('man/alphafill-create-index', 'alphafill-create-index', 'Generic AlphaFill manual page', author, 1),
-    ('man/alphafill-process', 'alphafill-process', 'Generic AlphaFill manual page', author, 1),
-    ('man/alphafill-rebuild-db', 'alphafill-rebuild-db', 'Generic AlphaFill manual page', author, 1),
-    ('man/alphafill-server', 'alphafill-server', 'Generic AlphaFill manual page', author, 1)
+    ('man/alphafill-create-index', 'alphafill-create-index', 'AlphaFill create-index manual page', author, 1),
+    ('man/alphafill-process', 'alphafill-process', 'AlphaFill process manual page', author, 1),
+    ('man/alphafill-rebuild-db', 'alphafill-rebuild-db', 'AlphaFill rebuild-db manual page', author, 1),
+    ('man/alphafill-server', 'alphafill-server', 'AlphaFill server manual page', author, 1),
+    ('man/alphafill-api', 'alphafill-api', 'AlphaFill server API manual page', author, 1)
 ]
 
 man_show_urls = True

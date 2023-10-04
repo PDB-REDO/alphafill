@@ -11,6 +11,8 @@ Description
 
 :program:`alphafill-server` is the web application server for alphafill. This is a single executable containing everything required to serve AlphaFill as a web service.
 
+Before running the server, you should have created some AlphaFill files using :program:`alphafill-process` and created a PostgreSQL database with :program:`alphafill-rebuild-db`.
+
 The **command** argument must be one of:
 
 start
@@ -225,12 +227,6 @@ The options for the server are as follows.
 
 	Default value is ``https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${id}.json?provider=alphafold``
 
-.. option:: --pae-url=value
-	
-	The URL to use to retrieve PAE scores from the EBI
-
-	Default value is ``https://alphafold.ebi.ac.uk/files/AF-${id}-F${chunk}-predicted_aligned_error_v${version}.json``
-	
 .. option:: --custom-dir=dirname
 	
 	Directory for custom built entries. These are files uploaded by the user of the web service.

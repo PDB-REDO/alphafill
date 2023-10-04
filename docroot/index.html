@@ -14,20 +14,32 @@
 		<h1 class="text-center fw-bold">AlphaFill</h1>
 		<h2 class="text-center fw-bold">AlphaFold models enriched with ligands and co-factors</h2>
 
-		<div class="row">
+		<div class="row mt-5 mb-5">
 
 			<form z:action="@{/model}" class="col">
-				<div class="input-group mt-5 mb-5">
+				<h6 class="mb-3">Show an entry based on Uniprot ID</h6>
+				<div class="input-group input-group-sm">
 					<span class="input-group-text" id="search-af">Uniprot ID</span>
 					<input type="text" class="form-control" placeholder="Search for Uniprot ID" aria-label="Uniprot ID"
 						name="id" aria-describedby="search-af" />
-					</div>
+				</div>
+				<button type="submit" class="btn btn-sm btn-primary mt-3">Submit</button>
 			</form>
 			<form z:action="@{/model}" class="col">
-				<div class="input-group mt-5 mb-5">
-					<input type="file" class="form-control" id="custom-file" aria-describedby="upload-btn" aria-label="Upload" />
-					<button class="btn btn-outline-secondary" type="button" id="upload-btn">Upload</button>
+				<h6 class="mb-3">Create your own AlphaFill model</h6>
+				<div class="input-group input-group-sm mb-2">
+					<label class="input-group-text" for="custom-file">Structure File</label>
+					<input type="file" class="form-control" id="custom-file" aria-describedby="upload-btn"
+						aria-label="Upload" />
 				</div>
+
+				<div class="input-group input-group-sm">
+					<label class="input-group-text" for="custom-pae-file">PAE File (optional)</label>
+					<input type="file" class="form-control" id="custom-pae-file" aria-describedby="upload-btn"
+						aria-label="Upload" />
+				</div>
+
+				<button type="submit" class="btn btn-sm btn-primary mt-3">Submit</button>
 			</form>
 		</div>
 
@@ -43,7 +55,8 @@
 			<h4>Error processing</h4>
 
 			<p>There was an error processing entry <span z:text="${error-id}"></span>.
-				The error message is <pre><span z:text="${error}"></span></pre>
+				The error message is
+			<pre><span z:text="${error}"></span></pre>
 			</p>
 		</div>
 

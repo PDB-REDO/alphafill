@@ -4,6 +4,8 @@ alphafill
 Synopsis
 --------
 
+The following command line applications are available
+
 **alphafill-create-index**
 	Tool to create a *FastA* file for the PDB or PDB-REDO structure files
 
@@ -15,6 +17,12 @@ Synopsis
 
 **alphafill-server**
 	Tool to serve the processed entries as a web application
+
+As an alternative, you can start the individual programs as: ``alphafill <program>``, as in:
+
+.. code-block:: console
+
+	alphafill create-index
 
 Description
 -----------
