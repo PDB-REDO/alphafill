@@ -767,8 +767,12 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const std::string &af
 {
 	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
 
-	auto requestedAsyms = cif::split(asyms.value_or(""), ",");
-	std::set<std::string> requestedAsymSet{ requestedAsyms.begin(), requestedAsyms.end() };
+	std::set<std::string> requestedAsymSet;
+	if (asyms.has_value())
+	{
+		auto requestedAsyms = cif::split(*asyms, ",");
+		requestedAsymSet = { requestedAsyms.begin(), requestedAsyms.end() };
+	}
 
 	std::unique_ptr<std::iostream> s(new std::stringstream);
 

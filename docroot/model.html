@@ -183,9 +183,11 @@
 										title="This transplant is considered unreliable">?</abbr></span>
 							</td>
 
-							<td z:data-asym-id="${c.asym_id}" class="pae-matrix">
+							<td z:data-asym-id="${c.asym_id}" class="pae-matrix" z:switch="${c.pae.model.length}">
 								<!-- <canvas width="32" height="32" z:data-pae="${c.pae}"></canvas> -->
-								<span z:text="|${#numbers.formatDecimal(c.pae-mean, 1, 1)}/${#numbers.formatDecimal(c.pae-sd, 1, 1)}|"></span>
+								<span z:case="0">-/-</span>
+								<span z:case="1" z:text="|${#numbers.formatDecimal(c.pae-mean, 1, 1)}/-|"></span>
+								<span z:case="*" z:text="|${#numbers.formatDecimal(c.pae-mean, 1, 1)}/${#numbers.formatDecimal(c.pae-sd, 1, 1)}|"></span>
 							</td>
 
 							<td colspan="2">
