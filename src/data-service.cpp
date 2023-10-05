@@ -373,36 +373,62 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 		files.push_back(di->path());
 	}
 
+	size_t kNrOfThreads = 10;
+
 	cif::progress_bar progress(files.size(), "Processing");
-	blocking_queue<json> q;
+	blocking_queue<json> json_q;
+	blocking_queue<fs::path> file_q;
 	std::exception_ptr ep;
 
-	std::thread t([&q, &progress, &ep]()
+	std::thread t([&json_q, &progress, &ep]()
 		{
 		try
 		{
-			process(q, progress);
+			process(json_q, progress);
 		}
 		catch (const std::exception &ex)
 		{
 			ep = std::current_exception();
 		} });
 
+	std::vector<std::thread> parser_threads;
+	for (size_t i = 0; i < kNrOfThreads; ++i)
+	{
+		parser_threads.emplace_back([&json_q, &file_q, &ep]()
+		{
+			for (;;)
+			{
+				auto f = file_q.pop();
+				if (f.empty())
+					break;
+
+				std::ifstream file(f);
+
+				zeep::json::element data;
+				zeep::json::parse_json(file, data);
+
+				json_q.push(std::move(data));
+			}
+
+			file_q.push({});
+		});
+	}
+
 	for (auto &f : files)
 	{
 		if (ep)
 			std::rethrow_exception(ep);
 
-		std::ifstream file(f);
-
-		zeep::json::element data;
-		zeep::json::parse_json(file, data);
-
-		q.push(std::move(data));
+		file_q.push(std::move(f));
 	}
 
-	q.push({});
+	file_q.push({});
 
+	for (auto &t : parser_threads)
+		t.join();
+
+	json_q.push({});
+	
 	t.join();
 
 	if (ep)
