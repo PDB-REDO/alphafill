@@ -46,13 +46,25 @@ class blocking_queue
 		m_empty_signal.notify_one();
 	}
 
+	void push(T &&value)
+	{
+		std::unique_lock<std::mutex> lock(m_guard);
+
+		while (m_queue.size() >= N)
+			m_full_signal.wait(lock);
+
+		m_queue.push(std::move(value));
+
+		m_empty_signal.notify_one();
+	}
+
 	T pop()
 	{
 		std::unique_lock<std::mutex> lock(m_guard);
 		while (m_queue.empty())
 			m_empty_signal.wait(lock);
 
-		auto value = m_queue.front();
+		auto value = std::move(m_queue.front());
 		m_queue.pop();
 
 		m_full_signal.notify_one();
@@ -71,7 +83,7 @@ class blocking_queue
 				return { true , T{} };
 		}
 
-		auto value = m_queue.front();
+		auto value = std::move(m_queue.front());
 		m_queue.pop();
 
 		m_full_signal.notify_one();
@@ -111,13 +123,29 @@ class non_blocking_queue
 		return result;
 	}
 
+	bool push(T &value)
+	{
+		bool result = false;
+
+		std::unique_lock<std::mutex> lock(m_guard);
+
+		if (m_queue.size() < N)
+		{
+			m_queue.push(std::move(value));
+			m_empty_signal.notify_one();
+			result = true;
+		}
+			
+		return result;
+	}
+
 	T pop()
 	{
 		std::unique_lock<std::mutex> lock(m_guard);
 		while (m_queue.empty())
 			m_empty_signal.wait(lock);
 
-		auto value = m_queue.front();
+		auto value = std::move(m_queue.front());
 		m_queue.pop();
 
 		return value;
