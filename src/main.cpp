@@ -237,6 +237,8 @@ where command is one of
 			result = rebuild_db_main(argc - 1, argv + 1);
 		else if (command == "server")
 			result = server_main(argc - 1, argv + 1);
+		else if (command == "validate")
+			result = validate_main(argc - 1, argv + 1);
 		else
 		{
 			std::cerr << "Unknown command " << std::quoted(command) << "\n\n"
