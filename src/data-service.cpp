@@ -57,7 +57,7 @@ std::tuple<EntryType, std::string, int, int> parse_af_id(std::string af_id)
 	auto &data_service = data_service::instance();
 
 	EntryType type = EntryType::Unknown;
-	int chunkNr = 1, version = 2;
+	int chunkNr = 1, version = 4;
 	std::string id;
 
 	std::smatch m;
@@ -81,7 +81,7 @@ std::tuple<EntryType, std::string, int, int> parse_af_id(std::string af_id)
 		else
 		{
 			// No prefix was given, try to see if we can find this ID in our cache
-			for (version = 2;; ++version)
+			for (version = 2; version < 10; ++version)
 			{
 				auto test = file_locator::get_metadata_file(id, chunkNr, version);
 

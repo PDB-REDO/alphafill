@@ -497,9 +497,9 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 		for (auto &transplant : hit["transplants"])
 		{
 			std::vector<uint8_t> pae;
-			if (transplant["pae"].is_object() and transplant["pae"]["raw"].is_array())
+			if (transplant["pae"].is_object() and transplant["pae"]["matrix"].is_array())
 			{
-				for (auto &row : transplant["pae"]["raw"])
+				for (auto &row : transplant["pae"]["matrix"])
 				{
 					for (auto &f : row)
 						pae.push_back(f.as<uint8_t>());

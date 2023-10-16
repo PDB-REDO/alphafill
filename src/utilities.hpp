@@ -134,7 +134,7 @@ class file_locator
 
 	std::filesystem::path get_pdb_file_1(const std::string &id)
 	{
-		std::string s = get_file(id, 0, m_pdb_name_pattern);
+		std::string s = get_file(cif::to_lower_copy(id), 0, m_pdb_name_pattern);
 
 		std::string::size_type i;
 		while ((i = s.find("${pdb-dir}")) != std::string::npos)

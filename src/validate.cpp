@@ -24,9 +24,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <fstream>
-#include <iomanip>
-#include <thread>
+#include "utilities.hpp"
+#include "data-service.hpp"
+#include "ligands.hpp"
+#include "queue.hpp"
+#include "validate.hpp"
 
 #include <boost/numeric/ublas/matrix.hpp>
 
@@ -35,11 +37,11 @@
 #include <zeep/json/element.hpp>
 #include <zeep/json/parser.hpp>
 
-#include "utilities.hpp"
-#include "data-service.hpp"
-#include "ligands.hpp"
-#include "queue.hpp"
-#include "validate.hpp"
+#include <fstream>
+#include <iomanip>
+#include <thread>
+
+#include <cassert>
 
 namespace fs = std::filesystem;
 
@@ -479,11 +481,14 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 		}
 	}
 
-	assert(aL.size() == bL.size());
-	for (size_t i = 0; i < aL.size(); ++i)
-		assert(aL[i].get_label_atom_id() == ligand.map(bL[i].get_label_atom_id()));
+	// assert(aL.size() == bL.size());
+	// sort(aL.begin(), aL.end(), [](auto &a, auto &b) { return a.get_label_atom_id().compare(b.get_label_atom_id()) < 0; });
+	// sort(bL.begin(), bL.end(), [](auto &a, auto &b) { return a.get_label_atom_id().compare(b.get_label_atom_id()) < 0; });
 
-	auto atomLess = [](const std::tuple<int, cif::mm::atom> &a, const std::tuple<int, cif::mm::atom> &b)
+	// for (size_t i = 0; i < aL.size(); ++i)
+	// 	assert(aL[i].get_label_atom_id() == ligand.map(bL[i].get_label_atom_id()));
+
+	auto atomLess = [&ligand](const std::tuple<int, cif::mm::atom> &a, const std::tuple<int, cif::mm::atom> &b)
 	{
 		const auto &[ai, aa] = a;
 		const auto &[bi, ba] = b;
@@ -491,7 +496,7 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 		int d = ai - bi;
 
 		if (d == 0)
-			d = aa.get_label_atom_id().compare(ba.get_label_atom_id());
+			d = aa.get_label_atom_id().compare(ligand.map(ba.get_label_atom_id()));
 
 		return d < 0;
 	};

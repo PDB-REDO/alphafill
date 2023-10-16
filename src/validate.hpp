@@ -34,8 +34,6 @@
 #include <tuple>
 #include <vector>
 
-std::tuple<float,float,float> validateCif(cif::datablock &db, const std::string &asymID, zeep::json::element &info, float maxLigandPolyAtomDistance = 6);
-
 std::tuple<std::vector<cif::mm::monomer *>, std::vector<cif::mm::monomer *>> AlignAndTrimSequences(cif::mm::polymer &rx, cif::mm::polymer &ry);
 std::tuple<std::vector<cif::mm::atom>, std::vector<cif::mm::atom>, std::vector<cif::mm::atom>, std::vector<cif::mm::atom>>
 FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector<cif::mm::monomer *> &pb,

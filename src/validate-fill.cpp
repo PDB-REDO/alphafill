@@ -65,7 +65,11 @@ int validate_main(int argc, char *const argv[])
 
 		mcfp::make_option<float>("max-ligand-to-polymer-atom-distance,d", 6,
 			"The max distance to use to find neighbouring polymer atoms for the ligand in the AF structure"),
-			
+
+		mcfp::make_option<std::string>("structure-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.gz", "Pattern for locating structure files"),
+		mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.json", "Pattern for locating metadata files"),
+		mcfp::make_option<std::string>("pdb-name-pattern", "${pdb-dir}/${id:1:2}/${id}/${id}_final.cif", "Pattern for locating PDB files"),
+
 		mcfp::make_hidden_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries")
 			
 	);
@@ -224,8 +228,8 @@ int validate_main(int argc, char *const argv[])
 				// auto &pdbRes = guessResidueForLigand(afStructure, asymID, pdbStructure, ligand);
 				auto &pdbRes = pdbStructure.get_residue(transplant["pdb_asym_id"].as<std::string>());
 
-				if (afRes.get_compound_id() != pdbRes.get_compound_id())
-					throw std::runtime_error("Compound ID's do not match: " + afRes.get_compound_id() + " != " + pdbRes.get_compound_id());
+				// if (afRes.get_compound_id() != pdbRes.get_compound_id())
+				// 	throw std::runtime_error("Compound ID's do not match: " + afRes.get_compound_id() + " != " + pdbRes.get_compound_id());
 
 				// collect atoms around ligand
 

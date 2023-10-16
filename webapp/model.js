@@ -30,8 +30,6 @@ function updateModel(viewer, cbs, showAllCB) {
 		a.classList.toggle('invisible', selected.length != 1 || a.getAttribute('data-asym-id') != selected[0]);
 	});
 
-	// selected.push('A');
-	
 	return viewer.loadStructureFromUrl(`v1/aff/${AF_ID}/stripped/${selected.join(',')}/${IDENTITY}`);
 }
 
