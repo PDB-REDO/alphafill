@@ -49,7 +49,7 @@ using json = zeep::json::element;
 
 std::tuple<double,double,double,size_t,size_t>
 ValidateTransplant(const LigandsTable &ligands, std::string_view af_id, std::string_view pdb_id,
-	std::string_view transpant_auth_asym_id, int transplant_auth_seq_id,
+	std::string_view transpant_auth_asym_id, std::string_view transplant_auth_seq_id,
 	float maxLigandPolyAtomDistance)
 {
 	const auto &[type, afID, chunk, version] = parse_af_id(std::string{ af_id });
@@ -58,27 +58,32 @@ ValidateTransplant(const LigandsTable &ligands, std::string_view af_id, std::str
 	json info;
 	zeep::json::parse_json(metadata, info);
 
-	std::string asymID, pdbAsymID, pdbCompoundID;
+	std::string asymID, pdbChainAsymID, pdbResAsymID, pdbCompoundID;
 
 	for (zeep::json::element &hit : info["hits"])
 	{
 		if (hit["pdb_id"].as<std::string>() != pdb_id)
 			continue;
 		
+		pdbChainAsymID = hit["pdb_asym_id"].as<std::string>();
+
 		for (auto transplant : hit["transplants"])
 		{
 			if (transplant["pdb_auth_asym_id"].as<std::string>() != transpant_auth_asym_id or
-				transplant["pdb_auth_seq_id"].as<int>() != transplant_auth_seq_id)
+				transplant["pdb_auth_seq_id"].as<std::string>() != transplant_auth_seq_id)
 			{
 				continue;
 			}
 
 			asymID = transplant["asym_id"].as<std::string>();
-			pdbAsymID = transplant["pdb_asym_id"].as<std::string>();
 			pdbCompoundID = transplant["compound_id"].as<std::string>();
+			pdbResAsymID = transplant["pdb_asym_id"].as<std::string>();
 
 			break;
 		}
+
+		if (not asymID.empty())
+			break;
 	}
 
 	if (asymID.empty())
@@ -98,12 +103,12 @@ ValidateTransplant(const LigandsTable &ligands, std::string_view af_id, std::str
 	cif::mm::structure pdbStructure(pdbFile);
 
 	auto &afRes = afStructure.get_residue(asymID);
-	auto &pdbRes = pdbStructure.get_residue(pdbAsymID);
+	auto &pdbRes = pdbStructure.get_residue(pdbResAsymID);
 
 	auto ligand = ligands[pdbCompoundID];
 
 	auto &afPolyS = afStructure.get_polymer_by_asym_id("A");
-	auto &pdbPolyS = pdbStructure.get_polymer_by_asym_id(pdbAsymID);
+	auto &pdbPolyS = pdbStructure.get_polymer_by_asym_id(pdbChainAsymID);
 
 	auto &&[afPoly, pdbPoly] = AlignAndTrimSequences(afPolyS, pdbPolyS);
 
@@ -312,6 +317,8 @@ int validate_main(int argc, char *const argv[])
 	headers.emplace_back("rmsd-poly-atom-count");
 	headers.emplace_back("rmsd-ligand-atom-count");
 
+	s_out << cif::join(headers, ",") << '\n';
+
 	std::string line;
 	while (getline(in, line))
 	{
@@ -324,15 +331,15 @@ int validate_main(int argc, char *const argv[])
 			auto af_id = flds.at(h_ix_1);
 			auto pdb_id = flds.at(h_ix_2);
 			auto transplant_auth_asym_id = flds.at(h_ix_3);
-			int transplant_auth_seq_id = std::stoi(std::string{ flds.at(h_ix_4) });
+			auto transplant_auth_seq_id = flds.at(h_ix_4);
 
 			auto r = ValidateTransplant(ligands, af_id, pdb_id, transplant_auth_asym_id, transplant_auth_seq_id, maxLigandPolyAtomDistance);
 
-			s_out << line << '\t'
-				  << std::get<0>(r) << '\t'
-				  << std::get<1>(r) << '\t'
-				  << std::get<2>(r) << '\t'
-				  << std::get<3>(r) << '\t'
+			s_out << line << ','
+				  << std::get<0>(r) << ','
+				  << std::get<1>(r) << ','
+				  << std::get<2>(r) << ','
+				  << std::get<3>(r) << ','
 				  << std::get<4>(r) << '\n';
 		}
 		catch (const std::exception &ex)
