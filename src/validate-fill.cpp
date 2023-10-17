@@ -301,10 +301,10 @@ int validate_main(int argc, char *const argv[])
 	getline(in, header);
 
 	auto headers = cif::split(header, ",");
-	auto h_ix_1 = std::distance(headers.begin(), std::find_if(headers.begin(), headers.end(), "AFill_ID"));
-	auto h_ix_2 = std::distance(headers.begin(), std::find_if(headers.begin(), headers.end(), "pdb_id"));
-	auto h_ix_3 = std::distance(headers.begin(), std::find_if(headers.begin(), headers.end(), "pdb_auth_asym_id"));
-	auto h_ix_4 = std::distance(headers.begin(), std::find_if(headers.begin(), headers.end(), "pdb_auth_seq_id"));
+	auto h_ix_1 = std::distance(headers.begin(), std::find(headers.begin(), headers.end(), "AFill_ID"));
+	auto h_ix_2 = std::distance(headers.begin(), std::find(headers.begin(), headers.end(), "pdb_id"));
+	auto h_ix_3 = std::distance(headers.begin(), std::find(headers.begin(), headers.end(), "pdb_auth_asym_id"));
+	auto h_ix_4 = std::distance(headers.begin(), std::find(headers.begin(), headers.end(), "pdb_auth_seq_id"));
 
 	headers.emplace_back("rmsd");
 	headers.emplace_back("rmsd-poly-atoms");
