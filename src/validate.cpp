@@ -440,7 +440,7 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 
 	std::vector<cif::mm::atom> aL, bL, aP, bP;
 
-	std::vector<std::tuple<int, cif::mm::atom>> aI, bI;
+	std::vector<std::tuple<int, std::string, cif::mm::atom>> aI, bI;
 
 	for (auto atom : ra.atoms())
 	{
@@ -453,7 +453,7 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 			for (auto ra : r->atoms())
 			{
 				if (distance_squared(atom, ra) <= maxDistanceSq)
-					aI.emplace_back(i, ra);
+					aI.emplace_back(i, ra.get_label_atom_id(), ra);
 			}
 
 			++i;
@@ -474,29 +474,22 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 			for (auto ra : r->atoms())
 			{
 				if (distance_squared(atom, ra) <= maxDistanceSq)
-					bI.emplace_back(i, ra);
+					bI.emplace_back(i, ligand.map(ra.get_label_atom_id()), ra);
 			}
 
 			++i;
 		}
 	}
 
-	// assert(aL.size() == bL.size());
-	// sort(aL.begin(), aL.end(), [](auto &a, auto &b) { return a.get_label_atom_id().compare(b.get_label_atom_id()) < 0; });
-	// sort(bL.begin(), bL.end(), [](auto &a, auto &b) { return a.get_label_atom_id().compare(b.get_label_atom_id()) < 0; });
-
-	// for (size_t i = 0; i < aL.size(); ++i)
-	// 	assert(aL[i].get_label_atom_id() == ligand.map(bL[i].get_label_atom_id()));
-
-	auto atomLess = [&ligand](const std::tuple<int, cif::mm::atom> &a, const std::tuple<int, cif::mm::atom> &b)
+	auto atomLess = [&ligand](const std::tuple<int, std::string, cif::mm::atom> &a, const std::tuple<int, std::string, cif::mm::atom> &b)
 	{
-		const auto &[ai, aa] = a;
-		const auto &[bi, ba] = b;
+		const auto &[ai, an, aa] = a;
+		const auto &[bi, bn, ba] = b;
 
 		int d = ai - bi;
 
 		if (d == 0)
-			d = aa.get_label_atom_id().compare(ligand.map(ba.get_label_atom_id()));
+			d = an.compare(bn);
 
 		return d < 0;
 	};
@@ -532,8 +525,8 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 			continue;
 		}
 
-		aP.emplace_back(std::get<1>(*ai));
-		bP.emplace_back(std::get<1>(*bi));
+		aP.emplace_back(std::get<2>(*ai));
+		bP.emplace_back(std::get<2>(*bi));
 
 		++ai;
 		++bi;
