@@ -41,6 +41,8 @@
 #include "utilities.hpp"
 #include "validate.hpp"
 
+#include "queue.hpp"
+
 namespace fs = std::filesystem;
 
 using json = zeep::json::element;
@@ -319,34 +321,67 @@ int validate_main(int argc, char *const argv[])
 
 	s_out << cif::join(headers, ",") << '\n';
 
-	std::string line;
-	while (getline(in, line))
-	{
-		try
-		{
-			auto flds = cif::split(line, ",");
-			if (flds.empty())
-				continue;
-			
-			auto af_id = flds.at(h_ix_1);
-			auto pdb_id = flds.at(h_ix_2);
-			auto transplant_auth_asym_id = flds.at(h_ix_3);
-			auto transplant_auth_seq_id = flds.at(h_ix_4);
+	blocking_queue<std::string> in_q;
+	blocking_queue<std::tuple<std::string,double,double,double,size_t,size_t>> out_q;
 
-			auto r = ValidateTransplant(ligands, af_id, pdb_id, transplant_auth_asym_id, transplant_auth_seq_id, maxLigandPolyAtomDistance);
+	std::vector<std::thread> t;
+	for (size_t i = 0; i < std::thread::hardware_concurrency(); ++i)
+	{
+		t.emplace_back([&in_q, &out_q, h_ix_1, h_ix_2, h_ix_3, h_ix_4, &ligands, maxLigandPolyAtomDistance]()
+		{
+			for (;;)
+			{
+				std::string line = in_q.pop();
+				if (line.empty())
+					break;
+
+				auto flds = cif::split(line, ",");
+				if (flds.empty())
+					break;
+				
+				auto af_id = flds.at(h_ix_1);
+				auto pdb_id = flds.at(h_ix_2);
+				auto transplant_auth_asym_id = flds.at(h_ix_3);
+				auto transplant_auth_seq_id = flds.at(h_ix_4);
+
+				auto r = ValidateTransplant(ligands, af_id, pdb_id, transplant_auth_asym_id, transplant_auth_seq_id, maxLigandPolyAtomDistance);
+
+				out_q.push(std::tuple_cat(std::tie(line), r));
+			}
+
+			in_q.push("");
+		});
+	}
+
+	std::thread ot([&]()
+	{
+		for (;;)
+		{
+			const auto &[line, r0, r1, r2, r3, r4] = out_q.pop();
+
+			if (line.empty())
+				break;
 
 			s_out << line << ','
-				  << std::get<0>(r) << ','
-				  << std::get<1>(r) << ','
-				  << std::get<2>(r) << ','
-				  << std::get<3>(r) << ','
-				  << std::get<4>(r) << '\n';
+				  << r0 << ','
+				  << r1 << ','
+				  << r2 << ','
+				  << r3 << ','
+				  << r4 << '\n';
 		}
-		catch (const std::exception &ex)
-		{
-			std::cerr << "Error processing line:\n  " << line << '\n' << ex.what() << std::endl;
-		}
-	}
+	});
+
+
+	std::string line;
+	while (getline(in, line))
+		in_q.push(line);
+	in_q.push("");
+
+	for (auto &it : t)
+		it.join();
+	
+	out_q.push({});
+	ot.join();
 
 	return 0;
 }
