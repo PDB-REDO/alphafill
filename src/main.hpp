@@ -49,5 +49,3 @@ mcfp::config &load_and_init_config(std::string_view usage, Options... options)
 }
 
 void parse_argv(int argc, char * const argv[], mcfp::config &config);
-
-int validate_main(int argc, char * const argv[]);

@@ -260,6 +260,26 @@ int create_index(int argc, char *const argv[])
 
 					auto &db = pdbFile.front();
 					auto pdbID = db.name();
+
+					if (cif::iequals(pdbID, "XXXX"))
+					{
+						std::smatch m;
+						std::regex rx(R"(([0-9][a-z0-9]{3,7})_final\.cif)", std::regex::icase);
+
+						pdbID = f.string();
+
+						if (std::regex_search(pdbID, m, rx))
+						{
+							pdbID = m[1];
+							std::clog << "\nInvalid PDB-ID in file " << std::quoted(f.string()) << ", using " << std::quoted(pdbID) << " instead\n";
+						}
+						else
+						{
+							std::clog << "\nInvalid PDB-ID in file " << std::quoted(f.string()) << ", skipping\n";
+							continue;
+						}
+					}
+
 					std::vector<std::string> ligands;
 
 					auto &chem_comp = db["chem_comp"];
@@ -392,92 +412,6 @@ void check_blast_index()
 		throw std::runtime_error("The first line in the blast index file does not seem to be correct, please re-create a blast index using the create-index command");
 }
 
-zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae)
-{
-	auto maxDistanceSq = maxDistance * maxDistance;
-
-	std::vector<size_t> index;
-
-	for (size_t i = 0; i < af_res.size(); ++i)
-	{
-		for (auto &a : af_res[i]->atoms())
-		{
-			auto l = a.get_location();
-			bool near = false;
-
-			for (auto &b : atoms)
-			{
-				if (distance_squared(l, b.pt) < maxDistanceSq)
-				{
-					near = true;
-					break;
-				}
-			}
-
-			if (near)
-			{
-				index.push_back(i);
-				break;
-			}
-		}
-	}
-
-	zeep::json::element result;
-	auto &pae_s = result["matrix"];
-
-	for (size_t i = 0; i < index.size(); ++i)
-	{
-		std::vector<uint8_t> v(index.size());
-		std::vector<float> vs(index.size());
-
-		for (size_t j = 0; j < index.size(); ++j)
-			v[j] = pae(index[i], index[j]);
-
-		pae_s.push_back(v);
-	}
-
-	size_t N = (index.size() * (index.size() - 1));
-
-	if (N > 1)
-	{
-		double sum = 0;
-
-		for (size_t i = 0; i < index.size(); ++i)
-		{
-			for (size_t j = 0; j < index.size(); ++j)
-			{
-				if (i == j)
-					continue;
-
-				auto v = pae(index[i], index[j]);
-				sum += v;
-			}
-		}
-
-		double avg = sum / N;
-		double sumsq = 0;
-
-		for (size_t i = 0; i < index.size(); ++i)
-		{
-			for (size_t j = 0; j < index.size(); ++j)
-			{
-				if (i == j)
-					continue;
-
-				auto v = pae(index[i], index[j]);
-				sumsq = (v - avg) * (v - avg);
-			}
-		}
-
-		double stddev = std::sqrt(sumsq / N);
-
-		result["mean"] = avg;
-		result["stddev"] = stddev;
-	}
-
-	return result;
-}
-
 // --------------------------------------------------------------------
 
 zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> &v_pae, alphafill_progress_cb &&progress)
@@ -498,13 +432,12 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 
 	LigandsTable ligands(ligandsFile);
 
-	float maxDistance = config.get<float>("clash-distance-cutoff");
-
 	// --------------------------------------------------------------------
 
 	float minHspIdentity = config.get<float>("min-hsp-identity");
 	size_t minAlignmentLength = config.get<int>("min-alignment-length");
 	float minSeparationDistance = config.get<float>("min-separation-distance");
+	float clashDistance = config.get<float>("clash-distance-cutoff");
 	float maxLigandBackboneDistance = config.get<float>("max-ligand-to-backbone-distance");
 
 	// --------------------------------------------------------------------
@@ -775,8 +708,14 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 							json r_hsp{
 								{ "pdb_id", pdb_id },
 								{ "pdb_asym_id", pdb_res.front()->get_asym_id() },
-								{ "identity", hsp.identity() },
-								{ "alignment_length", hsp.length() },
+								{
+									"alignment", {
+										{ "length", hsp.length() },
+										{ "af-begin", hsp.mQueryStart },
+										{ "pdb-begin", hsp.mTargetStart },
+										{ "identity", hsp.identity() }
+									}
+								},
 								{ "rmsd", rmsd }
 							};
 
@@ -889,10 +828,19 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								for (auto res : af_res)
 								{
 									for (auto &atom : res->atoms())
-										polyAtoms.emplace_back(atom);
+									{
+										try
+										{
+											polyAtoms.emplace_back(atom);
+										}
+										catch (const std::exception &ex)
+										{
+											polyAtoms.emplace_back(atom.get_type(), atom.get_location(), 0, atom.get_label_seq_id(), atom.get_label_atom_id());
+										}
+									}
 								}
 
-								auto &&[polyAtomCount, clashInfo] = CalculateClashScore(polyAtoms, resAtoms, maxDistance);
+								auto &&[polyAtomCount, clashInfo] = CalculateClashScore(polyAtoms, resAtoms, clashDistance);
 
 								if (polyAtomCount == 0)
 								{
@@ -923,7 +871,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								// Calculate PAE matrix and score for the 'nearby' residues
 
 								if (not pae.empty())
-									hsp_t["pae"] = calculatePAEScore(af_res, resAtoms, maxDistance, pae);
+									hsp_t["pae"] = calculatePAEScore(af_res, resAtoms, clashDistance, pae);
 
 								// copy any struct_conn record that might be needed
 
@@ -1005,6 +953,11 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								// now fix up the newly created residue
 								ligand.modify(af_structure, asym_id);
 
+								// validation info?
+								if (hsp.identity() == 1)
+									hsp_t["validation"] = calculateValidationScores(db, pdb_res, af_ix_trimmed, pdb_ix_trimmed,
+										af_structure.get_residue(asym_id), res, config.get<float>("max-ligand-to-polymer-atom-distance"), ligand);
+
 								if (cif::VERBOSE > 0)
 									std::cerr << "Created asym " << asym_id << " for " << res << '\n';
 							}
@@ -1081,15 +1034,18 @@ int alphafill_main(int argc, char *const argv[])
 
 		mcfp::make_option<float>("clash-distance-cutoff", 4, "The max distance between polymer atoms and ligand atoms used in calculating clash scores"),
 
+		mcfp::make_option<float>("max-ligand-to-polymer-atom-distance", 6,
+			"The max distance to use to find neighbouring polymer atoms for the ligand in the AF structure (for validation)"),
+
 		mcfp::make_option<uint32_t>("blast-report-limit", 250, "Number of blast hits to use"),
 
-		mcfp::make_option<std::string>("blast-matrix", "BLOSUM62", "Blast matrix to use"),
-		mcfp::make_option<int>("blast-word-size", 3, "Blast word size"),
-		mcfp::make_option<double>("blast-expect", 10, "Blast expect cut off"),
-		mcfp::make_option("blast-no-filter", "Blast option for filter, default is to use low complexity filter"),
-		mcfp::make_option("blast-no-gapped", "Blast option for gapped, default is to do gapped"),
-		mcfp::make_option<int>("blast-gap-open", 11, "Blast penalty for gap open"),
-		mcfp::make_option<int>("blast-gap-extend", 1, "Blast penalty for gap extend"),
+		mcfp::make_hidden_option<std::string>("blast-matrix", "BLOSUM62", "Blast matrix to use"),
+		mcfp::make_hidden_option<int>("blast-word-size", 3, "Blast word size"),
+		mcfp::make_hidden_option<double>("blast-expect", 10, "Blast expect cut off"),
+		mcfp::make_hidden_option("blast-no-filter", "Blast option for filter, default is to use low complexity filter"),
+		mcfp::make_hidden_option("blast-no-gapped", "Blast option for gapped, default is to do gapped"),
+		mcfp::make_hidden_option<int>("blast-gap-open", 11, "Blast penalty for gap open"),
+		mcfp::make_hidden_option<int>("blast-gap-extend", 1, "Blast penalty for gap extend"),
 
 		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
 

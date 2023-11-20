@@ -27,6 +27,7 @@
 #pragma once
 
 #include "ligands.hpp"
+#include "alphafill.hpp"
 
 #include <zeep/json/element.hpp>
 
@@ -34,14 +35,9 @@
 #include <tuple>
 #include <vector>
 
-std::tuple<std::vector<cif::mm::monomer *>, std::vector<cif::mm::monomer *>> AlignAndTrimSequences(cif::mm::polymer &rx, cif::mm::polymer &ry);
-std::tuple<std::vector<cif::mm::atom>, std::vector<cif::mm::atom>, std::vector<cif::mm::atom>, std::vector<cif::mm::atom>>
-FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector<cif::mm::monomer *> &pb,
-	const cif::mm::residue &ra, const cif::mm::residue &rb, float maxDistance, const Ligand &ligand);
-std::tuple<std::vector<cif::mm::monomer *>, std::vector<cif::mm::monomer *>> AlignAndTrimSequences(cif::mm::polymer &rx, cif::mm::polymer &ry);
 double Align(const cif::mm::structure &a, cif::mm::structure &b,
 	std::vector<cif::point> &cAlphaA, std::vector<cif::point> &cAlphaB);
-double Align(std::vector<cif::mm::atom> &aA, std::vector<cif::mm::atom> &aB);
+
 double CalculateRMSD(const std::vector<cif::mm::atom> &a, const std::vector<cif::mm::atom> &b);
 
 // --------------------------------------------------------------------
@@ -66,11 +62,18 @@ struct CAtom
 	std::string id;
 };
 
-std::tuple<int,zeep::json::element> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance);
-
-// --------------------------------------------------------------------
+std::tuple<int, zeep::json::element> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance);
 
 float ClashScore(cif::datablock &db, float maxDistance = 4);
 
-/// --------------------------------------------------------------------
-int validateFastA(std::filesystem::path fasta, std::filesystem::path dbDir, int threads);
+// --------------------------------------------------------------------
+
+zeep::json::element calculateValidationScores(
+	cif::datablock af_db, const std::vector<cif::mm::residue *> &pdb_res,
+	const std::vector<size_t> &af_ix, const std::vector<size_t> &pdb_ix,
+	const cif::mm::residue &af_ligand, const cif::mm::residue &pdb_ligand,
+	float maxDistance, const Ligand &ligand);
+
+// --------------------------------------------------------------------
+
+zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae);

@@ -137,8 +137,6 @@ add_executable(alphafill
 	${PROJECT_SOURCE_DIR}/src/structure.cpp
 	${PROJECT_SOURCE_DIR}/src/validate.cpp
 
-	${PROJECT_SOURCE_DIR}/src/validate-fill.cpp
-
 	${PROJECT_SOURCE_DIR}/src/https-client.cpp
 )
 

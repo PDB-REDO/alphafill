@@ -194,11 +194,11 @@ int main(int argc, char *const argv[])
 
 where command is one of
 
-	create-index   Create a FastA file based on data in the PDB files
-				(A FastA file is required to process files)
-	process        Process an AlphaFill structure
-	rebuild-db     Rebuild the databank
-	server         Start a web server instance
+    create-index   Create a FastA file based on data in the PDB files
+                   (A FastA file is required to process files)
+    process        Process an AlphaFill structure
+    rebuild-db     Rebuild the databank
+    server         Start a web server instance
 )");
 
 			std::error_code ec;
@@ -237,8 +237,6 @@ where command is one of
 			result = rebuild_db_main(argc - 1, argv + 1);
 		else if (command == "server")
 			result = server_main(argc - 1, argv + 1);
-		else if (command == "validate")
-			result = validate_main(argc - 1, argv + 1);
 		else
 		{
 			std::cerr << "Unknown command " << std::quoted(command) << "\n\n"
