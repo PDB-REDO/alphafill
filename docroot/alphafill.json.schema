@@ -273,7 +273,7 @@
         "transplant_rmsd": {
             "description" : "Root-Mean-Square Deviation of the transplant atoms",
             "type": "number"
-        },
+        }
     },
     "title": "Validation"
     }
