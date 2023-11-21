@@ -3,7 +3,7 @@
     "$ref": "#/definitions/Data",
     "definitions": {
         "Data": {
-            "description": "All meta data provided for the AlphaFill-run ",
+            "description": "All meta data provided for the AlphaFill run ",
             "type": "object",
             "properties": {
                 "alphafill_version": {
@@ -31,6 +31,7 @@
             "required": [
                 "alphafill_version",
                 "date",
+                "file",
                 "hits",
                 "id"
             ],
@@ -39,12 +40,12 @@
         "Hit": {
             "type": "array",
             "properties": {
-                "alignment_length": {
-                    "description": "Number of residues that was used in the alignment",
-                    "type": "integer"
+                "alignment": {
+                    "description": "Details about the alignment of the inputmodel with the PDB-REDO model",
+                    "$ref": "#/definitions/Alignment"
                 },
-                "identity": {
-                    "description": "Identity within the alignment expressed as fractional value",
+                "global_rmsd": {
+                    "description": "Root-Mean-Square Deviation of the hit compared to the AlphaFold model",
                     "type": "number"
                 },
                 "pdb_asym_id": {
@@ -55,24 +56,49 @@
                     "description": "PDB identifier",
                     "type": "string"
                 },
-                "rmsd": {
-                    "description": "Root-Mean-Square Deviation of the hit compared to the AlphaFold model (global RMSD)",
-                    "type": "number"
-                },
                 "transplants": {
                     "description": "List of ligands that was transplanted from the PDB-REDO model",
                     "$ref": "#/definitions/Transplant"}
             },
             "required": [
-                "alignment_length",
-                "identity",
+                "alignment",
+                "global_rmsd",                
                 "pdb_asym_id",
                 "pdb_id",
-                "rmsd",
                 "transplants"
             ],
             "title": "Hit"
         },
+        "Alignment": {
+            "type": "object",
+            "properties": {
+                "af_start": {
+                    "description" : "Position of the residue in the AlphaFold or input model at which the alignment starts",
+                    "type": "integer"
+                },
+                "identity": {
+                    "description": "Identity within the alignment expressed as fractional value",
+                    "type": "number"
+                },
+                "length": {
+                    "description": "Number of residues that was used in the alignment",
+                    "type": "integer"
+ 
+                },
+                "pdb_start": {
+                    "description": "Position of the residue in the PDB-REDO model at which the alignment starts",
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "af_start",
+                "identity",
+                "length",
+                "pdb_start"
+            ],
+            "title": "Alignment"
+        },
+        
         "Transplant": {
             "type": "object",
             "properties": {
@@ -92,36 +118,45 @@
                     "description": "Name of the compound that was found in the corresponding PDB-REDO model",
                     "type": "string"
                 },
+                "local_rmsd": {
+                    "description": "Root-Mean-Square Deviation of the ligand binding pocket (local RMSD)",
+                    "type": ["number", "null"]
+                },
+                "pae" : {
+                    "description": "",
+                    "$ref": "#/definitions/Pae"
+                    },
                 "pdb_asym_id": {
-		    "description": "asymID as reported in the pdb-file of the compound that was found in the corresponding PDB-REDO model",
+                    "description": "asymID as reported in the pdb-file of the compound that was found in the corresponding PDB-REDO model",
                     "type": ["string", "null"]
                 },
                 "pdb_auth_asym_id": {
-		    "description": "asymID as reported in the mmCIF-file of the compound that was found in the corresponding PDB-REDO model",
+                    "description": "asymID as reported in the mmCIF-file of the compound that was found in the corresponding PDB-REDO model",
                     "type": ["string", "null"]
                 },
                 "pdb_auth_ins_code": {
-		    "description": "insCode as reported in the mmCIF-file of the compound that was found in the corresponding PDB-REDO model",
+                    "description": "insCode as reported in the mmCIF-file of the compound that was found in the corresponding PDB-REDO model",
                     "type": ["string", "null"]
                 },
                 "pdb_auth_seq_id": {
-		    "description": "seqID as reported in the mmCIF-file of the compound that was found in the corresponding PDB-REDO model",
+                    "description": "seqID as reported in the mmCIF-file of the compound that was found in the corresponding PDB-REDO model",
                     "type": ["string", "null"]
                 },
-                "rmsd": {
-                    "description": "Root-Mean-Square Deviation of the ligand binding pocket (local RMSD)",
-                    "type": ["number", "null"]
-            },
+                "validation" : {
+                    "description" : "Validation score (LEV score) details, only applicable for transplants that originate from 100% sequence identity",
+                    "$ref": "#/definitions/Validation"
+                },
             "required": [
                 "analogue_id",
                 "asym_id",
                 "clash",
                 "compound_id",
+                "pae",
                 "pdb_asym_id",
                 "pdb_auth_asym_id",
                 "pdb_auth_ins_code",
                 "pdb_auth_seq_id",
-                "rmsd"
+                "local_rmsd"
             ],
             "title": "Transplant"
         },
@@ -136,7 +171,7 @@
                     "type": "array",
                     "$ref": "#/definitions/Distance"
                 },
-                "ligand_atom_count": {
+                "tranplant_atom_count": {
                     "description": "Number of atoms present in the tranplant",
 		    "type": "integer"
                 },
@@ -161,23 +196,24 @@
             "type": "object",
             "properties": {
                 "VdW_overlap": {
-		    "description": "Van-der-Waals violation",
+                    "description": "Van-der-Waals violation",
                     "type": "number"
                 },
                 "distance": {
-		    "description": "Distance between the transplant atom and the protein atom",
+                    "description": "Distance between the transplant atom and the protein atom",
                     "type": "number"
                 },
                 "poly_atom": {
-		    "description": "The protein atom considered in distance calculation",
+                    "description": "The protein atom considered in distance calculation",
                     "properties":{
-			"id": {"description":"", "type":"string"},
-			"seq_id":{"description":"", "type":"number"}
+                        "id": {"description":"Name of the atom", "type":"string"},
+                        "seq_id":{"description":"SeqID of the atom", "type":"number"}
+                        }
                 },
                 "res_atom_id": {
-		    "description": "The transplant atom considered in distance calcualation",
-		    "type" : "string"
-            },
+                    "description": "The transplant atom considered in distance calcualation",
+                    "type" : "string"
+            }},
             "required": [
                 "VdW_overlap",
                 "distance",
@@ -185,6 +221,60 @@
                 "res_atom_id"
             ],
             "title": "Distance"
-        }
+        },
+    "Pae": {
+        "type": "object",
+        "properties": {
+            "matrix": {
+                "description" : "Predicted Aligned Error (PAE) matrix of the residues involved in the transplant binding site",
+                "type": "array",
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"}
+                    }
+                },
+            "mean" : {
+                "description" : "Mean of the PAE values in the matrix of the tranplant binding site",
+                "type" : "number"
+                },
+            "std" : {
+                "description" : "Standard deviation of the PAE values in the matrix of the tranplant binding site",
+                "type" : "number"
+                },
+            "median" : {
+                "description": "Median of the values in the PAE matrix of the tranplant binding site",
+                "type" : ""
+            },
+            "required": [
+                "matrix"
+            ],
+            "title": "Pae"
+    },
+    "Validation": {
+    "type": ["object", "null"],
+    "properties": {    
+        "bindingsite_atom_count": {
+            "description" : "Number of atoms in the binding pocket of the tranplant that were used to calculate bindingsite_rmsd and local_environment_rmsd",
+            "type": "integer"
+        },
+        "bindingsite_rmsd": {
+            "description" : "Root-Mean-Square Deviation of the protein atoms in the tranplant binding site",
+            "type": "number"
+        },
+        "local_environment_rmsd": {
+            "description" : "Root-Mean-Square Deviation of the transplant atoms and protein atoms in its binding site (LEV score)",
+            "type": "number"
+        },          
+        "transplant_atom_count": {
+            "description" : "Number of atoms in the transplant that were used for transplant_rmsd and local_environment_rmsd calculation",
+            "type": "integer"
+        },
+        "transplant_rmsd": {
+            "description" : "Root-Mean-Square Deviation of the transplant atoms",
+            "type": "number"
+        },
+    },
+    "title": "Validation"
     }
 }}}
