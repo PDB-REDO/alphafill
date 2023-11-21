@@ -245,7 +245,7 @@
             "median" : {
                 "description": "Median of the values in the PAE matrix of the tranplant binding site",
                 "type" : ""
-            },
+            }},
             "required": [
                 "matrix"
             ],
@@ -277,4 +277,4 @@
     },
     "title": "Validation"
     }
-}}}
+}}
