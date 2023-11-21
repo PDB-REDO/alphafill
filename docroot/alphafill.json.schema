@@ -123,7 +123,7 @@
                     "type": ["number", "null"]
                 },
                 "pae" : {
-                    "description": "",
+                    "description": "Information about the Predicted Aligned Error (PAE) matrix of the binding site of the transplant",
                     "$ref": "#/definitions/Pae"
                     },
                 "pdb_asym_id": {
@@ -244,7 +244,7 @@
                 },
             "median" : {
                 "description": "Median of the values in the PAE matrix of the tranplant binding site",
-                "type" : ""
+                "type" : "number"
             }},
             "required": [
                 "matrix"
