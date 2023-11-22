@@ -333,7 +333,7 @@ std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, co
 			{ "score", m ? std::sqrt(sumOverlapSq / distancePairs.size()) : 0 },
 			{ "clash_count", n },
 			{ "poly_atom_count", m },
-			{ "ligand_atom_count", resAtoms.size() },
+			{ "transplant_atom_count", resAtoms.size() },
 			{ "distances", std::move(distancePairs) }
 		}
 	};
@@ -446,13 +446,22 @@ zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_
 	zeep::json::element result;
 	auto &pae_s = result["matrix"];
 
+	std::vector<float> vt;
+
 	for (size_t i = 0; i < index.size(); ++i)
 	{
 		std::vector<uint8_t> v(index.size());
 		std::vector<float> vs(index.size());
 
 		for (size_t j = 0; j < index.size(); ++j)
-			v[j] = pae(index[i], index[j]);
+		{
+			auto pae_v = pae(index[i], index[j]);
+			
+			v[j] = pae_v;
+
+			if (i != j)
+				vt.emplace_back(pae_v);
+		}
 
 		pae_s.push_back(v);
 	}
@@ -494,6 +503,12 @@ zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_
 
 		result["mean"] = avg;
 		result["stddev"] = stddev;
+
+		std::sort(vt.begin(), vt.end());
+
+		result["median"] = vt.size() % 1 == 0
+			? (vt[vt.size() / 2 - 1] + vt[vt.size() / 2]) / 2.0f
+			: vt[vt.size() / 2];
 	}
 
 	return result;
@@ -568,10 +583,10 @@ zeep::json::element calculateValidationScores(
 	cP.insert(cP.end(), lP.begin(), lP.end());
 
 	return {
-		{ "rmsd-local-environment", CalculateRMSD(cA, cP) },
-		{ "rmsd-poly-atoms", CalculateRMSD(pA, pP) },
-		{ "rmsd-poly-atom-count", pA.size() },
-		{ "rmsd-ligand-atoms", CalculateRMSD(lA, lP) },
-		{ "rmsd-ligand-atom-count", lA.size() },
+		{ "local_environment_rmsd", CalculateRMSD(cA, cP) },
+		{ "binding_site_rmsd", CalculateRMSD(pA, pP) },
+		{ "binding_site_atom_count", pA.size() },
+		{ "transplant_rmsd", CalculateRMSD(lA, lP) },
+		{ "transplant_atom_count", lA.size() },
 	};
 }

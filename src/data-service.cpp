@@ -318,10 +318,10 @@ void process(blocking_queue<json> &q, cif::progress_bar &p)
 			r = tx1.exec1(R"(INSERT INTO af_pdb_hit (af_id, identity, length, pdb_asym_id, pdb_id, rmsd) VALUES ()" +
 						  std::to_string(structure_id) + ", " +
 						  std::to_string(alignment["identity"].as<double>()) + ", " +
-						  std::to_string(alignment["alignment_length"].as<int64_t>()) + ", " +
+						  std::to_string(alignment["alignment"]["length"].as<int64_t>()) + ", " +
 						  tx1.quote(alignment["pdb_asym_id"].as<std::string>()) + ", " +
 						  tx1.quote(alignment["pdb_id"].as<std::string>()) + ", " +
-						  std::to_string(alignment["rmsd"].as<double>()) +
+						  std::to_string(alignment["global_rmsd"].as<double>()) +
 						  ")  RETURNING id");
 
 			int64_t hit_id = r.front().as<int64_t>();
@@ -334,7 +334,7 @@ void process(blocking_queue<json> &q, cif::progress_bar &p)
 						  tx1.quote(transplant["compound_id"].as<std::string>()) + ", " +
 						  tx1.quote(transplant["analogue_id"].as<std::string>()) + ", " +
 						  tx1.quote(transplant["entity_id"].as<std::string>()) + ", " +
-						  std::to_string(alignment["rmsd"].as<double>()) +
+						  std::to_string(transplant["local_rmsd"].as<double>()) +
 						  ")");
 			}
 		}
@@ -957,6 +957,8 @@ void data_service::run_3db()
 				out << pae;
 				out.close();
 			}
+
+			m_queue.push(filename.string());
 		}
 		catch (const std::exception &ex)
 		{

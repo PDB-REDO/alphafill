@@ -710,13 +710,13 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								{ "pdb_asym_id", pdb_res.front()->get_asym_id() },
 								{
 									"alignment", {
+										{ "af_start", hsp.mQueryStart },
+										{ "identity", hsp.identity() },
 										{ "length", hsp.length() },
-										{ "af-begin", hsp.mQueryStart },
-										{ "pdb-begin", hsp.mTargetStart },
-										{ "identity", hsp.identity() }
+										{ "pdb_start", hsp.mTargetStart }
 									}
 								},
-								{ "rmsd", rmsd }
+								{ "global_rmsd", rmsd }
 							};
 
 							for (auto &res : pdb_structure.non_polymers())
@@ -859,7 +859,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 									{ "pdb_asym_id", res.get_asym_id() },
 									{ "pdb_auth_asym_id", res.get_auth_asym_id() },
 									{ "pdb_auth_seq_id", res.get_auth_seq_id() },
-									{ "rmsd", rmsd },
+									{ "local_rmsd", rmsd },
 									{ "analogue_id", analogue },
 									{ "clash", clashInfo } });
 

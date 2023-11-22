@@ -512,10 +512,10 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 				hit_nr,
 				hit["pdb_id"].as<std::string>() + '.' + hit["pdb_asym_id"].as<std::string>(),
 				hitIdentity,
-				hit["rmsd"].as<double>(),
+				hit["global_rmsd"].as<double>(),
 				transplant["asym_id"].as<std::string>(),
 				transplant["clash"]["score"].as<double>(),
-				transplant["rmsd"].as<double>(),
+				transplant["local_rmsd"].as<double>(),
 				std::move(pae),
 				transplant["pae"]["mean"].as<double>(),
 				transplant["pae"]["stddev"].as<double>() });
