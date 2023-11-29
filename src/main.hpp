@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <mcfp.hpp>
+#include <mcfp/mcfp.hpp>
 
 template <typename... Options>
 mcfp::config &load_and_init_config(std::string_view usage, Options... options)

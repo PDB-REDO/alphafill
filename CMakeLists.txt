@@ -34,11 +34,9 @@ include(CheckFunctionExists)
 include(CheckIncludeFiles)
 include(CheckLibraryExists)
 include(CMakePackageConfigHelpers)
-include(FindFilesystem)
-include(FindPkgConfig)
 include(GenerateExportHeader)
-include(AddGitSubmodule)
 include(CTest)
+include(FetchContent)
 
 set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 17)
@@ -52,43 +50,61 @@ elseif(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 endif()
 
-if(NOT "$ENV{CCP4}" STREQUAL "")
-	set(CCP4 $ENV{CCP4})
-	list(PREPEND CMAKE_MODULE_PATH "${CCP4}/Lib")
-	list(APPEND CMAKE_PREFIX_PATH ${CCP4})
-
-	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-		set(CMAKE_PREFIX_PATH ${CCP4})
+if(WIN32)
+	if(${CMAKE_SYSTEM_VERSION} GREATER_EQUAL 10) # Windows 10
+		add_definitions(-D _WIN32_WINNT=0x0A00)
+	elseif(${CMAKE_SYSTEM_VERSION} EQUAL 6.3) # Windows 8.1
+		add_definitions(-D _WIN32_WINNT=0x0603)
+	elseif(${CMAKE_SYSTEM_VERSION} EQUAL 6.2) # Windows 8
+		add_definitions(-D _WIN32_WINNT=0x0602)
+	elseif(${CMAKE_SYSTEM_VERSION} EQUAL 6.1) # Windows 7
+		add_definitions(-D _WIN32_WINNT=0x0601)
+	elseif(${CMAKE_SYSTEM_VERSION} EQUAL 6.0) # Windows Vista
+		add_definitions(-D _WIN32_WINNT=0x0600)
+	else() # Windows XP (5.1)
+		add_definitions(-D _WIN32_WINNT=0x0501)
 	endif()
+
+	add_definitions(-DNOMINMAX)
+
+	# We do not want to write an export file for all our symbols...
+	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
 if(MSVC)
 	# make msvc standards compliant...
-	add_compile_options(/permissive-)
-
-	macro(get_WIN32_WINNT version)
-		if(WIN32 AND CMAKE_SYSTEM_VERSION)
-			set(ver ${CMAKE_SYSTEM_VERSION})
-			string(REPLACE "." "" ver ${ver})
-			string(REGEX REPLACE "([0-9])" "0\\1" ver ${ver})
-
-			set(${version} "0x${ver}")
-		endif()
-	endmacro()
-
-	get_WIN32_WINNT(ver)
-	add_definitions(-D_WIN32_WINNT=${ver})
+	add_compile_options(/permissive- /bigobj)
+	add_link_options(/NODEFAULTLIB:library)
 endif()
 
 # Create a revision file, containing the current git version info
 include(VersionString)
 write_version_header("${PROJECT_SOURCE_DIR}/src/")
 
-find_package(Filesystem REQUIRED)
-find_package(zeep 6.0.8 REQUIRED)
-find_package(cifpp 5.1.2 REQUIRED)
-find_package(libmcfp REQUIRED)
-find_package(libpqxx 7.8 REQUIRED)
+find_package(zeep 6.0.9 QUIET)
+if (NOT zeep_FOUND)
+	FetchContent_Declare(zeep GIT_REPOSITORY https://github.com/mhekkel/libzeep.git GIT_TAG v6.0.9)
+	FetchContent_MakeAvailable(zeep)
+endif()
+
+find_package(cifpp 6 QUIET)
+if (NOT cifpp_FOUND)
+	FetchContent_Declare(cifpp GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git GIT_TAG 2692f2c)
+	FetchContent_MakeAvailable(cifpp)
+endif()
+
+find_package(libmcfp 1.2.4 QUIET)
+if (NOT libmcfp_FOUND)
+	FetchContent_Declare(libmcfp GIT_REPOSITORY https://github.com/mhekkel/libcifpp.git GIT_TAG v1.2.4)
+	FetchContent_MakeAvailable(libmcfp)
+endif()
+
+find_package(libpqxx 7.8.0 QUIET)
+if (NOT libpqxx_FOUND)
+	FetchContent_Declare(libpqxx GIT_REPOSITORY https://github.com/jtv/libpqxx GIT_TAG 7.8.0)
+	FetchContent_MakeAvailable(libpqxx)
+endif()
+
 find_package(OpenSSL REQUIRED)
 
 find_program(YARN yarn REQUIRED)
@@ -140,10 +156,6 @@ add_executable(alphafill
 	${PROJECT_SOURCE_DIR}/src/https-client.cpp
 )
 
-target_include_directories(alphafill PRIVATE
-	${PROJECT_SOURCE_DIR}/include
-	${CMAKE_BINARY_DIR})
-
 target_compile_definitions(alphafill PUBLIC
 	HAVE_DIRENT_H=${HAVE_DIRENT_H}
 	HAVE_FCNTL_H=${HAVE_FCNTL_H}
@@ -154,7 +166,7 @@ target_compile_definitions(alphafill PUBLIC
 
 add_dependencies(alphafill webpack)
 
-target_link_libraries(alphafill libmcfp::libmcfp cifpp::cifpp zeep::zeep libpqxx::pqxx OpenSSL::SSL OpenSSL::Crypto std::filesystem)
+target_link_libraries(alphafill libmcfp::libmcfp cifpp::cifpp zeep::zeep libpqxx::pqxx OpenSSL::SSL OpenSSL::Crypto)
 
 # Optionally use mrc to create resources
 find_package(Mrc QUIET)
