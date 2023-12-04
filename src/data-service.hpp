@@ -38,15 +38,6 @@
 
 // --------------------------------------------------------------------
 
-enum class EntryType { Unknown, AlphaFold, Custom };
-
-/// \brief Return the UniprotID and chunk number for an AlphaFold ID.
-///
-/// Split an id in the form of AF-UNIPROTID-F<CHUNKNR>-(model|filled)_v<VERSION>
-std::tuple<EntryType,std::string,int,int> parse_af_id(std::string af_id);
-
-// --------------------------------------------------------------------
-
 struct compound
 {
 	std::string id;
@@ -128,8 +119,6 @@ class data_service
 	void queue(const std::string &data, const std::optional<std::string> pae, const std::string &id);
 	std::string queue_af_id(const std::string &id);
 	void queue_3d_beacon_request(const std::string &id);
-
-	static std::vector<cif::matrix<uint8_t>> load_pae_from_file(const std::filesystem::path &file);
 
   private:
 

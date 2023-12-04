@@ -50,61 +50,6 @@ namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
 
-std::regex kAF_ID_Rx(R"((?:(AF|CS)-)?(.+?)(?:-F(\d+)(?:-(?:model|filled)_v(\d))?)?)");
-
-std::tuple<EntryType, std::string, int, int> parse_af_id(std::string af_id)
-{
-	auto &data_service = data_service::instance();
-
-	EntryType type = EntryType::Unknown;
-	int chunkNr = 1, version = 4;
-	std::string id;
-
-	std::smatch m;
-	if (std::regex_match(af_id, m, kAF_ID_Rx))
-	{
-		id = m[2];
-
-		if (m[3].matched)
-			chunkNr = std::stoi(m[3]);
-
-		if (m[4].matched)
-			version = std::stoi(m[4]);
-
-		if (m[1].matched)
-		{
-			if (m[1] == "CS")
-				type = EntryType::Custom;
-			else if (m[1] == "AF")
-				type = EntryType::AlphaFold;
-		}
-		else
-		{
-			// No prefix was given, try to see if we can find this ID in our cache
-			for (version = 2; version < 10; ++version)
-			{
-				auto test = file_locator::get_metadata_file(id, chunkNr, version);
-
-				if (fs::exists(test))
-				{
-					type = EntryType::AlphaFold;
-					break;
-				}
-
-				if (not fs::exists(test.parent_path().parent_path()))
-					break;
-			}
-
-			if (type != EntryType::AlphaFold and data_service.get_status(id).status != CustomStatus::Unknown)
-				type = EntryType::Custom;
-		}
-	}
-
-	return { type, id, chunkNr, version };
-}
-
-// --------------------------------------------------------------------
-
 data_service &data_service::instance()
 {
 	static data_service s_instance;
@@ -965,46 +910,4 @@ void data_service::run_3db()
 			std::cerr << "queuing 3d beacon request failed: " << ex.what() << '\n';
 		}
 	}
-}
-
-// --------------------------------------------------------------------
-// PAE support
-
-std::vector<cif::matrix<uint8_t>> data_service::load_pae_from_file(const std::filesystem::path &file)
-{
-	zeep::json::element data;
-
-	cif::gzio::ifstream in(file);
-
-	if (not in.is_open())
-		throw std::runtime_error("Could not open PAE file " + file.string());
-
-	zeep::json::parse_json(in, data);
-
-	if (not data.is_array())
-		throw std::runtime_error("Unexpected JSON result for PAE");
-
-	std::vector<cif::matrix<uint8_t>> result;
-
-	for (auto e : data)
-	{
-		if (not e.is_object())
-			throw std::runtime_error("Unexpected JSON result for PAE");
-		
-		auto &pae = e["predicted_aligned_error"];
-		if (not pae.is_array())
-			throw std::runtime_error("Unexpected JSON result for PAE");
-
-		size_t len = pae.size();
-
-		cif::matrix<uint8_t> &m = result.emplace_back(len, len);
-
-		for (size_t i = 0; i < len; ++i)
-		{
-			for (size_t j = 0; j < len; ++j)
-				m(i, j) = pae[i][j].as<int>();
-		}
-	}
-
-	return result;
 }

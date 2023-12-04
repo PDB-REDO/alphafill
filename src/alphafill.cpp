@@ -26,7 +26,6 @@
 
 #include "alphafill.hpp"
 #include "blast.hpp"
-#include "data-service.hpp"
 #include "ligands.hpp"
 #include "main.hpp"
 #include "queue.hpp"
@@ -1110,7 +1109,7 @@ int alphafill_main(int argc, char *const argv[])
 
 	std::vector<PAE_matrix> v_pae;
 	if (fs::exists(paein))
-		v_pae = data_service::load_pae_from_file(paein);
+		v_pae = load_pae_from_file(paein);
 
 	json metadata = alphafill(f.front(), v_pae, my_progress{});
 

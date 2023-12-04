@@ -32,12 +32,15 @@
 #include <mcfp/mcfp.hpp>
 
 #include "alphafill.hpp"
-#include "data-service.hpp"
-#include "db-connection.hpp"
 #include "main.hpp"
 #include "revision.hpp"
-#include "server.hpp"
 #include "validate.hpp"
+
+#if defined(BUILD_WEB_APPLICATION)
+#include "data-service.hpp"
+#include "db-connection.hpp"
+#include "server.hpp"
+#endif
 
 namespace fs = std::filesystem;
 
@@ -50,6 +53,7 @@ int test_main(int argc, char *const argv[])
 
 // --------------------------------------------------------------------
 
+#if defined(BUILD_WEB_APPLICATION)
 int rebuild_db_main(int argc, char *const argv[])
 {
 	using namespace std::literals;
@@ -69,7 +73,8 @@ int rebuild_db_main(int argc, char *const argv[])
 		mcfp::make_option<std::string>("db-host", "AF DB host"),
 		mcfp::make_option<std::string>("db-port", "AF DB port"),
 
-		mcfp::make_hidden_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries"));
+		mcfp::make_hidden_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries")
+		);
 
 	parse_argv(argc, argv, config);
 
@@ -103,6 +108,7 @@ int rebuild_db_main(int argc, char *const argv[])
 
 	return data_service::rebuild(db_user, dbDir);
 }
+#endif
 
 // --------------------------------------------------------------------
 
@@ -189,17 +195,25 @@ int main(int argc, char *const argv[])
 		}
 		else
 		{
-			auto &config = load_and_init_config(
-				R"(usage: alphafill command [options]
+			const std::string usage =
+R"(usage: alphafill command [options]
 
 where command is one of
 
     create-index   Create a FastA file based on data in the PDB files
                    (A FastA file is required to process files)
     process        Process an AlphaFill structure
+)"
+#if defined(BUILD_WEB_APPLICAITON)
+R"(
     rebuild-db     Rebuild the databank
     server         Start a web server instance
-)");
+	
+)"
+#endif
+;
+
+			auto &config = load_and_init_config(usage);
 
 			std::error_code ec;
 			config.set_ignore_unknown(true);
@@ -233,10 +247,12 @@ where command is one of
 			result = create_index(argc - 1, argv + 1);
 		else if (command == "process")
 			result = alphafill_main(argc - 1, argv + 1);
+#if defined(BUILD_WEB_APPLICATION)
 		else if (command == "rebuild-db")
 			result = rebuild_db_main(argc - 1, argv + 1);
 		else if (command == "server")
 			result = server_main(argc - 1, argv + 1);
+#endif
 		else
 		{
 			std::cerr << "Unknown command " << std::quoted(command) << "\n\n"

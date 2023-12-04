@@ -26,13 +26,21 @@
 
 #include "blast.hpp"
 #include "ligands.hpp"
-#include "data-service.hpp"
 
 #include <cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
 #include <filesystem>
 #include <regex>
+
+// --------------------------------------------------------------------
+
+enum class EntryType { Unknown, AlphaFold, Custom };
+
+/// \brief Return the UniprotID and chunk number for an AlphaFold ID.
+///
+/// Split an id in the form of AF-UNIPROTID-F<CHUNKNR>-(model|filled)_v<VERSION>
+std::tuple<EntryType,std::string,int,int> parse_af_id(std::string af_id);
 
 // --------------------------------------------------------------------
 
@@ -45,6 +53,8 @@ std::tuple<std::vector<cif::point>, std::vector<cif::point>> selectAtomsNearResi
 	const std::vector<cif::mm::residue *> &af, const std::vector<size_t> &af_ix,
 	const std::vector<cif::mm::atom> &residue, float maxDistance, const Ligand &ligand);
 sequence getSequenceForStrand(cif::datablock &db, const std::string &strand);
+
+std::vector<cif::matrix<uint8_t>> load_pae_from_file(const std::filesystem::path &file);
 
 // --------------------------------------------------------------------
 
