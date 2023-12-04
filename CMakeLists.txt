@@ -199,10 +199,13 @@ if(USE_RSRC)
 	add_compile_definitions(USE_RSRC WEBAPP_USES_RESOURCES)
 
 	list(APPEND RESOURCES
-		${CIFPP_SHARE_DIR}/mmcif_pdbx.dic
 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic
 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_ma.dic
 	)
+
+	if(CIFPP_SHARE_DIR AND EXISTS "${CIFPP_SHARE_DIR}/mmcif_pdbx.dic")
+		list(APPEND RESOURCES ${CIFPP_SHARE_DIR}/mmcif_pdbx.dic)
+	endif()
 
 	if(BUILD_WEB_APPLICATION)
 		list(APPEND RESOURCES
