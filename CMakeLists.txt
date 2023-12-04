@@ -30,6 +30,7 @@ project(alphafill VERSION 2.1.0 LANGUAGES C CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(GNUInstallDirs)
+include(CheckSymbolExists)
 include(CheckFunctionExists)
 include(CheckIncludeFiles)
 include(CheckLibraryExists)
@@ -82,6 +83,15 @@ endif()
 include(VersionString)
 write_version_header("${PROJECT_SOURCE_DIR}/src/")
 
+# Optionally use mrc to create resources
+find_package(Mrc QUIET)
+
+if(MRC_FOUND)
+	option(USE_RSRC "Use mrc to create resources" ON)
+else()
+	message(STATUS "Not using resources since mrc was not found")
+endif()
+
 find_package(cifpp 6 QUIET)
 
 if(NOT cifpp_FOUND)
@@ -96,10 +106,10 @@ if(NOT libmcfp_FOUND)
 	FetchContent_MakeAvailable(libmcfp)
 endif()
 
-find_package(zeep 6.0.9 QUIET)
+find_package(zeep 6.0.10 QUIET)
 
 if(NOT zeep_FOUND)
-	FetchContent_Declare(zeep GIT_REPOSITORY https://github.com/mhekkel/libzeep.git GIT_TAG v6.0.9)
+	FetchContent_Declare(zeep GIT_REPOSITORY https://github.com/mhekkel/libzeep.git GIT_TAG v6.0.10)
 	FetchContent_MakeAvailable(zeep)
 endif()
 
@@ -141,8 +151,8 @@ endif()
 find_file(HAVE_DIRENT_H dirent.h)
 find_file(HAVE_FCNTL_H fcntl.h)
 check_function_exists(dirfd HAVE_DIRFD)
-find_file(HAVE_PROC_PID '/proc/self/fd/0')
-check_function_exists(sysconf HAVE_SYSCONF)
+check_function_exists(closefrom HAVE_CLOSEFROM)
+check_symbol_exists(sysconf "unistd.h" HAVE_SYSCONF)
 
 list(APPEND SOURCES
 	${PROJECT_SOURCE_DIR}/src/alphafill.cpp
@@ -169,11 +179,11 @@ endif()
 add_executable(alphafill ${SOURCES})
 
 target_compile_definitions(alphafill PUBLIC
-	HAVE_DIRENT_H=${HAVE_DIRENT_H}
-	HAVE_FCNTL_H=${HAVE_FCNTL_H}
+	HAVE_CLOSEFROM=${HAVE_CLOSEFROM}
+	HAVE_DIRENT_H=$<IF:$<BOOL:HAVE_DIRENT_H>,1,0>
+	HAVE_FCNTL_H=$<IF:$<BOOL:HAVE_FCNTL_H>,1,0>
 	HAVE_DIRFD=${HAVE_DIRFD}
-	HAVE_PROC_PID=${HAVE_PROC_PID}
-	HAVE_SYSCONF=${HAVE_SYSCONF}
+	HAVE_SYSCONF=$<IF:$<BOOL:HAVE_SYSCONF>,1,0>
 )
 
 target_link_libraries(alphafill libmcfp::libmcfp cifpp::cifpp zeep::zeep)
@@ -183,15 +193,6 @@ if(BUILD_WEB_APPLICATION)
 	add_dependencies(alphafill webpack)
 
 	target_link_libraries(alphafill libpqxx::pqxx OpenSSL::SSL OpenSSL::Crypto)
-
-	# Optionally use mrc to create resources
-	find_package(Mrc QUIET)
-
-	if(MRC_FOUND)
-		option(USE_RSRC "Use mrc to create resources" ON)
-	else()
-		message(STATUS "Not using resources since mrc was not found")
-	endif()
 endif()
 
 if(USE_RSRC)
@@ -216,7 +217,7 @@ if(USE_RSRC)
 
 	mrc_target_resources(alphafill ${RESOURCES})
 else()
-	set(ALPHAFILL_DATA_DIR $<IF:$<CONFIG:Debug>,${PROJECT_SOURCE_DIR}/rsrc,${CMAKE_INSTALL_FULL_DATADIR}/alphafill>)
+	set(ALPHAFILL_DATA_DIR "${CMAKE_INSTALL_FULL_DATADIR}/alphafill" CACHE PATH "The directory where AlphaFill data files are to be stored")
 	add_compile_definitions(ALPHAFILL_DATA_DIR="${ALPHAFILL_DATA_DIR}")
 endif()
 
@@ -264,4 +265,33 @@ endif()
 
 if(BUILD_DOCUMENTATION)
 	add_subdirectory(docs)
+endif()
+
+if(BUILD_TESTING)
+
+	# simply run alphafill jobs on our test data
+	# start by generating a new config file
+
+	configure_file(
+		${CMAKE_CURRENT_SOURCE_DIR}/test/alphafill-test.conf.in
+		${CMAKE_CURRENT_BINARY_DIR}/alphafill-test.conf
+		@ONLY)
+
+	# First create an index
+	add_test(NAME create_index_test
+		COMMAND alphafill create-index --config=alphafill-test.conf)
+
+	add_test(NAME run_process_test
+		COMMAND alphafill process --config=alphafill-test.conf
+			${CMAKE_CURRENT_SOURCE_DIR}/test/afdb-v4/P2/AF-P29373-F1-model_v4.cif.gz
+			AF-P29373-F1-filled.cif.gz
+		WORKING_DIRECTORY)
+	
+	add_executable(validate-test-files ${PROJECT_SOURCE_DIR}/test/validate-test-files.cpp)
+	target_link_libraries(validate-test-files libmcfp::libmcfp cifpp::cifpp zeep::zeep)
+
+	add_test(NAME validate_files_test
+		COMMAND validate-test-files AF-P29373-F1-filled.cif.gz AF-P29373-F1-filled.cif.json
+			--pdb-id=1CBS --pdb-asym-id=A)
+
 endif()

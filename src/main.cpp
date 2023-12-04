@@ -202,16 +202,16 @@ where command is one of
 
     create-index   Create a FastA file based on data in the PDB files
                    (A FastA file is required to process files)
-    process        Process an AlphaFill structure
-)"
-#if defined(BUILD_WEB_APPLICAITON)
+    process        Process an AlphaFill structure)"
+#if defined(BUILD_WEB_APPLICATION)
 R"(
     rebuild-db     Rebuild the databank
-    server         Start a web server instance
-	
-)"
+    server         Start a web server instance)"
 #endif
-;
+R"(
+
+The following options are always recognized:
+)";
 
 			auto &config = load_and_init_config(usage);
 

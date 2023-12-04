@@ -37,6 +37,10 @@
 #include "revision.hpp"
 #include "utilities.hpp"
 
+#if defined(BUILD_WEB_APPLICATION)
+#include "data-service.hpp"
+#endif
+
 namespace fs = std::filesystem;
 
 // --------------------------------------------------------------------
@@ -156,6 +160,8 @@ fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id)
 
 	// try a PDB-REDO layout first
 	fs::path pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif");
+	if (not fs::exists(pdb_path))
+		pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif.gz");
 	if (not fs::exists(pdb_path))
 		pdb_path = pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz");
 

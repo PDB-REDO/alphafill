@@ -1,0 +1,5 @@
+pdb-fasta=@CMAKE_CURRENT_BINARY_DIR@/pdb-redo.fa
+pdb-dir=@CMAKE_CURRENT_SOURCE_DIR@/test/mini-pdb-redo/
+db-dir=@CMAKE_CURRENT_SOURCE_DIR@/test/afdb-v4/
+ligands=@CMAKE_CURRENT_SOURCE_DIR@/af-ligands.cif
+

@@ -351,7 +351,7 @@ int create_index(int argc, char *const argv[])
 				fs::path file = fiter->path();
 
 				std::string name = file.filename().string();
-				if (not cif::ends_with(name, "_final.cif"))
+				if (not (cif::ends_with(name, "_final.cif") or cif::ends_with(name, "_final.cif.gz")))
 					continue;
 
 				q1.push(file);
