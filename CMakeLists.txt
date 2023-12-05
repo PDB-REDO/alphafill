@@ -97,6 +97,8 @@ find_package(cifpp 6 QUIET)
 if(NOT cifpp_FOUND)
 	FetchContent_Declare(cifpp GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git GIT_TAG 1e74f79)
 	FetchContent_MakeAvailable(cifpp)
+
+	set(CIFPP_SHARE_DIR ${cifpp_SOURCE_DIR}/rsrc)
 endif()
 
 find_package(libmcfp 1.2.4 QUIET)
@@ -162,10 +164,10 @@ list(APPEND SOURCES
 	${PROJECT_SOURCE_DIR}/src/main.cpp
 	${PROJECT_SOURCE_DIR}/src/utilities.cpp
 	${PROJECT_SOURCE_DIR}/src/validate.cpp
-	)
-	
-	if(BUILD_WEB_APPLICATION)
-		list(APPEND SOURCES
+)
+
+if(BUILD_WEB_APPLICATION)
+	list(APPEND SOURCES
 		${PROJECT_SOURCE_DIR}/src/bsd-closefrom.c
 		${PROJECT_SOURCE_DIR}/src/db-connection.cpp
 		${PROJECT_SOURCE_DIR}/src/data-service.cpp
@@ -268,10 +270,8 @@ if(BUILD_DOCUMENTATION)
 endif()
 
 if(BUILD_TESTING)
-
 	# simply run alphafill jobs on our test data
 	# start by generating a new config file
-
 	configure_file(
 		${CMAKE_CURRENT_SOURCE_DIR}/test/alphafill-test.conf.in
 		${CMAKE_CURRENT_BINARY_DIR}/alphafill-test.conf
@@ -283,15 +283,22 @@ if(BUILD_TESTING)
 
 	add_test(NAME run_process_test
 		COMMAND alphafill process --config=alphafill-test.conf
-			${CMAKE_CURRENT_SOURCE_DIR}/test/afdb-v4/P2/AF-P29373-F1-model_v4.cif.gz
-			AF-P29373-F1-filled.cif.gz
+		${CMAKE_CURRENT_SOURCE_DIR}/test/afdb-v4/P2/AF-P29373-F1-model_v4.cif.gz
+		AF-P29373-F1-filled.cif.gz
 		WORKING_DIRECTORY)
-	
+
 	add_executable(validate-test-files ${PROJECT_SOURCE_DIR}/test/validate-test-files.cpp)
 	target_link_libraries(validate-test-files libmcfp::libmcfp cifpp::cifpp zeep::zeep)
 
 	add_test(NAME validate_files_test
 		COMMAND validate-test-files AF-P29373-F1-filled.cif.gz AF-P29373-F1-filled.cif.json
-			--pdb-id=1CBS --pdb-asym-id=A)
+		--pdb-id=1CBS --pdb-asym-id=A)
 
+	# If cifpp was not found, it means it was not installed
+	# so we might not have a proper CIFFP_SHARE_DIR and the
+	# the tests will fail
+	if(NOT cifpp_FOUND)
+		set_property(TEST run_process_test PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
+		set_property(TEST validate_files_test PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
+	endif()
 endif()
