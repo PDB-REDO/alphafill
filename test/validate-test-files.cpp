@@ -45,7 +45,7 @@ int main(int argc, char * const argv[])
 	if (not hits.is_array() or hits.empty())
 	{
 		std::cerr << "Unexpected hits array in json\n";
-		result = 1;
+		exit(1);
 	}
 
 	auto first_hit = hits.front();
@@ -65,7 +65,7 @@ int main(int argc, char * const argv[])
 	if (not transplants.is_array() or transplants.empty())
 	{
 		std::cerr << "Unexpected transplants array in json\n";
-		result = 1;
+		exit(1);
 	}
 
 	auto first_transplant = transplants.front();

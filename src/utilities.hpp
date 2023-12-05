@@ -122,7 +122,7 @@ class file_locator
 
 		std::string::size_type i;
 		while ((i = s.find("${db-dir}")) != std::string::npos)
-			s.replace(i, strlen("${db-dir}"), m_db_dir);
+			s.replace(i, strlen("${db-dir}"), m_db_dir.string());
 
 		while ((i = s.find("${version}")) != std::string::npos)
 			s.replace(i, strlen("${version}"), std::to_string(version));
@@ -136,7 +136,7 @@ class file_locator
 
 		std::string::size_type i;
 		while ((i = s.find("${db-dir}")) != std::string::npos)
-			s.replace(i, strlen("${db-dir}"), m_db_dir);
+			s.replace(i, strlen("${db-dir}"), m_db_dir.string());
 		
 		while ((i = s.find("${version}")) != std::string::npos)
 			s.replace(i, strlen("${version}"), std::to_string(version));
@@ -150,7 +150,7 @@ class file_locator
 
 		std::string::size_type i;
 		while ((i = s.find("${pdb-dir}")) != std::string::npos)
-			s.replace(i, strlen("${pdb-dir}"), m_pdb_dir);
+			s.replace(i, strlen("${pdb-dir}"), m_pdb_dir.string());
 		
 		return s;
 	}

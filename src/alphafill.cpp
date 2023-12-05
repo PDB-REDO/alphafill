@@ -376,6 +376,9 @@ int create_index(int argc, char *const argv[])
 
 	tc.join();
 
+	// Close the fasta file (needed on Windows)
+	tmpFastA.close();
+
 	// replace the old files
 	std::error_code ec;
 	fs::path fastaFile = config.get("pdb-fasta");
@@ -1101,7 +1104,7 @@ int alphafill_main(int argc, char *const argv[])
 		if (filename.extension() == ".cif")
 			filename.replace_extension();
 
-		const auto &[type, af_id, chunk, version] = parse_af_id(filename);
+		const auto &[type, af_id, chunk, version] = parse_af_id(filename.string());
 
 		// paein = xyzin.parent_path() / std::format("AF-{}-F{}-predicted_aligned_error_v{}.json", af_id, chunk, version);
 		paein = xyzin.parent_path() / cif::format("AF-%s-F%d-predicted_aligned_error_v%d.json", af_id, chunk, version).str();

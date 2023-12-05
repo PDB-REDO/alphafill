@@ -41,6 +41,10 @@
 
 #include <cassert>
 
+#ifdef near
+#undef near
+#endif
+
 namespace fs = std::filesystem;
 
 using json = zeep::json::element;

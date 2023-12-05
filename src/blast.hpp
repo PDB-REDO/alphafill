@@ -25,7 +25,7 @@ extern const uint8_t kResidueNrTable[];
 
 inline constexpr uint8_t ResidueNr(char inAA)
 {
-	int result = 23;
+	uint8_t result = 23;
 
 	inAA |= 040;
 	if (inAA >= 'a' and inAA <= 'z')
