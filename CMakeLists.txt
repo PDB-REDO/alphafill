@@ -305,7 +305,7 @@ if(BUILD_TESTING)
 		--pdb-id=1CBS --pdb-asym-id=A)
 
 	# If cifpp was not found, it means it was not installed
-	# so we might not have a proper CIFFP_SHARE_DIR and the
+	# so we might not have a proper CIFPP_SHARE_DIR and the
 	# the tests will fail
 	if(NOT cifpp_FOUND)
 		set_property(TEST run_process_test PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
