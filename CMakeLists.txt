@@ -92,6 +92,10 @@ else()
 	message(STATUS "Not using resources since mrc was not found")
 endif()
 
+# push the BUILD_TESTING flag
+set(SAVE_BUILD_TESTING ${BUILD_TESTING})
+set(BUILD_TESTING OFF)
+
 find_package(cifpp 6 QUIET)
 
 if(NOT cifpp_FOUND)
@@ -149,6 +153,9 @@ if(BUILD_WEB_APPLICATION)
 
 	add_custom_target(webpack DEPENDS ${webpack_output})
 endif()
+
+# pop the BUILD_TESTING flag
+set(BUILD_TESTING ${SAVE_BUILD_TESTING})
 
 find_file(HAVE_DIRENT_H dirent.h)
 find_file(HAVE_FCNTL_H fcntl.h)

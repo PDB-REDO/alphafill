@@ -44,7 +44,12 @@ jobs:
           boost_version: 1.82.0
           platform_version: 2019
           toolset: msvc
-          
+
+    - name: Install ZLib Window
+      if: matrix.os == 'windows-latest'
+      run: ./tools/depends.cmd
+      shell: cmd
+
     - name: Install Boost macOS
       if: matrix.os == 'macos-latest'
       run: >
