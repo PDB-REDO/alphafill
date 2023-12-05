@@ -95,7 +95,7 @@ endif()
 find_package(cifpp 6 QUIET)
 
 if(NOT cifpp_FOUND)
-	FetchContent_Declare(cifpp GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git GIT_TAG 2692f2c)
+	FetchContent_Declare(cifpp GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git GIT_TAG 1e74f79)
 	FetchContent_MakeAvailable(cifpp)
 endif()
 
