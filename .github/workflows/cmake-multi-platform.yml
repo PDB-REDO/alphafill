@@ -62,7 +62,6 @@ jobs:
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_BUILD_TYPE=Release
-        -DCIFPP_DOWNLOAD_CCD=OFF
         -S ${{ github.workspace }}
         
     - name: Build
