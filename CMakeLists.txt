@@ -106,10 +106,10 @@ if(NOT libmcfp_FOUND)
 	FetchContent_MakeAvailable(libmcfp)
 endif()
 
-find_package(zeep 6.0.10 QUIET)
+find_package(zeep 6.0.11 QUIET)
 
 if(NOT zeep_FOUND)
-	FetchContent_Declare(zeep GIT_REPOSITORY https://github.com/mhekkel/libzeep.git GIT_TAG v6.0.10)
+	FetchContent_Declare(zeep GIT_REPOSITORY https://github.com/mhekkel/libzeep.git GIT_TAG develop)
 	FetchContent_MakeAvailable(zeep)
 endif()
 
