@@ -24,17 +24,18 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <filesystem>
-#include <iostream>
-#include <thread>
+#include "alphafill.hpp"
+#include "config.hpp"
+#include "main.hpp"
+#include "revision.hpp"
+#include "validate.hpp"
 
 #include <cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
-#include "alphafill.hpp"
-#include "main.hpp"
-#include "revision.hpp"
-#include "validate.hpp"
+#include <filesystem>
+#include <iostream>
+#include <thread>
 
 #if defined(BUILD_WEB_APPLICATION)
 #include "data-service.hpp"
@@ -153,7 +154,7 @@ void parse_argv(int argc, char *const argv[], mcfp::config &config)
 	config.set_ignore_unknown(true);
 
 	std::error_code ec;
-	config.parse_config_file("config", "alphafill.conf", { fs::current_path().string(), "/etc/" }, ec);
+	config.parse_config_file("config", "alphafill.conf", { fs::current_path().string(), CONFIG_PATH }, ec);
 	if (ec and ec != mcfp::config_error::config_file_not_found)
 		throw std::system_error(ec, "Error parsing config file");
 }
