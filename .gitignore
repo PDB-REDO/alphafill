@@ -32,3 +32,7 @@ docroot/.buildinfo
 docroot/**/index.html
 docroot/objects.inv
 docroot/searchindex.js
+src/config.hpp
+**/*.csv
+**/*.log
+**/*.tsv

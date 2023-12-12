@@ -173,18 +173,16 @@ if(BUILD_WEB_APPLICATION)
   add_custom_target(webpack DEPENDS ${webpack_output})
 endif()
 
+set(CONFIG_PATH "${CMAKE_INSTALL_FULL_SYSCONFDIR}")
+configure_file(${PROJECT_SOURCE_DIR}/src/config.hpp.in ${PROJECT_SOURCE_DIR}/src/config.hpp)
+
 # pop the BUILD_TESTING flag
 set(BUILD_TESTING ${SAVE_BUILD_TESTING})
-
-find_file(HAVE_DIRENT_H dirent.h)
-find_file(HAVE_FCNTL_H fcntl.h)
-check_function_exists(dirfd HAVE_DIRFD)
-check_function_exists(closefrom HAVE_CLOSEFROM)
-check_symbol_exists(sysconf "unistd.h" HAVE_SYSCONF)
 
 list(
   APPEND
   SOURCES
+	${PROJECT_SOURCE_DIR}/src/config.hpp
   ${PROJECT_SOURCE_DIR}/src/alphafill.cpp
   ${PROJECT_SOURCE_DIR}/src/blast.cpp
   ${PROJECT_SOURCE_DIR}/src/ligands.cpp
@@ -208,13 +206,30 @@ endif()
 # The alphafill executable
 add_executable(alphafill ${SOURCES})
 
-target_compile_definitions(
-  alphafill
-  PUBLIC HAVE_CLOSEFROM=${HAVE_CLOSEFROM}
-         HAVE_DIRENT_H=$<IF:$<BOOL:HAVE_DIRENT_H>,1,0>
-         HAVE_FCNTL_H=$<IF:$<BOOL:HAVE_FCNTL_H>,1,0>
-         HAVE_DIRFD=${HAVE_DIRFD}
-         HAVE_SYSCONF=$<IF:$<BOOL:HAVE_SYSCONF>,1,0>)
+find_file(HAVE_DIRENT_H dirent.h)
+if(HAVE_DIRENT_H)
+	target_compile_definitions(alphafill PUBLIC HAVE_DIRENT_H)
+endif()
+
+find_file(HAVE_FCNTL_H fcntl.h)
+if(HAVE_FCNTL_H)
+	target_compile_definitions(alphafill PUBLIC HAVE_FCNTL_H)
+endif()
+
+check_function_exists(dirfd HAVE_DIRFD)
+if(HAVE_DIRFD)
+	target_compile_definitions(alphafill PUBLIC HAVE_DIRFD)
+endif()
+
+check_symbol_exists(closefrom "unistd.h" HAVE_CLOSEFROM)
+if(HAVE_CLOSEFROM)
+	target_compile_definitions(alphafill PUBLIC HAVE_CLOSEFROM)
+endif()
+
+check_symbol_exists(sysconf "unistd.h" HAVE_SYSCONF)
+if(HAVE_SYSCONF)
+	target_compile_definitions(alphafill PUBLIC HAVE_SYSCONF)
+endif()
 
 target_link_libraries(alphafill libmcfp::libmcfp cifpp::cifpp zeep::zeep)
 
@@ -258,17 +273,6 @@ list(APPEND hardlinks process create-index)
 if(BUILD_WEB_APPLICATION)
   list(APPEND hardlinks rebuild-db server)
 endif()
-
-foreach(hardlink ${hardlinks})
-  install(CODE "set(link_from \"${CMAKE_INSTALL_FULL_BINDIR}/alphafill\")")
-  install(
-    CODE "set(link_to \"${CMAKE_INSTALL_FULL_BINDIR}/alphafill-${hardlink}\")")
-  install(
-    CODE [[
-message(STATUS "Creating hard link from ${link_from} to ${link_to}")
-execute_process(COMMAND ${CMAKE_COMMAND} -E create_hardlink ${link_from} ${link_to})
-]])
-endforeach()
 
 # If we do not use resources, install the resource data in a share directory
 if(NOT USE_RSRC)

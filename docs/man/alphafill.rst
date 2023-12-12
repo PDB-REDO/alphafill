@@ -4,25 +4,19 @@ alphafill
 Synopsis
 --------
 
-The following command line applications are available
+The alphafill executable takes as first argument a program to run. The available programs are:
 
-**alphafill-create-index**
+**alphafill create-index**
 	Tool to create a *FastA* file for the PDB or PDB-REDO structure files
 
-**alphafill-process**
+**alphafill process**
 	Tool to process an AlphaFold structure
 
-**alphafill-rebuild-db**
+**alphafill rebuild-db**
 	Tool to create a database with processed structures, used by the web application
 
-**alphafill-server**
+**alphafill server**
 	Tool to serve the processed entries as a web application
-
-As an alternative, you can start the individual programs as: ``alphafill <program>``, as in:
-
-.. code-block:: console
-
-	alphafill create-index
 
 Description
 -----------

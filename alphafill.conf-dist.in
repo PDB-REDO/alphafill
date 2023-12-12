@@ -1,0 +1,91 @@
+# Configuration file for alphafill
+#
+# First block of options is generic, used to locate data.
+# Make sure the paths here are correct.
+# 
+# Directory containing the alphafilled data
+db-dir=/srv/data/af-filled/
+
+# Directory containing the mmCIF files for the PDB
+pdb-dir=/srv/data/pdb-redo/
+
+# The FastA file containing the PDB sequences
+pdb-fasta=/srv/data/pdb-redo.fa
+
+# File in CIF format describing the ligands and their modifications
+ligands=@ALPHAFILL_DATA_DIR@/af-ligands.cif
+
+# Number of threads to use, zero means all available cores
+# threads=0
+
+# The options in the next block are meant to tweak the alphafill algorithm
+
+# The minimal identity for a high scoring pair (note, value between 0 and 1)
+# min-hsp-identity=0.25
+
+# The minimal length of an alignment
+# min-alignment-length=85
+
+# The max distance to use to find neighbouring backbone atoms for the ligand
+# in the AF structure
+# max-ligand-to-backbone-distance=6
+
+# The max distance between polymer atoms and ligand atoms used in calculating clash scores
+# clash-distance-cutoff=4
+
+# The centroids of two identical ligands should be at least this far apart to
+# count as separate occurrences
+# min-separation-distance=3.5
+
+# Options for the blast algorithm
+# blast-report-limit=250
+# blast-matrix=BLOSUM62
+# blast-word-size=3
+# blast-expect=10
+# blast-no-filter=false
+# blast-no-gapped=false
+# blast-gap-open=11
+# blast-gap-extend=1
+
+# The alphafill Postgresql database information
+# A database is needed for a web server. The database
+# must be created by an administrator and can be filled
+# using the `alphafill rebuild-db` command.
+
+# db-dbname=
+# db-user=
+# db-password=
+# db-host=
+# db-port=
+
+# The web server needs some more configuration
+
+# Address to listen to
+# address=127.0.0.1
+
+# Port to listen to
+# port=10342
+
+# User to run as
+# user=www-data
+
+# Reverse proxy context (e.g. https://example.com/my-alphafill/ )
+# context=
+
+# Pattern for locating structure files
+# structure-name-pattern=${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.gz
+
+# Pattern for locating metadata files
+# metadata-name-pattern=${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.json
+
+# Pattern for locating PDB files
+# pdb-name-pattern=${pdb-dir}/${id:1:2}/${id}/${id}_final.cif
+
+# Template for links to pdb(-redo) entry
+# db-link-template=https://pdb-redo.eu/db/${id}
+
+# Directory for custom built entries
+# custom-dir=/tmp/alphafill
+
+# Location of the yasara executable, needed for optimising
+# yasara=/opt/yasara/yasara
