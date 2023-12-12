@@ -136,4 +136,4 @@ Description
 See also
 --------
 
-:manpage:`alphafill-create-index`, :manpage:`alphafill-rebuild-db`, :manpage:`alphafill-server`
+:manpage:`alphafill-create-index`, :manpage:`alphafill-rebuild-db`, :manpage:`alphafill-server`, :manpage:`alphafill.conf`

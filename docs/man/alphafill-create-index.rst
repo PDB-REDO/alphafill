@@ -48,4 +48,4 @@ Description
 See also
 --------
 
-:manpage:`alphafill-process`, :manpage:`alphafill-rebuild-db`, :manpage:`alphafill-server`
+:manpage:`alphafill-process`, :manpage:`alphafill-rebuild-db`, :manpage:`alphafill-server`, :manpage:`alphafill.conf`

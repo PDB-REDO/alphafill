@@ -110,7 +110,7 @@ file_locator::file_locator(mcfp::config &config)
 	{
 		m_db_dir = config.get("db-dir");
 		if (not fs::is_directory(m_db_dir))
-			throw std::runtime_error("AlphfaFill data directory does not exist");
+			throw std::runtime_error("AlphaFill " + m_db_dir.string() + " data directory does not exist");
 	}
 
 	if (config.has("pdb-dir"))

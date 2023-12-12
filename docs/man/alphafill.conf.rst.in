@@ -1,0 +1,217 @@
+alphafill.conf
+==============
+
+Synopsis
+--------
+
+@CMAKE_INSTALL_FULL_SYSCONFDIR@/alphafill.conf
+
+Description
+-----------
+
+This configuration file is used by all alphafill commands to find defaults for the parameters.
+
+The syntax of this file is basically the same as Windows .ini files.
+
+Common Options
+--------------
+
+These options are generic, they specify mostly the location of files on your system.
+
+.. option:: db-dir=dirname
+	
+	Directory containing the alphafilled data
+
+.. option:: pdb-dir=dirname
+	
+	Directory containing the mmCIF files for the PDB
+
+.. option:: pdb-fasta=filename
+	
+	The FastA file containing the PDB sequences
+
+.. option:: ligands=filename
+	
+	File in CIF format describing the ligands and their modifications.
+	
+	The default file is af-ligands.cif	
+
+.. option:: threads=value, -t value
+	
+	Number of threads to use, zero means all available cores.
+
+	Default is to use as many cores as the system has.
+
+Algorithmic Options
+-------------------
+
+These options influence the way the AlphaFill algorithm works.
+
+.. option:: max-ligand-to-backbone-distance=value
+	
+	The max distance to use to find neighbouring backbone atoms for the ligand in the AF structure.
+	
+	Default value is 6.	
+
+.. option:: min-hsp-identity=value
+	
+	The minimal identity for a high scoring pair (note, value between 0 and 1).
+	
+	Default value is 0.25.
+
+.. option:: min-alignment-length=value
+	
+	The minimal length of an alignment.
+
+	Default value is 85.	
+
+.. option:: min-separation-distance=value
+	
+	The centroids of two identical ligands should be at least this far apart to count as separate occurrences.
+
+	Default value is 3.5.
+
+.. option:: clash-distance-cutoff=value
+	
+	The max distance between polymer atoms and ligand atoms used in calculating clash scores.
+
+	Default value is 4.
+
+.. option:: blast-report-limit=value
+	
+	Number of blast hits to use.
+
+	Default value is 250.	
+
+.. option:: blast-matrix=value
+	
+	Blast matrix to use.
+
+	Default matrix is *BLOSUM62*.
+
+.. option:: blast-word-size=value
+	
+	Blast word size.
+
+	Default value is 3.
+
+.. option:: blast-expect=value
+	
+	Blast expect cut off.
+
+	Default value is 10.
+
+.. option:: blast-no-filter
+	
+	By default blast will use a low complexity filter. Use this option to turn that off.	
+
+.. option:: blast-no-gapped
+	
+	By default blast performs gapped alignment. Use this option to turn that off.
+
+.. option:: blast-gap-open=value
+	
+	Blast penalty for gap open.
+
+	Default value is 11.
+
+.. option:: blast-gap-extend=value
+	
+	Blast penalty for gap extend.
+
+	Default value is 1.
+
+Webserver Options
+-----------------
+
+These options are for the web server only.
+
+.. option:: address=value
+	
+	Address to listen to.
+	
+	Default value is *127.0.0.1* (i.e. localhost)
+	
+.. option:: port=value
+	
+	Port to listen to.
+
+	Default value is *10342*
+	
+.. option:: user=name
+	
+	User to run as.
+
+	Default value is *www-data*
+	
+.. option:: context=value
+	
+	Reverse proxy context.
+
+	When the server is supposed to be accessible from the outside, you'd best put a reverse proxy server before it since HTTPS is not supported. If you do so, the external address can be provided in this option to generate correct links in the web pages.
+	
+.. option:: db-link-template=value
+	
+	Template for links to *PDB* or *PDB-REDO* entries. Result pages contain PDB-IDs that have a link. To make them point to something outside the scope of alphafill, you can provide a link template in this option. The *variable* ``${id}`` will be replaced with the PDB-ID referenced.
+
+.. option:: db-dbname=name
+	
+	The name of the AlphaFill PostgreSQL database.
+
+.. option:: db-user=name
+	
+	The owner of the AlphaFill PostgreSQL database.
+
+.. option:: db-password=value
+	
+	The password of the AlphaFill PostgreSQL database.
+
+.. option:: db-host=value
+	
+	The host of the AlphaFill PostgreSQL database.
+
+.. option:: db-port=value
+	
+	The port of the AlphaFill PostgreSQL database.
+
+.. option:: structure-name-pattern=value
+	
+	Template used for locating structure files.
+
+	Default value is ``${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.gz``
+
+.. option:: metadata-name-pattern=value
+	
+	Template used for locating metadata files
+	
+	Default value is ``${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.json``
+
+.. option:: pdb-name-pattern=value
+	
+	Template used for locating PDB files
+
+	Default value is ``${pdb-dir}/${id:1:2}/${id}/${id}_final.cif``
+	
+.. option:: alphafold-3d-beacon=value
+	
+	The URL of the 3d-beacons service for alphafold
+
+	Default value is ``https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${id}.json?provider=alphafold``
+
+.. option:: custom-dir=dirname
+	
+	Directory for custom built entries. These are files uploaded by the user of the web service.
+
+	Default value is ``/tmp/alphafill``
+
+.. option:: yasara=filename
+	
+	Location of the yasara executable, needed for optimising.
+
+	Default value is ``/opt/yasara/yasara``
+
+
+See also
+--------
+
+:manpage:`alphafill-create-index`, :manpage:`alphafill-process`, :manpage:`alphafill-rebuild-db`, :manpage:`alphafill-process`

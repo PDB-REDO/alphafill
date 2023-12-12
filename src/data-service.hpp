@@ -100,6 +100,8 @@ class data_service
 
 	~data_service();
 
+	void start_queue();
+
 	static int rebuild(const std::string &db_user, const std::filesystem::path &db_dir);
 
 	std::vector<compound> get_compounds(float min_identity) const;

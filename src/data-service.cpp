@@ -73,7 +73,10 @@ data_service::data_service()
 
 	if (not fs::is_directory(m_work_dir))
 		fs::create_directories(m_work_dir);
+}
 
+data_service::start_queue()
+{
 	m_thread = std::thread(std::bind(&data_service::run, this));
 	m_thread_3db = std::thread(std::bind(&data_service::run_3db, this));
 }
@@ -258,20 +261,20 @@ void process(blocking_queue<json> &q, cif::progress_bar &p)
 
 		int64_t structure_id = r[0].as<int64_t>();
 
-		for (auto &alignment : data["hits"])
+		for (auto &hit : data["hits"])
 		{
 			r = tx1.exec1(R"(INSERT INTO af_pdb_hit (af_id, identity, length, pdb_asym_id, pdb_id, rmsd) VALUES ()" +
 						  std::to_string(structure_id) + ", " +
-						  std::to_string(alignment["identity"].as<double>()) + ", " +
-						  std::to_string(alignment["alignment"]["length"].as<int64_t>()) + ", " +
-						  tx1.quote(alignment["pdb_asym_id"].as<std::string>()) + ", " +
-						  tx1.quote(alignment["pdb_id"].as<std::string>()) + ", " +
-						  std::to_string(alignment["global_rmsd"].as<double>()) +
+						  std::to_string(hit["alignment"]["identity"].as<double>()) + ", " +
+						  std::to_string(hit["alignment"]["length"].as<int64_t>()) + ", " +
+						  tx1.quote(hit["pdb_asym_id"].as<std::string>()) + ", " +
+						  tx1.quote(hit["pdb_id"].as<std::string>()) + ", " +
+						  std::to_string(hit["global_rmsd"].as<double>()) +
 						  ")  RETURNING id");
 
 			int64_t hit_id = r.front().as<int64_t>();
 
-			for (auto &transplant : alignment["transplants"])
+			for (auto &transplant : hit["transplants"])
 			{
 				tx1.exec0(R"(INSERT INTO af_transplant (hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd) VALUES ()" +
 						  std::to_string(hit_id) + ", " +

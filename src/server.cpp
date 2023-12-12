@@ -1156,7 +1156,8 @@ int server_main(int argc, char *const argv[])
 
 	zh::daemon server([&]()
 		{
-		data_service::instance();
+		auto &ds = data_service::instance();
+		ds.start_queue();
 
 		auto s = new zeep::http::server(/*sc*/);
 
@@ -1165,6 +1166,7 @@ int server_main(int argc, char *const argv[])
 
 		s->add_error_handler(new db_error_handler());
 		s->add_error_handler(new missing_entry_error_handler());
+
 
 #if not defined(NDEBUG)
 		s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
