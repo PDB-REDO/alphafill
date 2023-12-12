@@ -65,7 +65,7 @@ alphafill create-index
 
 Processing a model is then as easy as:
 
-```bash
+```console
 alphafill process /srv/data/afdb/cif/AF-XXX.cif.gz /srv/data/af-filled/AF-XXX.cif.gz
 ```
 
