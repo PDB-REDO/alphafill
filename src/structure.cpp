@@ -85,7 +85,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 
 		for (auto &hit : data["hits"])
 		{
-			float hi = hit["identity"].as<float>();
+			float hi = hit["alignment"]["identity"].as<float>();
 			if (hi >= identity * 0.01f)
 				continue;
 

@@ -471,7 +471,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 		{
 			for (auto &hit : data["hits"])
 			{
-				if (hit["identity"].as<double>() * 100 < i)
+				if (hit["alignment"]["identity"].as<double>() * 100 < i)
 					continue;
 
 				identity = i;
@@ -489,7 +489,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 	std::vector<transplant_info> transplants;
 	for (auto &hit : data["hits"])
 	{
-		double hitIdentity = hit["identity"].as<double>();
+		double hitIdentity = hit["alignment"]["identity"].as<double>();
 		if (hitIdentity * 100 < identity)
 			continue;
 
@@ -939,7 +939,8 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 	std::string db_code = struct_ref.front()["db_code"].as<std::string>();
 
 	zeep::json::element result{
-		{ "uniprot_entry", { { "ac", id },
+		{ "uniprot_entry", { //
+							   { "ac", id },
 							   { "id", db_code },
 							   { "sequence_length", uniprot_end - uniprot_start + 1 } } }
 	};
@@ -1166,7 +1167,6 @@ int server_main(int argc, char *const argv[])
 
 		s->add_error_handler(new db_error_handler());
 		s->add_error_handler(new missing_entry_error_handler());
-
 
 #if not defined(NDEBUG)
 		s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
