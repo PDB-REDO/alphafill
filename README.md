@@ -15,7 +15,7 @@ In order to build alphafill, you need to have a modern C++ compiler (c++17), a r
 - [libcif++](https://github.com/PDB-REDO/libcifpp) version 6.0.0 or higher
 - [libmcfp](https://github.com/mhekkel/libmcfp) version 1.2.4 or higher
 
-The default assumes you only want to process predicted models locally. If you want to build the web application environment as well you will have to install the following as well:
+The default assumes you only want to process predicted models locally. If you want to build the web application environment you will have to install the following as well:
 
 - libpq, the PostgreSQL library
 - [libpqxx](http://www.pqxx.org/) version 7.2 or higher
