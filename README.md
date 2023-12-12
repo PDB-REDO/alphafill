@@ -1,3 +1,6 @@
+[![github CI](https://github.com/pdb-redo/alphafill/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/pdb-redo/alphafill/actions)
+[![GitHub License](https://img.shields.io/github/license/pdb-redo/alphafill)](https://github.com/pdb-redo/alphafill/LICENSE)
+
 # AlphaFill
 
 **AlphaFill** is an algorithm based on sequence and structure similarity that “transplants”
@@ -8,8 +11,8 @@ models can be more easily appreciated in terms of function and structure integri
 
 In order to build alphafill, you need to have a modern C++ compiler (c++17), a recent version of [cmake](https://cmake.org/) and the following libraries installed:
 
-- [Libzeep](https://github.com/mhekkel/libzeep) version 5.1.5 or higher
-- [libcif++](https://github.com/PDB-REDO/libcifpp) version 5.0.4 or higher
+- [Libzeep](https://github.com/mhekkel/libzeep) version 6.0.11 or higher
+- [libcif++](https://github.com/PDB-REDO/libcifpp) version 6.0.0 or higher
 - [libmcfp](https://github.com/mhekkel/libmcfp)
 - libpq, the PostgreSQL library
 - [libpqxx](http://www.pqxx.org/) version 7.2 or higher
@@ -18,7 +21,7 @@ And then you also need [yarn](https://yarnpkg.com/) to package the data for the 
 
 Once all the requirements are met, building is as simple as:
 
-```bash
+```console
 git clone https://github.com/PDB-REDO/alphafill
 cd alphafill
 yarn  # will fetch all node modules

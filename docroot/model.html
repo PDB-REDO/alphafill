@@ -125,9 +125,6 @@
 							<th><abbr
 									title="Transplant clash score, RMSd of the van der Waals overlap between ligand and polymer atoms">TCS</abbr>
 							</th>
-							<th><abbr
-									title="PAE mean and stddev for polymer residues nearby">PAE</abbr>
-							</th>
 							<th style="white-space: no-wrap;">
 								<div class="form-check">
 									<input class="form-check-input" checked="checked" type="checkbox" id="show-all" />
@@ -181,13 +178,6 @@
 										title="This transplant is considered suspect">?</abbr></span>
 								<span z:if="${c.clash-score gt cutoff.tcs.unreliable}" class="float-end"><abbr
 										title="This transplant is considered unreliable">?</abbr></span>
-							</td>
-
-							<td z:data-asym-id="${c.asym_id}" class="pae-matrix" z:switch="${c.pae.length le 1}"
-								z:classappend="${c.pae.length le 1 ? 'suspect' }">
-								<!-- <canvas width="32" height="32" z:data-pae="${c.pae}"></canvas> -->
-								<span z:case="true">-/-<abbr class="float-end" title="No PAE score for this transplant as it has only one residue in the binding site; please treat this transplant with caution and check the donor structure for more details">?</abbr></span>
-								<span z:case="false" z:text="|${#numbers.formatDecimal(c.pae-mean, 1, 1)}/${#numbers.formatDecimal(c.pae-sd, 1, 1)}|"></span>
 							</td>
 
 							<td colspan="2">
