@@ -35,7 +35,8 @@ man_pages = [
     ('man/alphafill-process', 'alphafill-process', 'AlphaFill process manual page', author, 1),
     ('man/alphafill-rebuild-db', 'alphafill-rebuild-db', 'AlphaFill rebuild-db manual page', author, 1),
     ('man/alphafill-server', 'alphafill-server', 'AlphaFill server manual page', author, 1),
-    ('man/alphafill-api', 'alphafill-api', 'AlphaFill server API manual page', author, 1)
+    ('man/alphafill-api', 'alphafill-api', 'AlphaFill server API manual page', author, 1),
+    ('man/alphafill.conf', 'alphafill.conf', 'AlphaFill Configuration File', author, 5)
 ]
 
 man_show_urls = True

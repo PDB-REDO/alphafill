@@ -82,4 +82,4 @@ This program will drop an already existing database and will recreate a new one 
 See also
 --------
 
-:manpage:`alphafill-create-index`, :manpage:`alphafill-process`, :manpage:`alphafill-server`
+:manpage:`alphafill-create-index`, :manpage:`alphafill-process`, :manpage:`alphafill-server`, :manpage:`alphafill.conf`

@@ -242,4 +242,4 @@ The options for the server are as follows.
 See also
 --------
 
-:manpage:`alphafill-create-index`, :manpage:`alphafill-rebuild-db`, :manpage:`alphafill-process`
+:manpage:`alphafill-create-index`, :manpage:`alphafill-rebuild-db`, :manpage:`alphafill-process`, :manpage:`alphafill.conf`
