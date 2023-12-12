@@ -151,6 +151,12 @@ if(BUILD_WEB_APPLICATION)
 
   find_program(YARN yarn REQUIRED)
 
+  # Make sure yarn is initialised
+  add_custom_command(
+    OUTPUT ${PROJECT_SOURCE_DIR}/node_modules
+    COMMAND ${YARN}
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
   # yarn rules for javascripts
   set(webpack_input
       ${PROJECT_SOURCE_DIR}/webapp/index.js
@@ -170,11 +176,20 @@ if(BUILD_WEB_APPLICATION)
     COMMAND ${YARN} run $<IF:$<CONFIG:Debug>,build,build-production>
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
-  add_custom_target(webpack DEPENDS ${webpack_output})
+  add_custom_target(webpack DEPENDS ${PROJECT_SOURCE_DIR}/node_modules
+                                    ${webpack_output})
 endif()
 
 set(CONFIG_PATH "${CMAKE_INSTALL_FULL_SYSCONFDIR}")
-configure_file(${PROJECT_SOURCE_DIR}/src/config.hpp.in ${PROJECT_SOURCE_DIR}/src/config.hpp)
+
+set(ALPHAFILL_DATA_DIR
+    "${CMAKE_INSTALL_FULL_DATADIR}/alphafill"
+    CACHE PATH "The directory where AlphaFill data files are to be stored")
+
+configure_file(${PROJECT_SOURCE_DIR}/src/config.hpp.in
+               ${PROJECT_SOURCE_DIR}/src/config.hpp)
+configure_file(${PROJECT_SOURCE_DIR}/alphafill.conf-dist.in alphafill.conf-dist
+               @ONLY)
 
 # pop the BUILD_TESTING flag
 set(BUILD_TESTING ${SAVE_BUILD_TESTING})
@@ -182,7 +197,7 @@ set(BUILD_TESTING ${SAVE_BUILD_TESTING})
 list(
   APPEND
   SOURCES
-	${PROJECT_SOURCE_DIR}/src/config.hpp
+  ${PROJECT_SOURCE_DIR}/src/config.hpp
   ${PROJECT_SOURCE_DIR}/src/alphafill.cpp
   ${PROJECT_SOURCE_DIR}/src/blast.cpp
   ${PROJECT_SOURCE_DIR}/src/ligands.cpp
@@ -208,27 +223,27 @@ add_executable(alphafill ${SOURCES})
 
 find_file(HAVE_DIRENT_H dirent.h)
 if(HAVE_DIRENT_H)
-	target_compile_definitions(alphafill PUBLIC HAVE_DIRENT_H)
+  target_compile_definitions(alphafill PUBLIC HAVE_DIRENT_H)
 endif()
 
 find_file(HAVE_FCNTL_H fcntl.h)
 if(HAVE_FCNTL_H)
-	target_compile_definitions(alphafill PUBLIC HAVE_FCNTL_H)
+  target_compile_definitions(alphafill PUBLIC HAVE_FCNTL_H)
 endif()
 
 check_function_exists(dirfd HAVE_DIRFD)
 if(HAVE_DIRFD)
-	target_compile_definitions(alphafill PUBLIC HAVE_DIRFD)
+  target_compile_definitions(alphafill PUBLIC HAVE_DIRFD)
 endif()
 
 check_symbol_exists(closefrom "unistd.h" HAVE_CLOSEFROM)
 if(HAVE_CLOSEFROM)
-	target_compile_definitions(alphafill PUBLIC HAVE_CLOSEFROM)
+  target_compile_definitions(alphafill PUBLIC HAVE_CLOSEFROM)
 endif()
 
 check_symbol_exists(sysconf "unistd.h" HAVE_SYSCONF)
 if(HAVE_SYSCONF)
-	target_compile_definitions(alphafill PUBLIC HAVE_SYSCONF)
+  target_compile_definitions(alphafill PUBLIC HAVE_SYSCONF)
 endif()
 
 target_link_libraries(alphafill libmcfp::libmcfp cifpp::cifpp zeep::zeep)
@@ -239,6 +254,9 @@ if(BUILD_WEB_APPLICATION)
 
   target_link_libraries(alphafill libpqxx::pqxx OpenSSL::SSL OpenSSL::Crypto)
 endif()
+
+target_compile_definitions(alphafill
+                           PUBLIC ALPHAFILL_DATA_DIR="${ALPHAFILL_DATA_DIR}")
 
 if(USE_RSRC)
   message("Using resources compiled with ${MRC_EXECUTABLE}")
@@ -258,21 +276,27 @@ if(USE_RSRC)
   endif()
 
   mrc_target_resources(alphafill ${RESOURCES})
-else()
-  set(ALPHAFILL_DATA_DIR
-      "${CMAKE_INSTALL_FULL_DATADIR}/alphafill"
-      CACHE PATH "The directory where AlphaFill data files are to be stored")
-  add_compile_definitions(ALPHAFILL_DATA_DIR="${ALPHAFILL_DATA_DIR}")
 endif()
 
 # installation
 install(TARGETS alphafill RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-list(APPEND hardlinks process create-index)
+install(FILES ${PROJECT_SOURCE_DIR}/af-ligands.cif
+        DESTINATION ${ALPHAFILL_DATA_DIR})
 
-if(BUILD_WEB_APPLICATION)
-  list(APPEND hardlinks rebuild-db server)
-endif()
+install(
+  CODE "
+	if(EXISTS \"${CMAKE_INSTALL_FULL_SYSCONFDIR}/alphafill.conf\")
+		file(INSTALL ${CMAKE_BINARY_DIR}/alphafill.conf-dist
+		DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR})
+	else()
+		file(INSTALL ${CMAKE_BINARY_DIR}/alphafill.conf-dist
+		DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}
+		RENAME alphafill.conf)
+	endif()
+
+	message(NOTICE \"Please edit the ${CMAKE_INSTALL_FULL_SYSCONFDIR}/alphafill.conf file.\")
+")
 
 # If we do not use resources, install the resource data in a share directory
 if(NOT USE_RSRC)

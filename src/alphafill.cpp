@@ -174,7 +174,7 @@ int create_index(int argc, char *const argv[])
 
 	fs::path pdbDir = config.get("pdb-dir");
 	if (not fs::is_directory(pdbDir))
-		throw std::runtime_error("PDB directory does not exist");
+		throw std::runtime_error("PDB \"" + pdbDir.string() + "\" directory does not exist");
 
 	// --------------------------------------------------------------------
 

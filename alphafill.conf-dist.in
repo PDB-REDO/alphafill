@@ -2,21 +2,23 @@
 #
 # First block of options is generic, used to locate data.
 # Make sure the paths here are correct.
-# 
-# Directory containing the alphafilled data
-db-dir=/srv/data/af-filled/
 
 # Directory containing the mmCIF files for the PDB
-pdb-dir=/srv/data/pdb-redo/
+pdb-dir=<NEEDS_TO_BE_CHANGED>/pdb-redo/
 
 # The FastA file containing the PDB sequences
-pdb-fasta=/srv/data/pdb-redo.fa
+pdb-fasta=<NEEDS_TO_BE_CHANGED>/pdb-redo.fa
 
 # File in CIF format describing the ligands and their modifications
 ligands=@ALPHAFILL_DATA_DIR@/af-ligands.cif
 
+# Directory containing the alphafilled data, only needed in the web server
+# db-dir=<NEEDS_TO_BE_CHANGED>/af-filled/
+
 # Number of threads to use, zero means all available cores
 # threads=0
+
+# ---------------------------------------------------------------------
 
 # The options in the next block are meant to tweak the alphafill algorithm
 
@@ -37,6 +39,8 @@ ligands=@ALPHAFILL_DATA_DIR@/af-ligands.cif
 # count as separate occurrences
 # min-separation-distance=3.5
 
+# ---------------------------------------------------------------------
+
 # Options for the blast algorithm
 # blast-report-limit=250
 # blast-matrix=BLOSUM62
@@ -46,6 +50,8 @@ ligands=@ALPHAFILL_DATA_DIR@/af-ligands.cif
 # blast-no-gapped=false
 # blast-gap-open=11
 # blast-gap-extend=1
+
+# ---------------------------------------------------------------------
 
 # The alphafill Postgresql database information
 # A database is needed for a web server. The database
@@ -57,6 +63,8 @@ ligands=@ALPHAFILL_DATA_DIR@/af-ligands.cif
 # db-password=
 # db-host=
 # db-port=
+
+# ---------------------------------------------------------------------
 
 # The web server needs some more configuration
 

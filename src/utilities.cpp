@@ -117,7 +117,7 @@ file_locator::file_locator(mcfp::config &config)
 	{
 		m_pdb_dir = config.get("pdb-dir");
 		if (not fs::is_directory(m_pdb_dir))
-			throw std::runtime_error("PDB directory does not exist");
+			throw std::runtime_error("PDB \"" + m_pdb_dir.string() + "\" directory does not exist");
 	}
 
 	if (config.has("custom-dir"))
