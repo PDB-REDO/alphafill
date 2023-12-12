@@ -75,7 +75,7 @@ data_service::data_service()
 		fs::create_directories(m_work_dir);
 }
 
-data_service::start_queue()
+void data_service::start_queue()
 {
 	m_thread = std::thread(std::bind(&data_service::run, this));
 	m_thread_3db = std::thread(std::bind(&data_service::run_3db, this));
