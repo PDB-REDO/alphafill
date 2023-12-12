@@ -4,7 +4,7 @@ alphafill.conf
 Synopsis
 --------
 
-/home/maarten/.local/etc/alphafill.conf
+/usr/local/etc/alphafill.conf
 
 Description
 -----------

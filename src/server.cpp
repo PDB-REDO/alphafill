@@ -1156,7 +1156,8 @@ int server_main(int argc, char *const argv[])
 
 	zh::daemon server([&]()
 		{
-		data_service::instance();
+		auto &ds = data_service::instance();
+		ds.start_queue();
 
 		auto s = new zeep::http::server(/*sc*/);
 
@@ -1166,12 +1167,13 @@ int server_main(int argc, char *const argv[])
 		s->add_error_handler(new db_error_handler());
 		s->add_error_handler(new missing_entry_error_handler());
 
+
 #if not defined(NDEBUG)
 		s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
-#elif defined(ALPHAFILL_DATA_DIR)
-		s->set_template_processor(new zeep::http::file_based_html_template_processor(ALPHAFILL_DATA_DIR "docroot"));
-#else
+#elif defined(WEBAPP_USES_RESOURCES) and WEBAPP_USES_RESOURCES
 		s->set_template_processor(new zeep::http::rsrc_based_html_template_processor());
+#else
+		s->set_template_processor(new zeep::http::file_based_html_template_processor(ALPHAFILL_DATA_DIR "/docroot"));
 #endif
 
 		s->add_controller(new affd_html_controller());
