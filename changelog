@@ -1,3 +1,8 @@
+Version 2.1.0
+- New configuration, using disk based resources when needed
+- Better README, explaining what to do to configure
+- Generate and install a default config file
+
 Version 2.0.0
 - Based on new libcifpp
 

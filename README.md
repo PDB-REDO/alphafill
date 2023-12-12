@@ -13,7 +13,7 @@ In order to build alphafill, you need to have a modern C++ compiler (c++17), a r
 
 - [Libzeep](https://github.com/mhekkel/libzeep) version 6.0.11 or higher
 - [libcif++](https://github.com/PDB-REDO/libcifpp) version 6.0.0 or higher
-- [libmcfp](https://github.com/mhekkel/libmcfp)
+- [libmcfp](https://github.com/mhekkel/libmcfp) version 1.2.4 or higher
 
 The default assumes you only want to process predicted models locally. If you want to build the web application environment as well you will have to install the following as well:
 
