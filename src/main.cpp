@@ -74,6 +74,8 @@ int rebuild_db_main(int argc, char *const argv[])
 		mcfp::make_option<std::string>("db-host", "AF DB host"),
 		mcfp::make_option<std::string>("db-port", "AF DB port"),
 
+		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
+
 		mcfp::make_hidden_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries")
 		);
 
