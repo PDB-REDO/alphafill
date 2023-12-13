@@ -1,3 +1,7 @@
+Version 2.1.1
+- Fix a bug that caused too many residues being placed where
+  they are not unique.
+
 Version 2.1.0
 - New configuration, using disk based resources when needed
 - Better README, explaining what to do to configure
