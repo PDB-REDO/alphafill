@@ -84,10 +84,12 @@ void data_service::start_queue()
 data_service::~data_service()
 {
 	m_queue.push("stop");
-	m_thread.join();
+	if (m_thread.joinable())
+		m_thread.join();
 
 	m_queue_3db.push("stop");
-	m_thread_3db.join();
+	if (m_thread_3db.joinable())
+		m_thread_3db.join();
 }
 
 std::vector<compound> data_service::get_compounds(float min_identity) const
@@ -237,6 +239,8 @@ using json = zeep::json::element;
 
 void process(blocking_queue<json> &q, cif::progress_bar &p)
 {
+	pqxx::transaction tx1(db_connection::instance());
+
 	for (;;)
 	{
 		auto data = q.pop();
@@ -250,7 +254,6 @@ void process(blocking_queue<json> &q, cif::progress_bar &p)
 		const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
 		bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
 
-		pqxx::transaction tx1(db_connection::instance());
 		auto r = tx1.exec1(R"(INSERT INTO af_structure (name, chunked, af_version, created, af_file) VALUES()" +
 						   tx1.quote(id) + "," +
 						   tx1.quote(chunked) + "," +
@@ -287,16 +290,18 @@ void process(blocking_queue<json> &q, cif::progress_bar &p)
 			}
 		}
 
-		tx1.commit();
-
 		p.consumed(1);
 	}
+
+	tx1.commit();
 }
 
 // --------------------------------------------------------------------
 
 int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 {
+	auto &config = mcfp::config::instance();
+
 	pqxx::work tx(db_connection::instance());
 
 	auto schema = cif::load_resource("db-schema.sql");
@@ -322,34 +327,70 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 	}
 
 	cif::progress_bar progress(files.size(), "Processing");
-	blocking_queue<json> q;
+	blocking_queue<fs::path> q1;
+	blocking_queue<json> q2;
 	std::exception_ptr ep;
 
-	std::thread t([&q, &progress, &ep]()
+	std::thread t([&q2, &progress, &ep]()
 		{
 		try
 		{
-			process(q, progress);
+			process(q2, progress);
 		}
 		catch (const std::exception &ex)
 		{
 			ep = std::current_exception();
 		} });
 
+	std::vector<std::thread> tg;
+	size_t thread_count = config.get<int>("threads");
+	if (thread_count < 1)
+		thread_count = 1;
+
+	for (int i = 0; i < thread_count; ++i)
+	{
+		tg.emplace_back([&q1, &q2, &ep]()
+		{
+			for (;;)
+			{
+				auto f = q1.pop();
+
+				if (f.empty())
+					break;
+
+				try
+				{
+					std::ifstream file(f);
+
+					zeep::json::element data;
+					zeep::json::parse_json(file, data);
+
+					q2.push(std::move(data));
+				}
+				catch (const std::exception &ex)
+				{
+					ep = std::current_exception();
+				}
+			}
+
+			q1.push({});
+		});
+	}
+
 	for (auto &f : files)
 	{
 		if (ep)
 			std::rethrow_exception(ep);
-
-		std::ifstream file(f);
-
-		zeep::json::element data;
-		zeep::json::parse_json(file, data);
-
-		q.push(std::move(data));
+		
+		q1.push(std::move(f));
 	}
 
-	q.push({});
+	q1.push({});
+
+	for (auto &ti : tg)
+		ti.join();
+
+	q2.push({});
 
 	t.join();
 
@@ -447,7 +488,7 @@ std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_
 	if (o != std::string::npos)
 	{
 		url.replace(o + 1, 5, "predicted_aligned_error");
-		
+
 		o = url.rfind(".cif");
 		if (o != std::string::npos)
 			url.replace(o + 1, 3, "json");
@@ -461,7 +502,7 @@ std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_
 
 			std::string enc = rep.get_header("Content-Encoding");
 			if (enc != "gzip")
-			 	throw std::runtime_error("Unexpected content encoding from server");
+				throw std::runtime_error("Unexpected content encoding from server");
 
 			const std::string &content = rep.get_content();
 
@@ -630,7 +671,7 @@ void data_service::run()
 
 		auto &&[timeout, next] = m_queue.pop(5s);
 
-		if (timeout)	// nothing in the queue, see if there's something left in m_in_dir
+		if (timeout) // nothing in the queue, see if there's something left in m_in_dir
 		{
 			std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -829,7 +870,7 @@ std::string data_service::queue_af_id(const std::string &id)
 	{
 		auto paefile = m_in_dir / filename;
 		paefile.replace_extension().replace_extension("pae.gz");
-		
+
 		cif::gzio::ofstream out(m_in_dir / paefile.filename());
 		if (not out.is_open())
 			throw std::runtime_error("Could not create temporary PAE file");
@@ -897,7 +938,7 @@ void data_service::run_3db()
 			if (not pae.empty())
 			{
 				auto paefile = m_in_dir / (outfile.filename().replace_extension().replace_extension("pae.gz"));
-				
+
 				cif::gzio::ofstream out(m_in_dir / paefile.filename());
 				if (not out.is_open())
 					throw std::runtime_error("Could not create temporary PAE file");
