@@ -773,13 +773,10 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 
 									case UniqueType::MoreAtoms:
 									{
+										auto &rep_res = af_structure.get_residue(replace_id);
 										if (cif::VERBOSE > 0)
-										{
-											auto &rep_res = af_structure.get_residue(replace_id);
 											std::cerr << "Residue " << res << " has more atoms than the first transplant " << rep_res << '\n';
-
-											af_structure.remove_residue(rep_res);
-										}
+										af_structure.remove_residue(rep_res);
 										break;
 									}
 
