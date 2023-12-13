@@ -114,21 +114,54 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 	auto minDistanceSq = minDistance * minDistance;
 
-	std::vector<point> pa;
+	std::vector<std::tuple<std::string, point>> atoms_a;
 
 	for (auto &a : lig.atoms())
-		pa.push_back(a.get_location());
-	auto ca = cif::centroid(pa);
+		atoms_a.emplace_back(a.get_label_atom_id(), a.get_location());
+	sort(atoms_a.begin(), atoms_a.end(), [](auto &a, auto &b) { return std::get<0>(a) < std::get<0>(b); });
 
 	for (auto &np : structure.non_polymers())
 	{
 		if (np.get_compound_id() != id)
 			continue;
-		std::vector<point> pb;
+
+		std::vector<std::tuple<std::string, point>> atoms_b;
 
 		for (auto &a : np.atoms())
-			pb.push_back(a.get_location());
-		auto cb = cif::centroid(pb);
+			atoms_b.emplace_back(a.get_label_atom_id(), a.get_location());
+		sort(atoms_b.begin(), atoms_b.end(), [](auto &a, auto &b) { return std::get<0>(a) < std::get<0>(b); });
+
+		std::vector<point> pa, pb;
+
+		auto a_i = atoms_a.begin();
+		auto b_i = atoms_b.begin();
+
+		while (a_i != atoms_a.end() and b_i != atoms_b.end())
+		{
+			const auto &[id_a, p_a] = *a_i;
+			const auto &[id_b, p_b] = *b_i;
+
+			if (id_a == id_b)
+			{
+				pa.emplace_back(p_a);
+				pb.emplace_back(p_b);
+
+				++a_i;
+				++b_i;
+				continue;
+			}
+
+			if (id_a < id_b)
+				++a_i;
+			else
+				++b_i;
+		}
+
+		if (pa.empty() or pb.empty())
+			continue;
+
+		auto ca = centroid(pa);
+		auto cb = centroid(pb);
 
 		if (distance_squared(ca, cb) < minDistanceSq)
 		{
@@ -777,6 +810,19 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 										if (cif::VERBOSE > 0)
 											std::cerr << "Residue " << res << " has more atoms than the first transplant " << rep_res << '\n';
 										af_structure.remove_residue(rep_res);
+
+										for (auto &hit : hits)
+										{
+											auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [replace_id](json &e) {
+												return e["asym_id"] == replace_id;
+											});
+											if (ti != hit["transplants"].end())
+											{
+												hit["transplants"].erase(ti);
+												break;
+											}
+										}
+
 										break;
 									}
 
