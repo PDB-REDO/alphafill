@@ -36,3 +36,4 @@ src/config.hpp
 **/*.csv
 **/*.log
 **/*.tsv
+docs/man/alphafill.conf.rst
