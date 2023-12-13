@@ -813,8 +813,8 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 
 										for (auto &hit : hits)
 										{
-											auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [replace_id](json &e) {
-												return e["asym_id"] == replace_id;
+											auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [id=replace_id](json &e) {
+												return e["asym_id"] == id;
 											});
 											if (ti != hit["transplants"].end())
 											{
