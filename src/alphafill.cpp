@@ -850,20 +850,29 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 										auto &rep_res = af_structure.get_residue(replace_id);
 										if (cif::VERBOSE > 0)
 											std::cerr << "Residue " << res << " has more atoms than the first transplant " << rep_res << '\n';
-										af_structure.remove_residue(rep_res);
-
-										for (auto &hit : hits)
+										
+										try
 										{
-											auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [id=replace_id](json &e) {
-												return e["asym_id"] == id;
-											});
-											if (ti != hit["transplants"].end())
+											af_structure.remove_residue(rep_res);
+
+											for (auto &hit : hits)
 											{
-												hit["transplants"].erase(ti);
-												break;
+												auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [id=replace_id](json &e) {
+													return e["asym_id"] == id;
+												});
+												if (ti != hit["transplants"].end())
+												{
+													hit["transplants"].erase(ti);
+													break;
+												}
 											}
 										}
-
+										catch(const std::exception& e)
+										{
+											if (cif::VERBOSE > 0)
+												std::cerr << "Failed to remove residue with asym ID " << replace_id << ": " << e.what() << '\n';
+										}
+										
 										break;
 									}
 
