@@ -114,33 +114,46 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 	auto minDistanceSq = minDistance * minDistance;
 
-	// short cut
-	if (lig.atoms().size() == 1)
+	// First, naive attempt. Take centroids and compare distance.
+	// This is the fast approach.
+
+	std::vector<point> pa;
+	bool has_common = false;
+
+	for (auto &a : lig.atoms())
+		pa.push_back(a.get_location());
+	auto ca = cif::centroid(pa);
+
+	for (auto &np : structure.non_polymers())
 	{
-		for (auto &np : structure.non_polymers())
+		if (np.get_compound_id() != id)
+			continue;
+
+		has_common = true;
+
+		std::vector<point> pb;
+
+		for (auto &a : np.atoms())
+			pb.push_back(a.get_location());
+		auto cb = cif::centroid(pb);
+
+		if (distance_squared(ca, cb) < minDistanceSq)
 		{
-			if (np.get_compound_id() != id)
-				continue;
-
-			// assert(lig.atoms().size() == 1);
-			// assert(np.atoms().size() == 1);
-
-			auto pa = lig.atoms().front().get_location();
-			auto pb = np.atoms().front().get_location();
-
-			if (distance_squared(pa, pb) < minDistanceSq)
-			{
-				if (lig.unique_atoms().size() > np.unique_atoms().size())
-					result = { UniqueType::MoreAtoms, np.get_asym_id() };
-				else
-					result = { UniqueType::Seen, np.get_asym_id() };
-
-				break;
-			}
+			if (lig.unique_atoms().size() > np.unique_atoms().size())
+				result = { UniqueType::MoreAtoms, np.get_asym_id() };
+			else
+				result = { UniqueType::Seen, np.get_asym_id() };
+			
+			break;
 		}
 	}
-	else
+
+	if (has_common)
 	{
+		// OK, not close, but be careful, sometimes whole chunks
+		// are missing and then the centroids are not close but
+		// the centroids of the common atoms may still be close.
+
 		std::vector<std::tuple<std::string, point>> atoms_a;
 
 		for (auto &a : lig.atoms())
