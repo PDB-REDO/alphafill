@@ -114,63 +114,91 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 	auto minDistanceSq = minDistance * minDistance;
 
-	std::vector<std::tuple<std::string, point>> atoms_a;
-
-	for (auto &a : lig.atoms())
-		atoms_a.emplace_back(a.get_label_atom_id(), a.get_location());
-	sort(atoms_a.begin(), atoms_a.end(), [](auto &a, auto &b) { return std::get<0>(a) < std::get<0>(b); });
-
-	for (auto &np : structure.non_polymers())
+	// short cut
+	if (lig.atoms().size() == 1)
 	{
-		if (np.get_compound_id() != id)
-			continue;
-
-		std::vector<std::tuple<std::string, point>> atoms_b;
-
-		for (auto &a : np.atoms())
-			atoms_b.emplace_back(a.get_label_atom_id(), a.get_location());
-		sort(atoms_b.begin(), atoms_b.end(), [](auto &a, auto &b) { return std::get<0>(a) < std::get<0>(b); });
-
-		std::vector<point> pa, pb;
-
-		auto a_i = atoms_a.begin();
-		auto b_i = atoms_b.begin();
-
-		while (a_i != atoms_a.end() and b_i != atoms_b.end())
+		for (auto &np : structure.non_polymers())
 		{
-			const auto &[id_a, p_a] = *a_i;
-			const auto &[id_b, p_b] = *b_i;
-
-			if (id_a == id_b)
-			{
-				pa.emplace_back(p_a);
-				pb.emplace_back(p_b);
-
-				++a_i;
-				++b_i;
+			if (np.get_compound_id() != id)
 				continue;
+
+			// assert(lig.atoms().size() == 1);
+			// assert(np.atoms().size() == 1);
+
+			auto pa = lig.atoms().front().get_location();
+			auto pb = np.atoms().front().get_location();
+
+			if (distance_squared(pa, pb) < minDistanceSq)
+			{
+				if (lig.unique_atoms().size() > np.unique_atoms().size())
+					result = { UniqueType::MoreAtoms, np.get_asym_id() };
+				else
+					result = { UniqueType::Seen, np.get_asym_id() };
+
+				break;
+			}
+		}
+	}
+	else
+	{
+		std::vector<std::tuple<std::string, point>> atoms_a;
+
+		for (auto &a : lig.atoms())
+			atoms_a.emplace_back(a.get_label_atom_id(), a.get_location());
+		sort(atoms_a.begin(), atoms_a.end(), [](auto &a, auto &b) { return std::get<0>(a) < std::get<0>(b); });
+
+		for (auto &np : structure.non_polymers())
+		{
+			if (np.get_compound_id() != id)
+				continue;
+
+			std::vector<std::tuple<std::string, point>> atoms_b;
+
+			for (auto &a : np.atoms())
+				atoms_b.emplace_back(a.get_label_atom_id(), a.get_location());
+			sort(atoms_b.begin(), atoms_b.end(), [](auto &a, auto &b) { return std::get<0>(a) < std::get<0>(b); });
+
+			std::vector<point> pa, pb;
+
+			auto a_i = atoms_a.begin();
+			auto b_i = atoms_b.begin();
+
+			while (a_i != atoms_a.end() and b_i != atoms_b.end())
+			{
+				const auto &[id_a, p_a] = *a_i;
+				const auto &[id_b, p_b] = *b_i;
+
+				if (id_a == id_b)
+				{
+					pa.emplace_back(p_a);
+					pb.emplace_back(p_b);
+
+					++a_i;
+					++b_i;
+					continue;
+				}
+
+				if (id_a < id_b)
+					++a_i;
+				else
+					++b_i;
 			}
 
-			if (id_a < id_b)
-				++a_i;
-			else
-				++b_i;
-		}
+			if (pa.empty() or pb.empty())
+				continue;
 
-		if (pa.empty() or pb.empty())
-			continue;
+			auto ca = centroid(pa);
+			auto cb = centroid(pb);
 
-		auto ca = centroid(pa);
-		auto cb = centroid(pb);
+			if (distance_squared(ca, cb) < minDistanceSq)
+			{
+				if (lig.unique_atoms().size() > np.unique_atoms().size())
+					result = { UniqueType::MoreAtoms, np.get_asym_id() };
+				else
+					result = { UniqueType::Seen, np.get_asym_id() };
 
-		if (distance_squared(ca, cb) < minDistanceSq)
-		{
-			if (lig.unique_atoms().size() > np.unique_atoms().size())
-				result = { UniqueType::MoreAtoms, np.get_asym_id() };
-			else
-				result = { UniqueType::Seen, np.get_asym_id() };
-
-			break;
+				break;
+			}
 		}
 	}
 
