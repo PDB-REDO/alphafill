@@ -11,14 +11,12 @@ window.addEventListener('load', () => {
 			evt.preventDefault();
 
 			const customFile = document.getElementById('custom-file');
-			const paeFile = document.getElementById('custom-pae-file');
 
 			if (customFile.files.length == 1) {
 
 				const fd = new FormData();
 
 				fd.append("structure", customFile.files[0]);
-				fd.append("pae", paeFile.files[0])
 
 				var resultOK = false;
 
