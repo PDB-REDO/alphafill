@@ -347,10 +347,10 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 	if (thread_count < 1)
 		thread_count = 1;
 
-	for (int i = 0; i < thread_count; ++i)
+	for (size_t i = 0; i < thread_count; ++i)
 	{
 		tg.emplace_back([&q1, &q2, &ep]()
-		{
+			{
 			for (;;)
 			{
 				auto f = q1.pop();
@@ -373,15 +373,14 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 				}
 			}
 
-			q1.push({});
-		});
+			q1.push({}); });
 	}
 
 	for (auto &f : files)
 	{
 		if (ep)
 			std::rethrow_exception(ep);
-		
+
 		q1.push(std::move(f));
 	}
 
@@ -586,7 +585,7 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 	std::error_code ec;
 
 	if (not fs::exists(xyzin, ec))
-		throw std::runtime_error("Input file does not exist");
+		throw std::runtime_error("Input file '" + xyzin.string() + "' does not exist");
 
 	cif::file f(xyzin);
 	if (f.empty())
@@ -619,49 +618,14 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 	fs::remove(m_work_dir / xyzin.filename(), ec);
 	if (ec)
 		std::cerr << "Error removing input file from work dir: " << ec.message() << '\n';
-
-	// int pid = fork();
-
-	// if (pid < 0)
-	// 	throw std::runtime_error("Could not fork: "s + std::strerror(errno));
-
-	// if (pid == 0)	// child
-	// {
-	// 	try
-	// 	{
-	// 		auto metadata = alphafill(f.front(), data_service_progress{ m_progress });
-
-	// 		f.save(xyzout);
-
-	// 		std::ofstream metadataFile(jsonout);
-	// 		metadataFile << metadata;
-
-	// 		exit(0);
-	// 	}
-	// 	catch (const std::exception &ex)
-	// 	{
-	// 		std::ofstream errorFile(m_out_dir / ("CS-" + next + ".error"));
-	// 		errorFile << ex.what() << '\n';
-	// 		exit(1);
-	// 	}
-	// }
-
-	// int status = 0;
-	// int err = waitpid(pid, &status, 0);
-
-	// if (err != 0)
-	// 	throw std::runtime_error("Wait failed with error "s + std::strerror(errno));
-
-	// if (WIFEXITED(status) and WEXITSTATUS(status) != 0)
-	// 	throw std::runtime_error("Alphafill terminated with exit status " + std::to_string(WEXITSTATUS(status)));
-
-	// if (WIFSIGNALED(status))
-	// 	throw std::runtime_error("Alphafill terminated with signal " + std::to_string(WTERMSIG(status)));
 }
 
 void data_service::run()
 {
 	using namespace std::literals;
+	using namespace date;
+	using namespace std::chrono;
+
 	std::regex rx(R"(((?:AF|CS)-.+?)(?:\.cif\.gz))");
 
 	for (;;)
@@ -691,16 +655,27 @@ void data_service::run()
 
 			if (xyzin.empty())
 				continue;
-
-			paein = xyzin;
-			paein.replace_extension().replace_extension("pae.gz");
-			if (not fs::exists(paein, ec))
-				paein.clear();
 		}
 		else if (next == "stop")
 			break;
 		else
+		{
 			xyzin = m_in_dir / (next + ".cif.gz");
+
+			// Skip if it does not exist
+			if (not fs::exists(xyzin))
+			{
+				std::clog << system_clock::now() << " requested ID '" << next << "' does not resolve to filename (tried: " << xyzin.string() << ")\n";
+				continue;
+			}
+
+			paein = xyzin;
+
+			if (paein.extension() == ".gz")
+				paein.replace_extension();
+			if (paein.extension() == ".cif")
+				paein.replace_extension("pae.gz");
+		}
 
 		const auto &[type, afId, chunkNr, version] = parse_af_id(next);
 		fs::path jsonout = file_locator::get_metadata_file(type, afId, chunkNr, version);
@@ -719,10 +694,12 @@ void data_service::run()
 
 		try
 		{
+			std::clog << system_clock::now() << ' ' << "process: " << xyzin.string() << '\n';
 			process_queued(xyzin, paein, xyzout, jsonout);
 		}
 		catch (const std::exception &ex)
 		{
+			std::clog << system_clock::now() << ' ' << ex.what() << '\n';
 			std::ofstream errorFile(m_out_dir / (next + ".error"));
 			print_what(errorFile, ex);
 		}
@@ -901,6 +878,8 @@ void data_service::queue_3d_beacon_request(const std::string &id)
 
 void data_service::run_3db()
 {
+	using namespace date;
+	using namespace std::chrono;
 	using namespace std::literals;
 
 	for (;;)
@@ -920,15 +899,13 @@ void data_service::run_3db()
 			auto &&[filename, data, pae] = fetch_from_afdb(id);
 
 			if (filename.extension() == ".cif")
-				filename.replace_extension("");
+				filename.replace_extension();
 
-			const auto &[type, af_id, chunk, version] = parse_af_id(filename);
-
-			auto outfile = file_locator::get_structure_file(af_id, chunk, version);
+			auto outfile = m_in_dir / (filename.string() + ".cif.gz");
 
 			std::lock_guard<std::mutex> lock(m_mutex);
 
-			cif::gzio::ofstream out(m_in_dir / outfile.filename());
+			cif::gzio::ofstream out(outfile);
 			if (not out.is_open())
 				throw std::runtime_error("Could not create temporary file");
 
@@ -937,7 +914,11 @@ void data_service::run_3db()
 
 			if (not pae.empty())
 			{
-				auto paefile = m_in_dir / (outfile.filename().replace_extension().replace_extension("pae.gz"));
+				auto paefile = outfile;
+				if (paefile.extension() == ".gz")
+					paefile.replace_extension();
+				if (paefile.extension() == ".cif")
+					paefile.replace_extension("pae.gz");
 
 				cif::gzio::ofstream out(m_in_dir / paefile.filename());
 				if (not out.is_open())
@@ -946,6 +927,8 @@ void data_service::run_3db()
 				out << pae;
 				out.close();
 			}
+
+			std::clog << system_clock::now() << " 3d-beacons requested file " << std::quoted(outfile.string()) << '\n';
 
 			m_queue.push(filename.string());
 		}
