@@ -899,8 +899,9 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 
 	if (not fs::exists(file))
 	{
-		auto &data_service = data_service::instance();
-		data_service.queue_3d_beacon_request(id);
+		// Disabled due to too many requests
+		// auto &data_service = data_service::instance();
+		// data_service.queue_3d_beacon_request(id);
 
 		throw zeep::http::not_found;
 	}
