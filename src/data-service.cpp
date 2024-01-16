@@ -597,7 +597,7 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 
 	std::vector<PAE_matrix> pae_data;
 
-	if (not paein.empty())
+	if (not paein.empty() and fs::exists(paein))
 	{
 		pae_data = load_pae_from_file(paein);
 		fs::rename(paein, m_work_dir / paein.filename(), ec);
