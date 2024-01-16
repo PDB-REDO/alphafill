@@ -635,6 +635,9 @@ void data_service::run()
 
 		auto &&[timeout, next] = m_queue.pop(5s);
 
+		if (next == "stop")
+			break;
+
 		if (timeout) // nothing in the queue, see if there's something left in m_in_dir
 		{
 			std::lock_guard<std::mutex> lock(m_mutex);
@@ -656,8 +659,6 @@ void data_service::run()
 			if (xyzin.empty())
 				continue;
 		}
-		else if (next == "stop")
-			break;
 		else
 		{
 			xyzin = m_in_dir / (next + ".cif.gz");
