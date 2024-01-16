@@ -78,7 +78,6 @@ data_service::data_service()
 void data_service::start_queue()
 {
 	m_thread = std::thread(std::bind(&data_service::run, this));
-	m_thread_3db = std::thread(std::bind(&data_service::run_3db, this));
 }
 
 data_service::~data_service()
@@ -86,10 +85,6 @@ data_service::~data_service()
 	m_queue.push("stop");
 	if (m_thread.joinable())
 		m_thread.join();
-
-	m_queue_3db.push("stop");
-	if (m_thread_3db.joinable())
-		m_thread_3db.join();
 }
 
 std::vector<compound> data_service::get_compounds(float min_identity) const
@@ -614,10 +609,6 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 
 	std::ofstream metadataFile(jsonout);
 	metadataFile << metadata;
-
-	fs::remove(m_work_dir / xyzin.filename(), ec);
-	if (ec)
-		std::cerr << "Error removing input file from work dir: " << ec.message() << '\n';
 }
 
 void data_service::run()
@@ -711,7 +702,7 @@ void data_service::run()
 		if (fs::exists(xyzin, ec))
 			fs::remove(xyzin, ec);
 
-		if (fs::exists(paein, ec))
+		if (not paein.empty() and fs::exists(paein, ec))
 			fs::remove(paein, ec);
 	}
 }
@@ -869,73 +860,4 @@ std::string data_service::queue_af_id(const std::string &id)
 	m_queue.push(filename.string());
 
 	return filename.string();
-}
-
-void data_service::queue_3d_beacon_request(const std::string &id)
-{
-	if (not m_queue_3db.push(id))
-		std::cerr << "Not queuing " << id << " since queue is full\n";
-}
-
-void data_service::run_3db()
-{
-	using namespace date;
-	using namespace std::chrono;
-	using namespace std::literals;
-
-	for (;;)
-	{
-		if (m_queue.is_full())
-		{
-			std::this_thread::sleep_for(60s);
-			continue;
-		}
-
-		auto id = m_queue_3db.pop();
-		if (id == "stop")
-			break;
-
-		try
-		{
-			auto &&[filename, data, pae] = fetch_from_afdb(id);
-
-			if (filename.extension() == ".cif")
-				filename.replace_extension();
-
-			auto outfile = m_in_dir / (filename.string() + ".cif.gz");
-
-			std::lock_guard<std::mutex> lock(m_mutex);
-
-			cif::gzio::ofstream out(outfile);
-			if (not out.is_open())
-				throw std::runtime_error("Could not create temporary file");
-
-			out << data;
-			out.close();
-
-			if (not pae.empty())
-			{
-				auto paefile = outfile;
-				if (paefile.extension() == ".gz")
-					paefile.replace_extension();
-				if (paefile.extension() == ".cif")
-					paefile.replace_extension("pae.gz");
-
-				cif::gzio::ofstream out(m_in_dir / paefile.filename());
-				if (not out.is_open())
-					throw std::runtime_error("Could not create temporary PAE file");
-
-				out << pae;
-				out.close();
-			}
-
-			std::clog << system_clock::now() << " 3d-beacons requested file " << std::quoted(outfile.string()) << '\n';
-
-			m_queue.push(filename.string());
-		}
-		catch (const std::exception &ex)
-		{
-			std::cerr << "queuing 3d beacon request failed: " << ex.what() << '\n';
-		}
-	}
 }
