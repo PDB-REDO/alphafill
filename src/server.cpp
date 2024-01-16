@@ -1078,7 +1078,7 @@ int server_main(int argc, char *const argv[])
 		mcfp::make_option<std::string>("metadata-name-pattern", "${db-dir}/${id:0:2}/AF-${id}-F${chunk}-filled_v${version}.cif.json", "Pattern for locating metadata files"),
 		mcfp::make_option<std::string>("pdb-name-pattern", "${pdb-dir}/${id:1:2}/${id}/${id}_final.cif", "Pattern for locating PDB files"),
 
-		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
+		mcfp::make_option<size_t>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
 
 		mcfp::make_option<std::string>("alphafold-3d-beacon", "https://www.ebi.ac.uk/pdbe/pdbe-kb/3dbeacons/api/uniprot/summary/${id}.json?provider=alphafold",
 			"The URL of the 3d-beacons service for alphafold"),
@@ -1159,10 +1159,15 @@ int server_main(int argc, char *const argv[])
 
 	std::string command = config.operands().front();
 
-	zh::daemon server([&]()
+	zh::daemon server([&, nr_of_threads = config.get<size_t>("threads")]() mutable
 		{
+
 		auto &ds = data_service::instance();
-		ds.start_queue();
+
+		if (nr_of_threads == 0)
+			nr_of_threads = std::thread::hardware_concurrency();
+
+		ds.start_queue(nr_of_threads);
 
 		auto s = new zeep::http::server(/*sc*/);
 

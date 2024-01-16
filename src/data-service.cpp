@@ -75,16 +75,45 @@ data_service::data_service()
 		fs::create_directories(m_work_dir);
 }
 
-void data_service::start_queue()
+void data_service::start_queue(size_t nr_of_threads)
 {
-	m_thread = std::thread(std::bind(&data_service::run, this));
+	for (size_t i = 0; i < nr_of_threads; ++i)
+		m_threads.emplace_back(std::bind(&data_service::run, this));
+
+	std::lock_guard<std::mutex> lock(m_mutex);
+	std::regex rx(R"(((?:AF|CS)-.+?)(?:\.cif\.gz))");
+
+	std::vector<std::string> files_in_in;
+	for (fs::directory_iterator iter(m_in_dir); iter != fs::directory_iterator(); ++iter)
+	{
+		std::smatch m;
+
+		std::string name = iter->path().filename();
+		if (not std::regex_match(name, m, rx))
+			continue;
+
+		files_in_in.push_back(m[1]);
+	}
+
+	if (not files_in_in.empty())
+	{
+		std::thread pushThread([this, files = files_in_in]()
+			{
+			for (auto &file : files)
+				this->m_queue.push(file); });
+		pushThread.detach();
+	}
 }
 
 data_service::~data_service()
 {
 	m_queue.push("stop");
-	if (m_thread.joinable())
-		m_thread.join();
+
+	for (auto &t : m_threads)
+	{
+		if (t.joinable())
+			t.join();
+	}
 }
 
 std::vector<compound> data_service::get_compounds(float min_identity) const
@@ -338,7 +367,7 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 		} });
 
 	std::vector<std::thread> tg;
-	size_t thread_count = config.get<int>("threads");
+	size_t thread_count = config.get<size_t>("threads");
 	if (thread_count < 1)
 		thread_count = 1;
 
@@ -605,10 +634,25 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 
 	auto metadata = alphafill(f.front(), pae_data, data_service_progress{ m_progress });
 
-	f.save(xyzout);
+	try
+	{
+		f.save(xyzout);
+	}
+	catch (const std::exception &ex)
+	{
+		std::cerr << "Error writing output file " << std::quoted(xyzout.string()) << ": " << ex.what() << '\n';
+		throw;
+	}
 
 	std::ofstream metadataFile(jsonout);
 	metadataFile << metadata;
+
+	// Clean up work files
+	if (fs::exists(m_work_dir / xyzin.filename(), ec))
+		fs::remove(m_work_dir / xyzin.filename(), ec);
+
+	if (not paein.empty() and fs::exists(m_work_dir / paein.filename(), ec))
+		fs::remove(m_work_dir / paein.filename(), ec);
 }
 
 void data_service::run()
@@ -617,57 +661,34 @@ void data_service::run()
 	using namespace date;
 	using namespace std::chrono;
 
-	std::regex rx(R"(((?:AF|CS)-.+?)(?:\.cif\.gz))");
-
 	for (;;)
 	{
 		std::error_code ec;
 		std::filesystem::path xyzin, paein;
 
-		auto &&[timeout, next] = m_queue.pop(5s);
+		auto next = m_queue.pop();
 
 		if (next == "stop")
+		{
+			m_queue.push(next);
 			break;
-
-		if (timeout) // nothing in the queue, see if there's something left in m_in_dir
-		{
-			std::lock_guard<std::mutex> lock(m_mutex);
-
-			for (fs::directory_iterator iter(m_in_dir); iter != fs::directory_iterator(); ++iter)
-			{
-				std::smatch m;
-
-				std::string name = iter->path().filename();
-				if (not std::regex_match(name, m, rx))
-					continue;
-
-				xyzin = *iter;
-
-				next = m[1].str();
-				break;
-			}
-
-			if (xyzin.empty())
-				continue;
 		}
-		else
+
+		xyzin = m_in_dir / (next + ".cif.gz");
+
+		// Skip if it does not exist
+		if (not fs::exists(xyzin))
 		{
-			xyzin = m_in_dir / (next + ".cif.gz");
-
-			// Skip if it does not exist
-			if (not fs::exists(xyzin))
-			{
-				std::clog << system_clock::now() << " requested ID '" << next << "' does not resolve to filename (tried: " << xyzin.string() << ")\n";
-				continue;
-			}
-
-			paein = xyzin;
-
-			if (paein.extension() == ".gz")
-				paein.replace_extension();
-			if (paein.extension() == ".cif")
-				paein.replace_extension("pae.gz");
+			std::clog << system_clock::now() << " requested ID '" << next << "' does not resolve to filename (tried: " << xyzin.string() << ")\n";
+			continue;
 		}
+
+		paein = xyzin;
+
+		if (paein.extension() == ".gz")
+			paein.replace_extension();
+		if (paein.extension() == ".cif")
+			paein.replace_extension("pae.gz");
 
 		const auto &[type, afId, chunkNr, version] = parse_af_id(next);
 		fs::path jsonout = file_locator::get_metadata_file(type, afId, chunkNr, version);
@@ -698,12 +719,6 @@ void data_service::run()
 
 		m_progress = 0;
 		m_running.clear();
-
-		if (fs::exists(xyzin, ec))
-			fs::remove(xyzin, ec);
-
-		if (not paein.empty() and fs::exists(paein, ec))
-			fs::remove(paein, ec);
 	}
 }
 

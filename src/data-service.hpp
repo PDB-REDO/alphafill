@@ -100,7 +100,7 @@ class data_service
 
 	~data_service();
 
-	void start_queue();
+	void start_queue(size_t nr_of_threads);
 
 	static int rebuild(const std::string &db_user, const std::filesystem::path &db_dir);
 
@@ -134,9 +134,9 @@ class data_service
 	std::filesystem::path m_out_dir;
 	std::filesystem::path m_work_dir;
 
-	// thread processing AF entries
-	std::thread m_thread;
-	blocking_queue<std::string,10> m_queue;
+	// threads processing AF entries
+	std::vector<std::thread> m_threads;
+	blocking_queue<std::string,100> m_queue;
 
 	std::mutex m_mutex;
 	std::string m_running;

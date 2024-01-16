@@ -226,7 +226,7 @@ int create_index(int argc, char *const argv[])
 	auto &config = load_and_init_config("alphafill create-index [options]",
 		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 		mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
-		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"));
+		mcfp::make_option<size_t>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"));
 
 	parse_argv(argc, argv, config);
 
@@ -266,7 +266,7 @@ int create_index(int argc, char *const argv[])
 
 	cif::progress_bar progress(N, "Generating FastA file");
 
-	int nrOfThreads = config.get<int>("threads");
+	size_t nrOfThreads = config.get<size_t>("threads");
 	if (nrOfThreads == 0)
 		nrOfThreads = std::thread::hardware_concurrency();
 
@@ -311,7 +311,7 @@ int create_index(int argc, char *const argv[])
 				tmpFastA << '\n';
 		} });
 
-	for (int i = 0; i < nrOfThreads; ++i)
+	for (size_t i = 0; i < nrOfThreads; ++i)
 	{
 		t.emplace_back([&q1, &q2, ix = i]()
 			{
@@ -569,7 +569,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 					  << seq << '\n'
 					  << '\n';
 
-		int threads = config.get<int>("threads");
+		size_t threads = config.get<size_t>("threads");
 		if (threads == 0)
 			threads = std::thread::hardware_concurrency();
 
@@ -1142,7 +1142,7 @@ int alphafill_main(int argc, char *const argv[])
 		mcfp::make_hidden_option<int>("blast-gap-open", 11, "Blast penalty for gap open"),
 		mcfp::make_hidden_option<int>("blast-gap-extend", 1, "Blast penalty for gap extend"),
 
-		mcfp::make_option<int>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
+		mcfp::make_option<size_t>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
 
 		mcfp::make_hidden_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries")
 
