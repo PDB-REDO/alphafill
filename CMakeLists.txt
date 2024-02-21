@@ -104,14 +104,14 @@ endif()
 set(SAVE_BUILD_TESTING ${BUILD_TESTING})
 set(BUILD_TESTING OFF)
 
-find_package(cifpp 6 QUIET)
+find_package(cifpp 7 QUIET)
 
 if(NOT cifpp_FOUND)
-	FetchContent_Declare(
-		cifpp
-		GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git
-		GIT_TAG b14237e)
-	FetchContent_MakeAvailable(cifpp)
+  FetchContent_Declare(
+    cifpp
+    GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git
+    GIT_TAG v7.0.0)
+  FetchContent_MakeAvailable(cifpp)
 
 	set(CIFPP_SHARE_DIR ${cifpp_SOURCE_DIR}/rsrc)
 endif()

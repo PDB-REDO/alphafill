@@ -81,7 +81,7 @@ int main(int argc, char * const argv[])
 		result = 1;
 	}
 
-	if (not non_polies.exists("asym_id"_key == asym_id and "mon_id"_key == compound_id))
+	if (not non_polies.contains("asym_id"_key == asym_id and "mon_id"_key == compound_id))
 	{
 		std::cerr << "The nonpoly scheme does not have a corresponding entry with compound_id/asym_id\n";
 		result = 1;

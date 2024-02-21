@@ -71,7 +71,7 @@ bool Ligand::drops(const std::string &atomID) const
 	bool result = false;
 
 	if (mModifications != nullptr)
-		result = mModifications->exists("atom1"_key == atomID and "atom2"_key == cif::null);
+		result = mModifications->contains("atom1"_key == atomID and "atom2"_key == cif::null);
 
 	return result;
 }

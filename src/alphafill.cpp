@@ -358,8 +358,8 @@ int create_index(int argc, char *const argv[])
 					auto &chem_comp = db["chem_comp"];
 					for (auto &comp_id : chem_comp.rows<std::string>("id"))
 					{
-						if (cif::compound_factory::instance().is_known_peptide(comp_id) or
-							cif::compound_factory::instance().is_known_base(comp_id) or
+						if (cif::compound_factory::instance().is_std_peptide(comp_id) or
+							cif::compound_factory::instance().is_std_base(comp_id) or
 							comp_id == "HOH")
 						{
 							continue;
@@ -557,12 +557,38 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 	{
 		const PAE_matrix &pae = (pae_i == v_pae.end()) ? empty_pae : *pae_i++;
 
-		auto &&[id, seq] = r.get<std::string, std::string>("entity_id", "pdbx_seq_one_letter_code_can");
+		std::string seq;
+
+		auto &&[id, s1, s2] = r.get<std::string, std::optional<std::string>, std::optional<std::string>>("entity_id", "pdbx_seq_one_letter_code", "pdbx_seq_one_letter_code_can");
+
+		if (s2.has_value())
+			seq = s2.value();
+		else if (s1.has_value())
+		{
+			seq = s1.value();
+
+			auto i = seq.find('(');
+			while (i != std::string::npos)
+			{
+				auto j = seq.find(')', i + 1);
+				if (j == std::string::npos or j > i + 2)
+					throw std::runtime_error("Invalid sequence");
+				
+				seq.erase(i, j - i + 1);
+				i = seq.find('(', i + 1);
+			}
+		}
 
 		// strip all spaces from the sequence, to be able to check length later on
 		seq.erase(remove_if(seq.begin(), seq.end(), [](char aa)
 					  { return std::isspace(aa); }),
 			seq.end());
+
+		if (seq.empty())
+		{
+			std::cerr << "Empty sequence, cannot continue\n";
+			throw std::runtime_error("Empty sequence");
+		}
 
 		if (cif::VERBOSE > 0)
 			std::cerr << "Blasting:\n"
@@ -1176,7 +1202,7 @@ int alphafill_main(int argc, char *const argv[])
 
 	fs::path xyzin = config.operands().front();
 
-	cif::file f(xyzin);
+	cif::file f = cif::pdb::read(xyzin);
 	if (f.empty())
 	{
 		std::cerr << "Empty cif file?\n";
