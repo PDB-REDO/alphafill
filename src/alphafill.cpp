@@ -577,7 +577,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 					throw std::runtime_error("Invalid sequence");
 
 				seq.erase(i, j - i + 1);
-				i = seq.find('(', i + 1);
+				i = seq.find('(', i);
 			}
 		}
 
