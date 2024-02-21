@@ -527,7 +527,7 @@ zeep::json::element calculateValidationScores(
 	float maxDistance, const Ligand &ligand)
 {
 	cif::mm::structure af_structure(af_db);
-	auto &poly = af_structure.get_polymer_by_asym_id("A");
+	auto &poly = af_structure.get_polymer_by_asym_id(pdb_res.front()->get_asym_id());
 
 	std::vector<cif::mm::monomer *> af_res_selected, pdb_res_selected;
 
