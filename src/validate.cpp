@@ -521,13 +521,14 @@ zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_
 // --------------------------------------------------------------------
 
 zeep::json::element calculateValidationScores(
-	cif::datablock af_db, const std::vector<cif::mm::residue *> &pdb_res,
+	cif::datablock af_db, const std::string &asym_id,
+	const std::vector<cif::mm::residue *> &pdb_res,
 	const std::vector<size_t> &af_ix, const std::vector<size_t> &pdb_ix,
 	const cif::mm::residue &af_ligand, const cif::mm::residue &pdb_ligand,
 	float maxDistance, const Ligand &ligand)
 {
 	cif::mm::structure af_structure(af_db);
-	auto &poly = af_structure.get_polymer_by_asym_id(pdb_res.front()->get_asym_id());
+	auto &poly = af_structure.get_polymer_by_asym_id(asym_id);
 
 	std::vector<cif::mm::monomer *> af_res_selected, pdb_res_selected;
 

@@ -143,7 +143,7 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 				result = { UniqueType::MoreAtoms, np.get_asym_id() };
 			else
 				result = { UniqueType::Seen, np.get_asym_id() };
-			
+
 			break;
 		}
 	}
@@ -158,7 +158,8 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 		for (auto &a : lig.atoms())
 			atoms_a.emplace_back(a.get_label_atom_id(), a.get_location());
-		sort(atoms_a.begin(), atoms_a.end(), [](auto &a, auto &b) { return std::get<0>(a) < std::get<0>(b); });
+		sort(atoms_a.begin(), atoms_a.end(), [](auto &a, auto &b)
+			{ return std::get<0>(a) < std::get<0>(b); });
 
 		for (auto &np : structure.non_polymers())
 		{
@@ -169,7 +170,8 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 			for (auto &a : np.atoms())
 				atoms_b.emplace_back(a.get_label_atom_id(), a.get_location());
-			sort(atoms_b.begin(), atoms_b.end(), [](auto &a, auto &b) { return std::get<0>(a) < std::get<0>(b); });
+			sort(atoms_b.begin(), atoms_b.end(), [](auto &a, auto &b)
+				{ return std::get<0>(a) < std::get<0>(b); });
 
 			std::vector<point> pa, pb;
 
@@ -425,7 +427,7 @@ int create_index(int argc, char *const argv[])
 				fs::path file = fiter->path();
 
 				std::string name = file.filename().string();
-				if (not (cif::ends_with(name, "_final.cif") or cif::ends_with(name, "_final.cif.gz")))
+				if (not(cif::ends_with(name, "_final.cif") or cif::ends_with(name, "_final.cif.gz")))
 					continue;
 
 				q1.push(file);
@@ -573,7 +575,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 				auto j = seq.find(')', i + 1);
 				if (j == std::string::npos or j > i + 2)
 					throw std::runtime_error("Invalid sequence");
-				
+
 				seq.erase(i, j - i + 1);
 				i = seq.find('(', i + 1);
 			}
@@ -810,14 +812,10 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 							json r_hsp{
 								{ "pdb_id", pdb_id },
 								{ "pdb_asym_id", pdb_res.front()->get_asym_id() },
-								{
-									"alignment", {
-										{ "af_start", hsp.mQueryStart },
-										{ "identity", hsp.identity() },
-										{ "length", hsp.length() },
-										{ "pdb_start", hsp.mTargetStart }
-									}
-								},
+								{ "alignment", { { "af_start", hsp.mQueryStart },
+												   { "identity", hsp.identity() },
+												   { "length", hsp.length() },
+												   { "pdb_start", hsp.mTargetStart } } },
 								{ "global_rmsd", rmsd }
 							};
 
@@ -876,16 +874,15 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 										auto &rep_res = af_structure.get_residue(replace_id);
 										if (cif::VERBOSE > 0)
 											std::cerr << "Residue " << res << " has more atoms than the first transplant " << rep_res << '\n';
-										
+
 										try
 										{
 											af_structure.remove_residue(rep_res);
 
 											for (auto &hit : hits)
 											{
-												auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [id=replace_id](json &e) {
-													return e["asym_id"] == id;
-												});
+												auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [id = replace_id](json &e)
+													{ return e["asym_id"] == id; });
 												if (ti != hit["transplants"].end())
 												{
 													hit["transplants"].erase(ti);
@@ -893,12 +890,12 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 												}
 											}
 										}
-										catch(const std::exception& e)
+										catch (const std::exception &e)
 										{
 											if (cif::VERBOSE > 0)
 												std::cerr << "Failed to remove residue with asym ID " << replace_id << ": " << e.what() << '\n';
 										}
-										
+
 										break;
 									}
 
@@ -1076,8 +1073,17 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 
 								// validation info?
 								if (hsp.identity() == 1)
-									hsp_t["validation"] = calculateValidationScores(db, pdb_res, af_ix_trimmed, pdb_ix_trimmed,
-										af_structure.get_residue(asym_id), res, config.get<float>("max-ligand-to-polymer-atom-distance"), ligand);
+								{
+									try
+									{
+										hsp_t["validation"] = calculateValidationScores(db, af_asym_id, pdb_res, af_ix_trimmed, pdb_ix_trimmed,
+											af_structure.get_residue(asym_id), res, config.get<float>("max-ligand-to-polymer-atom-distance"), ligand);
+									}
+									catch (const std::exception &e)
+									{
+										std::cerr << e.what() << '\n';
+									}
+								}
 
 								if (cif::VERBOSE > 0)
 									std::cerr << "Created asym " << asym_id << " for " << res << '\n';
