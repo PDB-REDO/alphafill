@@ -132,7 +132,7 @@ if(NOT zeep_FOUND)
 	FetchContent_Declare(
 		zeep
 		GIT_REPOSITORY https://github.com/mhekkel/libzeep.git
-		GIT_TAG v6.0.11)
+		GIT_TAG v6.0.16)
 	FetchContent_MakeAvailable(zeep)
 endif()
 
