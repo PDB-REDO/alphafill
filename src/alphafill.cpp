@@ -143,7 +143,7 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 				result = { UniqueType::MoreAtoms, np.get_asym_id() };
 			else
 				result = { UniqueType::Seen, np.get_asym_id() };
-			
+
 			break;
 		}
 	}
@@ -158,7 +158,8 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 		for (auto &a : lig.atoms())
 			atoms_a.emplace_back(a.get_label_atom_id(), a.get_location());
-		sort(atoms_a.begin(), atoms_a.end(), [](auto &a, auto &b) { return std::get<0>(a) < std::get<0>(b); });
+		sort(atoms_a.begin(), atoms_a.end(), [](auto &a, auto &b)
+			{ return std::get<0>(a) < std::get<0>(b); });
 
 		for (auto &np : structure.non_polymers())
 		{
@@ -169,7 +170,8 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 			for (auto &a : np.atoms())
 				atoms_b.emplace_back(a.get_label_atom_id(), a.get_location());
-			sort(atoms_b.begin(), atoms_b.end(), [](auto &a, auto &b) { return std::get<0>(a) < std::get<0>(b); });
+			sort(atoms_b.begin(), atoms_b.end(), [](auto &a, auto &b)
+				{ return std::get<0>(a) < std::get<0>(b); });
 
 			std::vector<point> pa, pb;
 
@@ -425,7 +427,7 @@ int create_index(int argc, char *const argv[])
 				fs::path file = fiter->path();
 
 				std::string name = file.filename().string();
-				if (not (cif::ends_with(name, "_final.cif") or cif::ends_with(name, "_final.cif.gz")))
+				if (not(cif::ends_with(name, "_final.cif") or cif::ends_with(name, "_final.cif.gz")))
 					continue;
 
 				q1.push(file);
@@ -490,7 +492,8 @@ void check_blast_index()
 
 // --------------------------------------------------------------------
 
-zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> &v_pae, alphafill_progress_cb &&progress)
+zeep::json::element alphafill(cif::datablock &db, const std::string &source,
+	const std::vector<PAE_matrix> &v_pae, alphafill_progress_cb &&progress)
 {
 	using namespace std::literals;
 	using namespace cif::literals;
@@ -540,7 +543,8 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 	json result = {
 		{ "id", afID },
 		{ "date", ss.str() },
-		{ "alphafill_version", kVersionNumber }
+		{ "alphafill_version", kVersionNumber },
+		{ "source", source }
 	};
 
 	json &hits = result["hits"] = json::array();
@@ -573,7 +577,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 				auto j = seq.find(')', i + 1);
 				if (j == std::string::npos or j > i + 2)
 					throw std::runtime_error("Invalid sequence");
-				
+
 				seq.erase(i, j - i + 1);
 				i = seq.find('(', i + 1);
 			}
@@ -810,14 +814,10 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 							json r_hsp{
 								{ "pdb_id", pdb_id },
 								{ "pdb_asym_id", pdb_res.front()->get_asym_id() },
-								{
-									"alignment", {
-										{ "af_start", hsp.mQueryStart },
-										{ "identity", hsp.identity() },
-										{ "length", hsp.length() },
-										{ "pdb_start", hsp.mTargetStart }
-									}
-								},
+								{ "alignment", { { "af_start", hsp.mQueryStart },
+												   { "identity", hsp.identity() },
+												   { "length", hsp.length() },
+												   { "pdb_start", hsp.mTargetStart } } },
 								{ "global_rmsd", rmsd }
 							};
 
@@ -876,16 +876,15 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 										auto &rep_res = af_structure.get_residue(replace_id);
 										if (cif::VERBOSE > 0)
 											std::cerr << "Residue " << res << " has more atoms than the first transplant " << rep_res << '\n';
-										
+
 										try
 										{
 											af_structure.remove_residue(rep_res);
 
 											for (auto &hit : hits)
 											{
-												auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [id=replace_id](json &e) {
-													return e["asym_id"] == id;
-												});
+												auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [id = replace_id](json &e)
+													{ return e["asym_id"] == id; });
 												if (ti != hit["transplants"].end())
 												{
 													hit["transplants"].erase(ti);
@@ -893,12 +892,12 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 												}
 											}
 										}
-										catch(const std::exception& e)
+										catch (const std::exception &e)
 										{
 											if (cif::VERBOSE > 0)
 												std::cerr << "Failed to remove residue with asym ID " << replace_id << ": " << e.what() << '\n';
 										}
-										
+
 										break;
 									}
 
@@ -1110,11 +1109,15 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 	af_structure.cleanup_empty_categories();
 
 	auto &software = af_structure.get_category("software");
-	software.emplace({ { "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
+	software.emplace({
+		//
+		{ "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
 		{ "name", "alphafill" },
 		{ "version", kVersionNumber },
 		{ "date", kRevisionDate },
-		{ "classification", "model annotation" } });
+		{ "classification", "model annotation" }
+		//
+	});
 
 	return result;
 }
@@ -1179,6 +1182,8 @@ int alphafill_main(int argc, char *const argv[])
 		mcfp::make_hidden_option<int>("blast-gap-open", 11, "Blast penalty for gap open"),
 		mcfp::make_hidden_option<int>("blast-gap-extend", 1, "Blast penalty for gap extend"),
 
+		mcfp::make_option("data-source", "user", "Data source for input model"),
+
 		mcfp::make_option<size_t>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
 
 		mcfp::make_hidden_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries")
@@ -1220,6 +1225,12 @@ int alphafill_main(int argc, char *const argv[])
 		return 1;
 	}
 
+	if (config.get("data-source") != "AFDB" and config.get("data-source") != "BFVD" and config.get("data-source") != "user")
+	{
+		std::cerr << "Invalid data-source, allowed values are 'AFDB', 'BFVD' and 'user'\n";
+		return 1;
+	}
+
 	fs::path paein;
 
 	if (config.has("pae-file"))
@@ -1244,7 +1255,7 @@ int alphafill_main(int argc, char *const argv[])
 	if (fs::exists(paein))
 		v_pae = load_pae_from_file(paein);
 
-	json metadata = alphafill(f.front(), v_pae, my_progress{});
+	json metadata = alphafill(f.front(), config.get("data-source"), v_pae, my_progress{});
 
 	if (config.operands().size() == 2)
 	{
