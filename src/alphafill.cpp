@@ -1074,6 +1074,12 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								// now fix up the newly created residue
 								ligand.modify(af_structure, asym_id);
 
+								// Give all the atoms in the newly created residue an alt_id with the same
+								// value as the asym_id, improves rendering in molstar
+
+								for (auto atom : res.atoms())
+									atom.set_property("label_alt_id", asym_id);
+
 								// validation info?
 								if (hsp.identity() == 1)
 									hsp_t["validation"] = calculateValidationScores(db, pdb_res, af_ix_trimmed, pdb_ix_trimmed,
