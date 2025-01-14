@@ -69,7 +69,8 @@ float ClashScore(cif::datablock &db, float maxDistance = 4);
 // --------------------------------------------------------------------
 
 zeep::json::element calculateValidationScores(
-	cif::datablock af_db, const std::vector<cif::mm::residue *> &pdb_res,
+	cif::datablock af_db, const std::string &asym_id,
+	const std::vector<cif::mm::residue *> &pdb_res,
 	const std::vector<size_t> &af_ix, const std::vector<size_t> &pdb_ix,
 	const cif::mm::residue &af_ligand, const cif::mm::residue &pdb_ligand,
 	float maxDistance, const Ligand &ligand);

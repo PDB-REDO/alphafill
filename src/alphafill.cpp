@@ -48,7 +48,7 @@ using json = zeep::json::element;
 // --------------------------------------------------------------------
 
 // The regex to check and/or read FastA files
-const std::regex kIDRx(R"(^>pdb-entity\|(\w{4,})\|(\w+)\|([^ |]+)( .*)?)");
+const std::regex kIDRx(R"(^>pdb-entity\|(\w{4,})\|(\w+)\|([^ |]+)?( .*)?)");
 
 // --------------------------------------------------------------------
 
@@ -579,7 +579,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::string &source,
 					throw std::runtime_error("Invalid sequence");
 
 				seq.erase(i, j - i + 1);
-				i = seq.find('(', i + 1);
+				i = seq.find('(', i);
 			}
 		}
 
@@ -1086,8 +1086,17 @@ zeep::json::element alphafill(cif::datablock &db, const std::string &source,
 
 								// validation info?
 								if (hsp.identity() == 1)
-									hsp_t["validation"] = calculateValidationScores(db, pdb_res, af_ix_trimmed, pdb_ix_trimmed,
-										af_structure.get_residue(asym_id), res, config.get<float>("max-ligand-to-polymer-atom-distance"), ligand);
+								{
+									try
+									{
+										hsp_t["validation"] = calculateValidationScores(db, af_asym_id, pdb_res, af_ix_trimmed, pdb_ix_trimmed,
+											af_structure.get_residue(asym_id), res, config.get<float>("max-ligand-to-polymer-atom-distance"), ligand);
+									}
+									catch (const std::exception &e)
+									{
+										std::cerr << e.what() << '\n';
+									}
+								}
 
 								if (cif::VERBOSE > 0)
 									std::cerr << "Created asym " << asym_id << " for " << res << '\n';
