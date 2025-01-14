@@ -1202,7 +1202,7 @@ int server_main(int argc, char *const argv[])
 		if (config.has("no-daemon"))
 			result = server.run_foreground(address, port);
 		else
-			result = server.start(address, port, 1, 16, user);
+			result = server.start(address, port, 16, user);
 	}
 	else if (command == "stop")
 		result = server.stop();

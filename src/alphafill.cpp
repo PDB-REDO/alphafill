@@ -973,6 +973,11 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								auto entity_id = af_structure.create_non_poly_entity(comp_id);
 								auto asym_id = af_structure.create_non_poly(entity_id, res.atoms());
 
+								// Hack to get better molstar rendering
+								auto &rres = af_structure.get_residue(asym_id);
+								for (auto &atom : rres.atoms())
+									atom.set_property("label_alt_id", asym_id);
+
 								auto &hsp_t = r_hsp["transplants"].emplace_back(json{
 									{ "compound_id", comp_id },
 									// {"entity_id", entity_id},
