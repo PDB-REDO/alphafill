@@ -573,6 +573,9 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 		sub.put("title", e.what());
 	}
 
+	// Add the source
+	sub.put("source", data["source"]);
+
 	// TODO: These magic numbers should of course be configurable parameters
 	// 11.43, 3.04 voor global, en 3.10 en 0.92 voor local
 	sub.put("cutoff", json{

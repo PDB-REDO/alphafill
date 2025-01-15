@@ -47,8 +47,12 @@
 			</tr>
 			<tr>
 				<td>Original AlphaFold model</td>
-				<td><a z:href="|https://alphafold.ebi.ac.uk/entry/${id}|"
-						z:text="|https://alphafold.ebi.ac.uk/entry/${id}|" target="_BLANK"></a></td>
+				<td z:switch="${source}">
+					<a z:case="BFVD" z:href="|https://bfvd.foldseek.com/cluster/${id}|"
+						z:text="|https://bfvd.foldseek.com/cluster/${id}|" target="_BLANK"></a>
+					<a z:case="*" z:href="|https://alphafold.ebi.ac.uk/entry/${id}|"
+						z:text="|https://alphafold.ebi.ac.uk/entry/${id}|" target="_BLANK"></a>
+				</td>
 			</tr>
 		</table>
 
