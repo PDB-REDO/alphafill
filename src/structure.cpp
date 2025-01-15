@@ -109,7 +109,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	for (const auto &[asymID, entityID] : struct_asym.rows<std::string,std::string>("id", "entity_id"))
 	{
 		// check if this is a nonpoly entity
-		if (entity_poly.exists("entity_id"_key == entityID))
+		if (entity_poly.contains("entity_id"_key == entityID))
 			continue;
 
 		existingAsyms.insert(asymID);
