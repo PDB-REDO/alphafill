@@ -27,7 +27,7 @@ Once all the requirements are met, building is as simple as:
 ```console
 git clone https://github.com/PDB-REDO/alphafill
 cd alphafill
-cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ctest --test-dir build
 cmake --install build
