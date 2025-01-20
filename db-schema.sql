@@ -38,7 +38,7 @@ create table af_transplant (
 alter table af_transplant owner to "$OWNER";
 
 copy af_structure (id, name, chunked, af_version, created, af_file)
-$AF_HITS
+$AF_STRUCTURES
 /.
 
 copy af_pdb_hit (id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd)
