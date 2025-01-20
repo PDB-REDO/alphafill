@@ -381,8 +381,6 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 
 		if (ep)
 			std::rethrow_exception(ep);
-		
-		break;
 	}
 
 	q.push({});
