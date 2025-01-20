@@ -261,9 +261,10 @@ uint32_t data_service::count_structures(float min_identity, const std::string &c
 
 using json = zeep::json::element;
 
-void process(blocking_queue<json> &q, cif::progress_bar &p)
+void process(blocking_queue<json> &q, cif::progress_bar &p,
+	std::ostream &os_structures, std::ostream &os_pdb_hits, std::ostream &os_transplants)
 {
-	pqxx::transaction tx1(db_connection::instance());
+	uint64_t structure_id = 0, pdb_hit_id = 0, transplant_id = 0;
 
 	for (;;)
 	{
@@ -278,46 +279,96 @@ void process(blocking_queue<json> &q, cif::progress_bar &p)
 		const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
 		bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
 
-		auto r = tx1.exec1(R"(INSERT INTO af_structure (name, chunked, af_version, created, af_file) VALUES()" +
-						   tx1.quote(id) + "," +
-						   tx1.quote(chunked) + "," +
-						   tx1.quote(data["alphafill_version"].as<std::string>()) + "," +
-						   tx1.quote(data["date"].as<std::string>()) + "," +
-						   tx1.quote(data["file"].as<std::string>()) +
-						   ") RETURNING id");
-
-		int64_t structure_id = r[0].as<int64_t>();
+		// id, name, chunked, af_version, created, af_file
+		os_structures << structure_id++ << '\t'
+					  << id << '\t'
+					  << (chunked ? 't' : 'f') << '\t'
+					  << data["alphafill_version"].as<std::string>() << '\t'
+					  << data["date"].as<std::string>() << '\t'
+					  << data["file"].as<std::string>() << '\n';
 
 		for (auto &hit : data["hits"])
 		{
-			r = tx1.exec1(R"(INSERT INTO af_pdb_hit (af_id, identity, length, pdb_asym_id, pdb_id, rmsd) VALUES ()" +
-						  std::to_string(structure_id) + ", " +
-						  std::to_string(hit["alignment"]["identity"].as<double>()) + ", " +
-						  std::to_string(hit["alignment"]["length"].as<int64_t>()) + ", " +
-						  tx1.quote(hit["pdb_asym_id"].as<std::string>()) + ", " +
-						  tx1.quote(hit["pdb_id"].as<std::string>()) + ", " +
-						  std::to_string(hit["global_rmsd"].as<double>()) +
-						  ")  RETURNING id");
-
-			int64_t hit_id = r.front().as<int64_t>();
+			// id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd
+			os_pdb_hits << pdb_hit_id++ << '\t'
+						<< structure_id << '\t'
+						<< hit["alignment"]["identity"].as<double>() << '\t'
+						<< hit["alignment"]["length"].as<int64_t>() << '\t'
+						<< hit["pdb_asym_id"].as<std::string>() << '\t'
+						<< hit["pdb_id"].as<std::string>() << '\t'
+						<< hit["global_rmsd"].as<double>() << '\n';
 
 			for (auto &transplant : hit["transplants"])
 			{
-				tx1.exec0(R"(INSERT INTO af_transplant (hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd) VALUES ()" +
-						  std::to_string(hit_id) + ", " +
-						  tx1.quote(transplant["asym_id"].as<std::string>()) + ", " +
-						  tx1.quote(transplant["compound_id"].as<std::string>()) + ", " +
-						  tx1.quote(transplant["analogue_id"].as<std::string>()) + ", " +
-						  tx1.quote(transplant["entity_id"].as<std::string>()) + ", " +
-						  std::to_string(transplant["local_rmsd"].as<double>()) +
-						  ")");
+				// id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd
+				os_transplants << transplant_id++ << '\t'
+							   << pdb_hit_id << '\t'
+							   << transplant["asym_id"].as<std::string>() << '\t'
+							   << transplant["compound_id"].as<std::string>() << '\t'
+							   << transplant["analogue_id"].as<std::string>() << '\t'
+							   << transplant["entity_id"].as<std::string>() << '\t'
+							   << transplant["local_rmsd"].as<double>() << '\n';
 			}
 		}
 
 		p.consumed(1);
 	}
 
-	tx1.commit();
+	// pqxx::transaction tx1(db_connection::instance());
+
+	// for (;;)
+	// {
+	// 	auto data = q.pop();
+	// 	if (data.empty())
+	// 		break;
+
+	// 	std::string id = data["id"].as<std::string>();
+
+	// 	p.message(id);
+
+	// 	const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
+	// 	bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
+
+	// 	auto r = tx1.exec1(R"(INSERT INTO af_structure (name, chunked, af_version, created, af_file) VALUES()" +
+	// 					   tx1.quote(id) + "," +
+	// 					   tx1.quote(chunked) + "," +
+	// 					   tx1.quote(data["alphafill_version"].as<std::string>()) + "," +
+	// 					   tx1.quote(data["date"].as<std::string>()) + "," +
+	// 					   tx1.quote(data["file"].as<std::string>()) +
+	// 					   ") RETURNING id");
+
+	// 	int64_t structure_id = r[0].as<int64_t>();
+
+	// 	for (auto &hit : data["hits"])
+	// 	{
+	// 		r = tx1.exec1(R"(INSERT INTO af_pdb_hit (af_id, identity, length, pdb_asym_id, pdb_id, rmsd) VALUES ()" +
+	// 					  std::to_string(structure_id) + ", " +
+	// 					  std::to_string(hit["alignment"]["identity"].as<double>()) + ", " +
+	// 					  std::to_string(hit["alignment"]["length"].as<int64_t>()) + ", " +
+	// 					  tx1.quote(hit["pdb_asym_id"].as<std::string>()) + ", " +
+	// 					  tx1.quote(hit["pdb_id"].as<std::string>()) + ", " +
+	// 					  std::to_string(hit["global_rmsd"].as<double>()) +
+	// 					  ")  RETURNING id");
+
+	// 		int64_t hit_id = r.front().as<int64_t>();
+
+	// 		for (auto &transplant : hit["transplants"])
+	// 		{
+	// 			tx1.exec0(R"(INSERT INTO af_transplant (hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd) VALUES ()" +
+	// 					  std::to_string(hit_id) + ", " +
+	// 					  tx1.quote(transplant["asym_id"].as<std::string>()) + ", " +
+	// 					  tx1.quote(transplant["compound_id"].as<std::string>()) + ", " +
+	// 					  tx1.quote(transplant["analogue_id"].as<std::string>()) + ", " +
+	// 					  tx1.quote(transplant["entity_id"].as<std::string>()) + ", " +
+	// 					  std::to_string(transplant["local_rmsd"].as<double>()) +
+	// 					  ")");
+	// 		}
+	// 	}
+
+	// 	p.consumed(1);
+	// }
+
+	// tx1.commit();
 }
 
 // --------------------------------------------------------------------
@@ -332,16 +383,6 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 	if (not schema)
 		throw std::runtime_error("database schema not found (looking for db-schema.sql)");
 
-	std::ostringstream os;
-	os << schema->rdbuf();
-
-	std::string s(os.str());
-
-	cif::replace_all(s, "$OWNER", db_user);
-
-	tx.exec0(s);
-	tx.commit();
-
 	std::vector<fs::path> files;
 	for (auto di = fs::recursive_directory_iterator(db_dir); di != fs::recursive_directory_iterator(); ++di)
 	{
@@ -355,11 +396,13 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 	blocking_queue<json> q2;
 	std::exception_ptr ep;
 
-	std::thread t([&q2, &progress, &ep]()
+	std::ostringstream os_structures, os_pdb_hits, os_transplants;
+
+	std::thread t([&]()
 		{
 		try
 		{
-			process(q2, progress);
+			process(q2, progress, os_structures, os_pdb_hits, os_transplants);
 		}
 		catch (const std::exception &ex)
 		{
@@ -416,6 +459,27 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 	q2.push({});
 
 	t.join();
+
+	// --------------------------------------------------------------------
+
+	std::ostringstream os_script;
+	os_script << schema->rdbuf();
+	std::string script = os_script.str();
+
+	cif::replace_all(script, "$OWNER", db_user);
+
+	for (auto &&[var, text] : std::initializer_list<std::tuple<std::string, std::ostringstream &>>{
+			 { "$AF_STRUCTURES", os_structures },
+			 { "$AF_PDB_HITS", os_pdb_hits },
+			 { "$AF_TRANSPLANTS", os_transplants }
+			 //
+		 })
+	{
+		cif::replace_all(script, var, text.str());
+	}
+
+	tx.exec0(script);
+	tx.commit();
 
 	if (ep)
 		std::rethrow_exception(ep);

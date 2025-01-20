@@ -37,6 +37,18 @@ create table af_transplant (
 
 alter table af_transplant owner to "$OWNER";
 
+copy af_structure (id, name, chunked, af_version, created, af_file)
+$AF_HITS
+/.
+
+copy af_pdb_hit (id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd)
+$AF_PDB_HITS
+/.
+
+copy af_transplant (id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd)
+$AF_TRANSPLANT
+/.
+
 -- indices
 
 create index hit_identity_ix on af_pdb_hit(identity);
