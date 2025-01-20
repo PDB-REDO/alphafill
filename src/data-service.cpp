@@ -283,9 +283,9 @@ void process(blocking_queue<json> &q, cif::progress_bar &p,
 		os_structures << structure_id++ << '\t'
 					  << id << '\t'
 					  << (chunked ? 't' : 'f') << '\t'
-					  << data["alphafill_version"].as<std::string>() << '\t'
-					  << data["date"].as<std::string>() << '\t'
-					  << data["file"].as<std::string>() << '\n';
+					  << std::quoted(data["alphafill_version"].as<std::string>()) << '\t'
+					  << std::quoted(data["date"].as<std::string>()) << '\t'
+					  << std::quoted(data["file"].as<std::string>()) << '\n';
 
 		for (auto &hit : data["hits"])
 		{
@@ -294,8 +294,8 @@ void process(blocking_queue<json> &q, cif::progress_bar &p,
 						<< structure_id << '\t'
 						<< hit["alignment"]["identity"].as<double>() << '\t'
 						<< hit["alignment"]["length"].as<int64_t>() << '\t'
-						<< hit["pdb_asym_id"].as<std::string>() << '\t'
-						<< hit["pdb_id"].as<std::string>() << '\t'
+						<< std::quoted(hit["pdb_asym_id"].as<std::string>()) << '\t'
+						<< std::quoted(hit["pdb_id"].as<std::string>()) << '\t'
 						<< hit["global_rmsd"].as<double>() << '\n';
 
 			for (auto &transplant : hit["transplants"])
@@ -303,10 +303,10 @@ void process(blocking_queue<json> &q, cif::progress_bar &p,
 				// id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd
 				os_transplants << transplant_id++ << '\t'
 							   << pdb_hit_id << '\t'
-							   << transplant["asym_id"].as<std::string>() << '\t'
-							   << transplant["compound_id"].as<std::string>() << '\t'
-							   << transplant["analogue_id"].as<std::string>() << '\t'
-							   << transplant["entity_id"].as<std::string>() << '\t'
+							   << std::quoted(transplant["asym_id"].as<std::string>()) << '\t'
+							   << std::quoted(transplant["compound_id"].as<std::string>()) << '\t'
+							   << std::quoted(transplant["analogue_id"].as<std::string>()) << '\t'
+							   << std::quoted(transplant["entity_id"].as<std::string>()) << '\t'
 							   << transplant["local_rmsd"].as<double>() << '\n';
 			}
 		}
