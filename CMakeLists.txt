@@ -27,7 +27,7 @@ cmake_minimum_required(VERSION 3.21)
 # set the project name
 project(
   alphafill
-  VERSION 2.1.1
+  VERSION 2.2.0
   LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -132,7 +132,7 @@ if(NOT zeep_FOUND)
 	FetchContent_Declare(
 		zeep
 		GIT_REPOSITORY https://github.com/mhekkel/libzeep.git
-		GIT_TAG v6.0.11)
+		GIT_TAG v6.0.16)
 	FetchContent_MakeAvailable(zeep)
 endif()
 

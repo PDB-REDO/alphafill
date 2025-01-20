@@ -24,9 +24,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "main.hpp"
 #include "alphafill.hpp"
 #include "config.hpp"
-#include "main.hpp"
 #include "revision.hpp"
 #include "validate.hpp"
 
@@ -38,9 +38,9 @@
 #include <thread>
 
 #if defined(BUILD_WEB_APPLICATION)
-#include "data-service.hpp"
-#include "db-connection.hpp"
-#include "server.hpp"
+# include "data-service.hpp"
+# include "db-connection.hpp"
+# include "server.hpp"
 #endif
 
 namespace fs = std::filesystem;
@@ -76,8 +76,7 @@ int rebuild_db_main(int argc, char *const argv[])
 
 		mcfp::make_option<size_t>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
 
-		mcfp::make_hidden_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries")
-		);
+		mcfp::make_hidden_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries"));
 
 	parse_argv(argc, argv, config);
 
@@ -199,7 +198,7 @@ int main(int argc, char *const argv[])
 		else
 		{
 			const std::string usage =
-R"(usage: alphafill command [options]
+				R"(usage: alphafill command [options]
 
 where command is one of
 
@@ -207,11 +206,11 @@ where command is one of
                    (A FastA file is required to process files)
     process        Process an AlphaFill structure)"
 #if defined(BUILD_WEB_APPLICATION)
-R"(
+				R"(
     rebuild-db     Rebuild the databank
     server         Start a web server instance)"
 #endif
-R"(
+				R"(
 
 The following options are always recognized:
 )";
@@ -235,7 +234,7 @@ The following options are always recognized:
 
 				if (config.operands().empty())
 					std::cerr << "Missing command"
-							<< "\n\n";
+							  << "\n\n";
 
 				std::cerr << config << '\n';
 				return config.has("help") ? 0 : 1;

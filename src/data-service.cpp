@@ -632,7 +632,7 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 		fs::rename(paein, m_work_dir / paein.filename(), ec);
 	}
 
-	auto metadata = alphafill(f.front(), pae_data, data_service_progress{ m_progress });
+	auto metadata = alphafill(f.front(), "user", pae_data, data_service_progress{ m_progress });
 
 	try
 	{

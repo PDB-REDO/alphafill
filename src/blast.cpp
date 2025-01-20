@@ -1001,6 +1001,7 @@ struct DiagonalStartTable
 {
 	DiagonalStartTable()
 		: mTable(nullptr)
+		, mTableLength(0)
 	{
 	}
 	~DiagonalStartTable() { delete[] mTable; }

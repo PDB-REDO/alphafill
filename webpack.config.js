@@ -1,38 +1,36 @@
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const webpack = require('webpack');
-const TerserPlugin = require('terser-webpack-plugin');
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const path = require('path');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const SCRIPTS = __dirname + "/webapp/";
 const SCSS = __dirname + "/scss/";
-const DEST = __dirname + "/docroot/";
+const DEST = __dirname + "/docroot/dist/";
 
 module.exports = (env) => {
+
+	const PRODUCTION = env != null && env.PRODUCTION;
 
 	const webpackConf = {
 
 		entry: {
-			'pdb-redo-bootstrap': SCSS + "pdb-redo-bootstrap.scss",
-			'molstar': SCRIPTS + "molstar.tsx",
-			'index': SCRIPTS + "index.js",
-			'model': SCRIPTS + "model.js",
-			'optimized': SCRIPTS + "optimized.js",
-			'lists': SCRIPTS + "lists.js",
-			'wait': SCRIPTS + "wait.js",
+			'pdb-redo-bootstrap': path.resolve(SCSS, "pdb-redo-bootstrap.scss"),
+			'molstar': path.resolve(SCRIPTS, "molstar.tsx"),
+			'index': path.resolve(SCRIPTS, "index.js"),
+			'model': path.resolve(SCRIPTS, "model.js"),
+			'optimized': path.resolve(SCRIPTS, "optimized.js"),
+			'lists': path.resolve(SCRIPTS, "lists.js"),
+			'wait': path.resolve(SCRIPTS, "wait.js"),
 		},
 
 		output: {
 			path: DEST,
-			filename: "./scripts/[name].js"
+			crossOriginLoading: 'anonymous'
 		},
-
-		devtool: "source-map",
 
 		module: {
 			rules: [
 				{
-					test: /\.js/,
+					test: /\.(js|tsx)/,
 					exclude: /node_modules/,
 					use: {
 						loader: "babel-loader",
@@ -41,97 +39,62 @@ module.exports = (env) => {
 						}
 					}
 				},
+
 				{
-					test: /\.tsx?$/,
-					exclude: /node_modules/,
-					use: {
-						loader: "babel-loader",
-						options: {
-							presets: ['@babel/preset-env']
-						}
-					}
-				},
-				{
-					test: /\.css$/,
+					test: /\.(sa|sc|c)ss$/i,
 					use: [
-						// 'style-loader',
-						MiniCssExtractPlugin.loader,
-						'css-loader'
+						/* PRODUCTION ?  */MiniCssExtractPlugin.loader/*  : "style-loader" */,
+						"css-loader",
+						"postcss-loader",
+						"sass-loader"
 					]
 				},
+
 				{
-					test: /\.(eot|svg|ttf|woff(2)?)(\?v=\d+\.\d+\.\d+)?/,
-					loader: 'file-loader',
-					options: {
-						name: '[name].[ext]',
-						outputPath: 'fonts/',
-						publicPath: '../fonts/'
-					}
-				},
-				{
-					test: /\.s[ac]ss$/i,
-					use: [
-						MiniCssExtractPlugin.loader,
-						'css-loader',
-						'sass-loader'
-					]
-				},
-				{
-					test: /\.(png|jpg|gif)$/,
-					use: [
-						{
-							loader: 'file-loader',
-							options: {
-								outputPath: "css/images",
-								publicPath: "images/"
-							},
-						},
-					]
+					test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+					include: path.resolve(__dirname, './node_modules/bootstrap-icons/font/fonts'),
+					type: 'asset/resource'
 				}
 			]
 		},
 
 
 		resolve: {
-			extensions: ['.tsx', '.ts', '.js'],
+			extensions: ['.tsx', '.ts', '.js', '.scss'],
 		},
 
 		plugins: [
+			new MiniCssExtractPlugin({}),
 			new CleanWebpackPlugin({
+				verbose: true,
 				cleanOnceBeforeBuildPatterns: [
 					'css/**/*',
 					'css/*',
 					'scripts/**/*',
 					'fonts/**/*'
 				]
-			}),
-			new webpack.ProvidePlugin({
-				$: 'jquery',
-				jQuery: 'jquery'
-			}),
-			new MiniCssExtractPlugin({
-				filename: './css/[name].css',
-				chunkFilename: './css/[id].css'
 			})
 		],
 
 		optimization: {
-			minimizer: [
-				new TerserPlugin({ /* additional options here */ }),
-				new UglifyJsPlugin({ parallel: 4 })
-			]
+			minimizer: []
 		}
 	};
 
-	const PRODUCTION = env != null && env.PRODUCTION;
-
 	if (PRODUCTION) {
 		webpackConf.mode = "production";
+
+		// webpackConf.plugins.push(
+		// 	new CleanWebpackPlugin({
+		// 		verbose: true
+		// 	})/* ,
+		// 	new MiniCssExtractPlugin({}) */
+		// );
 	} else {
 		webpackConf.mode = "development";
 		webpackConf.devtool = 'source-map';
-		webpackConf.plugins.push(new webpack.optimize.AggressiveMergingPlugin())
 	}
 
 	return webpackConf;
 };
+

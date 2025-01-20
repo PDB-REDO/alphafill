@@ -1,3 +1,7 @@
+Version 2.2.0
+- Added option to write out source of data into json file
+- Updated node modules
+
 Version 2.1.1
 - Fix a bug that caused too many residues being placed where
   they are not unique.

@@ -44,7 +44,8 @@ struct alphafill_progress_cb
 
 using PAE_matrix = cif::matrix<uint8_t>;
 
-zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> &pae, alphafill_progress_cb &&progress);
+zeep::json::element alphafill(cif::datablock &db, const std::string &source,
+	const std::vector<PAE_matrix> &pae, alphafill_progress_cb &&progress);
 int alphafill_main(int argc, char *const argv[]);
 
 int create_index(int argc, char *const argv[]);

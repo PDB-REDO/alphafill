@@ -492,7 +492,8 @@ void check_blast_index()
 
 // --------------------------------------------------------------------
 
-zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> &v_pae, alphafill_progress_cb &&progress)
+zeep::json::element alphafill(cif::datablock &db, const std::string &source,
+	const std::vector<PAE_matrix> &v_pae, alphafill_progress_cb &&progress)
 {
 	using namespace std::literals;
 	using namespace cif::literals;
@@ -542,7 +543,8 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 	json result = {
 		{ "id", afID },
 		{ "date", ss.str() },
-		{ "alphafill_version", kVersionNumber }
+		{ "alphafill_version", kVersionNumber },
+		{ "source", source }
 	};
 
 	json &hits = result["hits"] = json::array();
@@ -970,6 +972,11 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								auto entity_id = af_structure.create_non_poly_entity(comp_id);
 								auto asym_id = af_structure.create_non_poly(entity_id, res.atoms());
 
+								// Hack to get better molstar rendering
+								auto &rres = af_structure.get_residue(asym_id);
+								for (auto &atom : rres.atoms())
+									atom.set_property("label_alt_id", asym_id);
+
 								auto &hsp_t = r_hsp["transplants"].emplace_back(json{
 									{ "compound_id", comp_id },
 									// {"entity_id", entity_id},
@@ -1071,6 +1078,12 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 								// now fix up the newly created residue
 								ligand.modify(af_structure, asym_id);
 
+								// Give all the atoms in the newly created residue an alt_id with the same
+								// value as the asym_id, improves rendering in molstar
+
+								for (auto atom : res.atoms())
+									atom.set_property("label_alt_id", asym_id);
+
 								// validation info?
 								if (hsp.identity() == 1)
 								{
@@ -1105,11 +1118,15 @@ zeep::json::element alphafill(cif::datablock &db, const std::vector<PAE_matrix> 
 	af_structure.cleanup_empty_categories();
 
 	auto &software = af_structure.get_category("software");
-	software.emplace({ { "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
+	software.emplace({
+		//
+		{ "pdbx_ordinal", software.size() + 1 }, // TODO: should we check this ordinal number???
 		{ "name", "alphafill" },
 		{ "version", kVersionNumber },
 		{ "date", kRevisionDate },
-		{ "classification", "model annotation" } });
+		{ "classification", "model annotation" }
+		//
+	});
 
 	return result;
 }
@@ -1174,6 +1191,8 @@ int alphafill_main(int argc, char *const argv[])
 		mcfp::make_hidden_option<int>("blast-gap-open", 11, "Blast penalty for gap open"),
 		mcfp::make_hidden_option<int>("blast-gap-extend", 1, "Blast penalty for gap extend"),
 
+		mcfp::make_option("data-source", "user", "Data source for input model"),
+
 		mcfp::make_option<size_t>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"),
 
 		mcfp::make_hidden_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries")
@@ -1215,6 +1234,12 @@ int alphafill_main(int argc, char *const argv[])
 		return 1;
 	}
 
+	if (config.get("data-source") != "AFDB" and config.get("data-source") != "BFVD" and config.get("data-source") != "user")
+	{
+		std::cerr << "Invalid data-source, allowed values are 'AFDB', 'BFVD' and 'user'\n";
+		return 1;
+	}
+
 	fs::path paein;
 
 	if (config.has("pae-file"))
@@ -1239,7 +1264,7 @@ int alphafill_main(int argc, char *const argv[])
 	if (fs::exists(paein))
 		v_pae = load_pae_from_file(paein);
 
-	json metadata = alphafill(f.front(), v_pae, my_progress{});
+	json metadata = alphafill(f.front(), config.get("data-source"), v_pae, my_progress{});
 
 	if (config.operands().size() == 2)
 	{

@@ -45,10 +45,22 @@
 				<td><a z:href="@{/v1/aff/${af_id}/json}"
 						z:text="|${af_id}/json|"></a></td>
 			</tr>
-			<tr>
-				<td>Original AlphaFold model</td>
-				<td><a z:href="|https://alphafold.ebi.ac.uk/entry/${id}|"
-						z:text="|https://alphafold.ebi.ac.uk/entry/${id}|" target="_BLANK"></a></td>
+
+			<tr z:switch="${source}">
+				<z:block z:case="BFVD">
+					<td>Original BFVD model</td>
+					<td>
+						<a z:href="|https://bfvd.foldseek.com/cluster/${id}|"
+							z:text="|https://bfvd.foldseek.com/cluster/${id}|" target="_BLANK"></a>
+					</td>
+				</z:block>
+				<z:block z:case="*">
+					<td>Original AlphaFold model</td>
+					<td>
+						<a z:href="|https://alphafold.ebi.ac.uk/entry/${id}|"
+							z:text="|https://alphafold.ebi.ac.uk/entry/${id}|" target="_BLANK"></a>
+					</td>
+				</z:block>
 			</tr>
 		</table>
 
