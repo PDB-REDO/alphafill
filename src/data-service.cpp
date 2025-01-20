@@ -266,13 +266,26 @@ void process(blocking_queue<json> &q, cif::progress_bar &p,
 {
 	uint64_t structure_id = 0, pdb_hit_id = 0, transplant_id = 0;
 
+	auto as_string = [](json &e)
+	{
+		if (e.is_null())
+			return std::string{ "\\N" };
+		else
+			return e.as<std::string>();
+	};
+
 	for (;;)
 	{
 		auto data = q.pop();
 		if (data.empty())
 			break;
 
+		p.consumed(1);
+
 		std::string id = data["id"].as<std::string>();
+
+		if (id == "nohd" or data["file"].is_null())
+			continue;
 
 		p.message(id);
 
@@ -280,103 +293,43 @@ void process(blocking_queue<json> &q, cif::progress_bar &p,
 		bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
 
 		// id, name, chunked, af_version, created, af_file
-		os_structures << structure_id++ << '\t'
+		os_structures << ++structure_id << '\t'
 					  << id << '\t'
 					  << (chunked ? 't' : 'f') << '\t'
-					  << std::quoted(data["alphafill_version"].as<std::string>()) << '\t'
-					  << std::quoted(data["date"].as<std::string>()) << '\t'
-					  << std::quoted(data["file"].as<std::string>()) << '\n';
+					  << as_string(data["alphafill_version"]) << '\t'
+					  << as_string(data["date"]) << '\t'
+					  << as_string(data["file"]) << '\n';
 
 		for (auto &hit : data["hits"])
 		{
 			// id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd
-			os_pdb_hits << pdb_hit_id++ << '\t'
+			os_pdb_hits << ++pdb_hit_id << '\t'
 						<< structure_id << '\t'
 						<< hit["alignment"]["identity"].as<double>() << '\t'
 						<< hit["alignment"]["length"].as<int64_t>() << '\t'
-						<< std::quoted(hit["pdb_asym_id"].as<std::string>()) << '\t'
-						<< std::quoted(hit["pdb_id"].as<std::string>()) << '\t'
+						<< as_string(hit["pdb_asym_id"]) << '\t'
+						<< as_string(hit["pdb_id"]) << '\t'
 						<< hit["global_rmsd"].as<double>() << '\n';
 
 			for (auto &transplant : hit["transplants"])
 			{
 				// id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd
-				os_transplants << transplant_id++ << '\t'
+				os_transplants << ++transplant_id << '\t'
 							   << pdb_hit_id << '\t'
-							   << std::quoted(transplant["asym_id"].as<std::string>()) << '\t'
-							   << std::quoted(transplant["compound_id"].as<std::string>()) << '\t'
-							   << std::quoted(transplant["analogue_id"].as<std::string>()) << '\t'
-							   << std::quoted(transplant["entity_id"].as<std::string>()) << '\t'
+							   << as_string(transplant["asym_id"]) << '\t'
+							   << as_string(transplant["compound_id"]) << '\t'
+							   << as_string(transplant["analogue_id"]) << '\t'
+							   << as_string(transplant["entity_id"]) << '\t'
 							   << transplant["local_rmsd"].as<double>() << '\n';
 			}
 		}
-
-		p.consumed(1);
 	}
-
-	// pqxx::transaction tx1(db_connection::instance());
-
-	// for (;;)
-	// {
-	// 	auto data = q.pop();
-	// 	if (data.empty())
-	// 		break;
-
-	// 	std::string id = data["id"].as<std::string>();
-
-	// 	p.message(id);
-
-	// 	const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
-	// 	bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
-
-	// 	auto r = tx1.exec1(R"(INSERT INTO af_structure (name, chunked, af_version, created, af_file) VALUES()" +
-	// 					   tx1.quote(id) + "," +
-	// 					   tx1.quote(chunked) + "," +
-	// 					   tx1.quote(data["alphafill_version"].as<std::string>()) + "," +
-	// 					   tx1.quote(data["date"].as<std::string>()) + "," +
-	// 					   tx1.quote(data["file"].as<std::string>()) +
-	// 					   ") RETURNING id");
-
-	// 	int64_t structure_id = r[0].as<int64_t>();
-
-	// 	for (auto &hit : data["hits"])
-	// 	{
-	// 		r = tx1.exec1(R"(INSERT INTO af_pdb_hit (af_id, identity, length, pdb_asym_id, pdb_id, rmsd) VALUES ()" +
-	// 					  std::to_string(structure_id) + ", " +
-	// 					  std::to_string(hit["alignment"]["identity"].as<double>()) + ", " +
-	// 					  std::to_string(hit["alignment"]["length"].as<int64_t>()) + ", " +
-	// 					  tx1.quote(hit["pdb_asym_id"].as<std::string>()) + ", " +
-	// 					  tx1.quote(hit["pdb_id"].as<std::string>()) + ", " +
-	// 					  std::to_string(hit["global_rmsd"].as<double>()) +
-	// 					  ")  RETURNING id");
-
-	// 		int64_t hit_id = r.front().as<int64_t>();
-
-	// 		for (auto &transplant : hit["transplants"])
-	// 		{
-	// 			tx1.exec0(R"(INSERT INTO af_transplant (hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd) VALUES ()" +
-	// 					  std::to_string(hit_id) + ", " +
-	// 					  tx1.quote(transplant["asym_id"].as<std::string>()) + ", " +
-	// 					  tx1.quote(transplant["compound_id"].as<std::string>()) + ", " +
-	// 					  tx1.quote(transplant["analogue_id"].as<std::string>()) + ", " +
-	// 					  tx1.quote(transplant["entity_id"].as<std::string>()) + ", " +
-	// 					  std::to_string(transplant["local_rmsd"].as<double>()) +
-	// 					  ")");
-	// 		}
-	// 	}
-
-	// 	p.consumed(1);
-	// }
-
-	// tx1.commit();
 }
 
 // --------------------------------------------------------------------
 
 int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 {
-	auto &config = mcfp::config::instance();
-
 	pqxx::work tx(db_connection::instance());
 
 	auto schema = cif::load_resource("db-schema.sql");
@@ -392,71 +345,47 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 	}
 
 	cif::progress_bar progress(files.size(), "Processing");
-	blocking_queue<fs::path> q1;
-	blocking_queue<json> q2;
+	blocking_queue<json> q;
 	std::exception_ptr ep;
 
 	std::ostringstream os_structures, os_pdb_hits, os_transplants;
 
 	std::thread t([&]()
 		{
+			try
+			{
+				process(q, progress, os_structures, os_pdb_hits, os_transplants);
+			}
+			catch (const std::exception &ex)
+			{
+				ep = std::current_exception();
+			}
+			//
+		});
+
+	for (auto &f : files)
+	{
 		try
 		{
-			process(q2, progress, os_structures, os_pdb_hits, os_transplants);
+			std::ifstream file(f);
+
+			zeep::json::element data;
+			zeep::json::parse_json(file, data);
+
+			q.push(std::move(data));
 		}
 		catch (const std::exception &ex)
 		{
 			ep = std::current_exception();
-		} });
+		}
 
-	std::vector<std::thread> tg;
-	size_t thread_count = config.get<size_t>("threads");
-	if (thread_count < 1)
-		thread_count = 1;
-
-	for (size_t i = 0; i < thread_count; ++i)
-	{
-		tg.emplace_back([&q1, &q2, &ep]()
-			{
-			for (;;)
-			{
-				auto f = q1.pop();
-
-				if (f.empty())
-					break;
-
-				try
-				{
-					std::ifstream file(f);
-
-					zeep::json::element data;
-					zeep::json::parse_json(file, data);
-
-					q2.push(std::move(data));
-				}
-				catch (const std::exception &ex)
-				{
-					ep = std::current_exception();
-				}
-			}
-
-			q1.push({}); });
-	}
-
-	for (auto &f : files)
-	{
 		if (ep)
 			std::rethrow_exception(ep);
-
-		q1.push(std::move(f));
+		
+		break;
 	}
 
-	q1.push({});
-
-	for (auto &ti : tg)
-		ti.join();
-
-	q2.push({});
+	q.push({});
 
 	t.join();
 
@@ -478,7 +407,10 @@ int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
 		cif::replace_all(script, var, text.str());
 	}
 
-	tx.exec0(script);
+	std::ofstream tf("/tmp/af-db.sql");
+	tf << script;
+
+	tx.exec(script);
 	tx.commit();
 
 	if (ep)
