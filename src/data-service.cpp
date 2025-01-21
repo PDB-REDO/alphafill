@@ -24,7 +24,19 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <regex>
+#include "data-service.hpp"
+#include "alphafill.hpp"
+#include "db-connection.hpp"
+#include "https-client.hpp"
+#include "queue.hpp"
+#include "utilities.hpp"
+
+#include <cif++.hpp>
+#include <mcfp/mcfp.hpp>
+#include <zeep/http/uri.hpp>
+#include <zeep/json/parser.hpp>
+
+#include <libpq-fe.h>
 
 #include <fstream>
 #include <regex>
@@ -32,19 +44,6 @@
 
 #include <sys/wait.h>
 #include <unistd.h>
-
-#include <cif++.hpp>
-#include <mcfp/mcfp.hpp>
-
-#include <zeep/http/uri.hpp>
-#include <zeep/json/parser.hpp>
-
-#include "alphafill.hpp"
-#include "data-service.hpp"
-#include "db-connection.hpp"
-#include "https-client.hpp"
-#include "queue.hpp"
-#include "utilities.hpp"
 
 namespace fs = std::filesystem;
 
@@ -264,6 +263,38 @@ using json = zeep::json::element;
 void process(blocking_queue<json> &q, cif::progress_bar &p,
 	std::ostream &os_structures, std::ostream &os_pdb_hits, std::ostream &os_transplants)
 {
+
+	for (;;)
+	{
+		auto data = q.pop();
+		if (data.empty())
+			break;
+	}
+}
+
+// --------------------------------------------------------------------
+
+int data_service::rebuild()
+{
+	auto &config = mcfp::config::instance();
+
+	std::string db_dir = config.get("db-dir");
+
+	auto schema = cif::load_resource("db-schema.sql");
+	if (not schema)
+		throw std::runtime_error("database schema not found (looking for db-schema.sql)");
+
+	uint64_t file_count = 0;
+	for (auto di = fs::recursive_directory_iterator(db_dir); di != fs::recursive_directory_iterator(); ++di)
+	{
+		if (di->path().extension() != ".json")
+			continue;
+		++file_count;
+	}
+
+	cif::progress_bar progress(file_count, "Processing");
+
+	std::stringstream os_structures, os_pdb_hits, os_transplants;
 	uint64_t structure_id = 0, pdb_hit_id = 0, transplant_id = 0;
 
 	auto as_string = [](json &e)
@@ -274,145 +305,153 @@ void process(blocking_queue<json> &q, cif::progress_bar &p,
 			return e.as<std::string>();
 	};
 
-	for (;;)
-	{
-		auto data = q.pop();
-		if (data.empty())
-			break;
-
-		p.consumed(1);
-
-		std::string id = data["id"].as<std::string>();
-
-		if (id == "nohd" or data["file"].is_null())
-			continue;
-
-		p.message(id);
-
-		const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
-		bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
-
-		// id, name, chunked, af_version, created, af_file
-		os_structures << ++structure_id << '\t'
-					  << id << '\t'
-					  << (chunked ? 't' : 'f') << '\t'
-					  << as_string(data["alphafill_version"]) << '\t'
-					  << as_string(data["date"]) << '\t'
-					  << as_string(data["file"]) << '\n';
-
-		for (auto &hit : data["hits"])
-		{
-			// id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd
-			os_pdb_hits << ++pdb_hit_id << '\t'
-						<< structure_id << '\t'
-						<< hit["alignment"]["identity"].as<double>() << '\t'
-						<< hit["alignment"]["length"].as<int64_t>() << '\t'
-						<< as_string(hit["pdb_asym_id"]) << '\t'
-						<< as_string(hit["pdb_id"]) << '\t'
-						<< hit["global_rmsd"].as<double>() << '\n';
-
-			for (auto &transplant : hit["transplants"])
-			{
-				// id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd
-				os_transplants << ++transplant_id << '\t'
-							   << pdb_hit_id << '\t'
-							   << as_string(transplant["asym_id"]) << '\t'
-							   << as_string(transplant["compound_id"]) << '\t'
-							   << as_string(transplant["analogue_id"]) << '\t'
-							   << as_string(transplant["entity_id"]) << '\t'
-							   << transplant["local_rmsd"].as<double>() << '\n';
-			}
-		}
-	}
-}
-
-// --------------------------------------------------------------------
-
-int data_service::rebuild(const std::string &db_user, const fs::path &db_dir)
-{
-	pqxx::work tx(db_connection::instance());
-
-	auto schema = cif::load_resource("db-schema.sql");
-	if (not schema)
-		throw std::runtime_error("database schema not found (looking for db-schema.sql)");
-
-	std::vector<fs::path> files;
 	for (auto di = fs::recursive_directory_iterator(db_dir); di != fs::recursive_directory_iterator(); ++di)
 	{
 		if (di->path().extension() != ".json")
 			continue;
-		files.push_back(di->path());
-	}
 
-	cif::progress_bar progress(files.size(), "Processing");
-	blocking_queue<json> q;
-	std::exception_ptr ep;
+		progress.consumed(1);
 
-	std::ostringstream os_structures, os_pdb_hits, os_transplants;
-
-	std::thread t([&]()
-		{
-			try
-			{
-				process(q, progress, os_structures, os_pdb_hits, os_transplants);
-			}
-			catch (const std::exception &ex)
-			{
-				ep = std::current_exception();
-			}
-			//
-		});
-
-	for (auto &f : files)
-	{
 		try
 		{
-			std::ifstream file(f);
+			std::ifstream file(di->path());
 
 			zeep::json::element data;
 			zeep::json::parse_json(file, data);
 
-			q.push(std::move(data));
+			std::string id = data["id"].as<std::string>();
+
+			if (id == "nohd" or data["file"].is_null())
+				continue;
+
+			progress.message(id);
+
+			const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
+			bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
+
+			// id, name, chunked, af_version, created, af_file
+			os_structures << ++structure_id << '\t'
+						  << id << '\t'
+						  << (chunked ? 't' : 'f') << '\t'
+						  << as_string(data["alphafill_version"]) << '\t'
+						  << as_string(data["date"]) << '\t'
+						  << as_string(data["file"]) << '\n';
+
+			for (auto &hit : data["hits"])
+			{
+				// id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd
+				os_pdb_hits << ++pdb_hit_id << '\t'
+							<< structure_id << '\t'
+							<< hit["alignment"]["identity"].as<double>() << '\t'
+							<< hit["alignment"]["length"].as<int64_t>() << '\t'
+							<< as_string(hit["pdb_asym_id"]) << '\t'
+							<< as_string(hit["pdb_id"]) << '\t'
+							<< hit["global_rmsd"].as<double>() << '\n';
+
+				for (auto &transplant : hit["transplants"])
+				{
+					// id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd
+					os_transplants << ++transplant_id << '\t'
+								   << pdb_hit_id << '\t'
+								   << as_string(transplant["asym_id"]) << '\t'
+								   << as_string(transplant["compound_id"]) << '\t'
+								   << as_string(transplant["analogue_id"]) << '\t'
+								   << as_string(transplant["entity_id"]) << '\t'
+								   << transplant["local_rmsd"].as<double>() << '\n';
+				}
+			}
 		}
 		catch (const std::exception &ex)
 		{
-			ep = std::current_exception();
+			std::clog << "\nError processing file " << di->path() << "\n";
 		}
-
-		if (ep)
-			std::rethrow_exception(ep);
 	}
-
-	q.push({});
-
-	t.join();
 
 	// --------------------------------------------------------------------
 
+	std::string db_user = config.get("db-user");
+
 	std::ostringstream os_script;
 	os_script << schema->rdbuf();
-	std::string script = os_script.str();
+	std::string script_1 = os_script.str();
 
-	cif::replace_all(script, "$OWNER", db_user);
+	cif::replace_all(script_1, "$OWNER", config.get("db-user"));
 
-	for (auto &&[var, text] : std::initializer_list<std::tuple<std::string, std::ostringstream &>>{
-			 { "$AF_STRUCTURES", os_structures },
-			 { "$AF_PDB_HITS", os_pdb_hits },
-			 { "$AF_TRANSPLANTS", os_transplants }
-			 //
-		 })
+	// --------------------------------------------------------------------
+
+	std::vector<std::string> vConn2{ "user=" + db_user, "password=" + config.get("db-password"), "dbname=" + config.get("db-dbname") };
+	for (std::string opt : { "db-host", "db-port" })
 	{
-		cif::replace_all(script, var, text.str());
+		if (config.has(opt))
+			vConn2.push_back(opt.substr(3) + "=" + config.get(opt));
 	}
 
-	std::ofstream tf("/tmp/af-db.sql");
-	tf << script;
+	auto userConnect = zeep::join(vConn2, " ");
 
-	tx.exec(script);
-	tx.commit();
+	auto connection = PQconnectdb(userConnect.c_str());
+	if (connection == nullptr)
+		throw std::runtime_error("Unable to connect to database");
 
-	if (ep)
-		std::rethrow_exception(ep);
+	if (PQstatus(connection) != CONNECTION_OK)
+		throw std::runtime_error(PQerrorMessage(connection));
+
+	// --------------------------------------------------------------------
+
+	auto r = PQexec(connection, script_1.c_str());
+	if (r == nullptr)
+		throw std::runtime_error(PQerrorMessage(connection));
+
+	if (PQresultStatus(r) != PGRES_COMMAND_OK)
+		throw std::runtime_error(PQresultErrorMessage(r));
+
+	PQclear(r);
+
+	// Copy data, table by table
+
+	for (auto &&[stmt, os] : std::initializer_list<std::tuple<const char *, std::stringstream &>>{
+			 { "copy af_structure (id, name, chunked, af_version, created, af_file) from stdin", os_structures },
+			 { "copy af_pdb_hit(id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd) from stdin", os_pdb_hits },
+			 { "copy af_transplant(id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd) from stdin", os_transplants }})
+	{
+		r = PQexec(connection, stmt);
+
+		if (PQresultStatus(r) != PGRES_COPY_IN)
+			throw std::runtime_error(PQresultErrorMessage(r));
+
+		auto buffer = os.str();
+
+		int ri = PQputCopyData(connection, buffer.c_str(), buffer.length());
+		if (ri == -1)
+			throw std::runtime_error(PQerrorMessage(connection));
+		
+		ri = PQputCopyEnd(connection, nullptr);
+		if (ri == -1)
+			throw std::runtime_error(PQerrorMessage(connection));
+
+		r = PQgetResult(connection);
+		if (PQresultStatus(r) != PGRES_COMMAND_OK)
+			throw std::runtime_error(PQresultErrorMessage(r));
+	}
+
+	// Create indices
+
+	auto schema2 = cif::load_resource("db-schema-tail.sql");
+	if (not schema2)
+		throw std::runtime_error("database schema not found (looking for db-schema-tail.sql)");
+	
+	std::ostringstream os2;
+	os2 << schema2->rdbuf();
+
+	r = PQexec(connection, os2.str().c_str());
+	if (r == nullptr)
+		throw std::runtime_error(PQerrorMessage(connection));
+
+	if (PQresultStatus(r) != PGRES_COMMAND_OK)
+		throw std::runtime_error(PQresultErrorMessage(r));	
+
+	PQfinish(connection);
+
+	// --------------------------------------------------------------------
 
 	return 0;
 }

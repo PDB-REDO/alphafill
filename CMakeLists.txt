@@ -137,6 +137,9 @@ if(NOT zeep_FOUND)
 endif()
 
 if(BUILD_WEB_APPLICATION)
+	include(FindPkgConfig)
+
+	pkg_check_modules(PQ libpq REQUIRED IMPORTED_TARGET)
 	find_package(libpqxx 7.8.0 QUIET)
 
 	if(NOT libpqxx_FOUND)
@@ -257,7 +260,7 @@ if(BUILD_WEB_APPLICATION)
 	target_compile_definitions(alphafill PUBLIC BUILD_WEB_APPLICATION)
 	add_dependencies(alphafill webpack)
 
-	target_link_libraries(alphafill libpqxx::pqxx OpenSSL::SSL OpenSSL::Crypto)
+	target_link_libraries(alphafill libpqxx::pqxx OpenSSL::SSL OpenSSL::Crypto PkgConfig::PQ)
 endif()
 
 target_compile_definitions(alphafill
@@ -277,6 +280,7 @@ if(USE_RSRC)
 	if(BUILD_WEB_APPLICATION)
 		list(APPEND RESOURCES ${PROJECT_SOURCE_DIR}/docroot/
 			${PROJECT_SOURCE_DIR}/db-schema.sql
+			${PROJECT_SOURCE_DIR}/db-schema-tail.sql
 			${PROJECT_SOURCE_DIR}/scripts/refine.mcr)
 	endif()
 
