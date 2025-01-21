@@ -108,7 +108,7 @@ int rebuild_db_main(int argc, char *const argv[])
 
 	// --------------------------------------------------------------------
 
-	return data_service::rebuild(db_user, dbDir);
+	return data_service::rebuild();
 }
 #endif
 

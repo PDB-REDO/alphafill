@@ -102,7 +102,7 @@ class data_service
 
 	void start_queue(size_t nr_of_threads);
 
-	static int rebuild(const std::string &db_user, const std::filesystem::path &db_dir);
+	static int rebuild();
 
 	std::vector<compound> get_compounds(float min_identity) const;
 	std::vector<structure> get_structures(float min_identity, uint32_t page, uint32_t pageSize) const;

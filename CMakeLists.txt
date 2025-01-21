@@ -138,7 +138,7 @@ endif()
 
 if(BUILD_WEB_APPLICATION)
 	find_package(libpqxx 7.8.0 QUIET)
-
+	
 	if(NOT libpqxx_FOUND)
 		FetchContent_Declare(
 			libpqxx
@@ -277,6 +277,7 @@ if(USE_RSRC)
 	if(BUILD_WEB_APPLICATION)
 		list(APPEND RESOURCES ${PROJECT_SOURCE_DIR}/docroot/
 			${PROJECT_SOURCE_DIR}/db-schema.sql
+			${PROJECT_SOURCE_DIR}/db-schema-tail.sql
 			${PROJECT_SOURCE_DIR}/scripts/refine.mcr)
 	endif()
 
