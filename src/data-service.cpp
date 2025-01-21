@@ -356,8 +356,6 @@ int data_service::rebuild()
 		{
 			std::clog << "\nError processing file " << di->path() << "\n";
 		}
-
-		break;
 	}
 
 	// --------------------------------------------------------------------
