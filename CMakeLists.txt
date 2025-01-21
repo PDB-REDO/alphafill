@@ -137,11 +137,8 @@ if(NOT zeep_FOUND)
 endif()
 
 if(BUILD_WEB_APPLICATION)
-	include(FindPkgConfig)
-
-	pkg_check_modules(PQ libpq REQUIRED IMPORTED_TARGET)
 	find_package(libpqxx 7.8.0 QUIET)
-
+	
 	if(NOT libpqxx_FOUND)
 		FetchContent_Declare(
 			libpqxx
@@ -260,7 +257,7 @@ if(BUILD_WEB_APPLICATION)
 	target_compile_definitions(alphafill PUBLIC BUILD_WEB_APPLICATION)
 	add_dependencies(alphafill webpack)
 
-	target_link_libraries(alphafill libpqxx::pqxx OpenSSL::SSL OpenSSL::Crypto PkgConfig::PQ)
+	target_link_libraries(alphafill libpqxx::pqxx OpenSSL::SSL OpenSSL::Crypto)
 endif()
 
 target_compile_definitions(alphafill

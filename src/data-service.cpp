@@ -36,8 +36,7 @@
 #include <zeep/http/uri.hpp>
 #include <zeep/json/parser.hpp>
 
-#include <libpq-fe.h>
-
+#include <forward_list>
 #include <fstream>
 #include <regex>
 #include <thread>
@@ -294,7 +293,14 @@ int data_service::rebuild()
 
 	cif::progress_bar progress(file_count, "Processing");
 
-	std::stringstream os_structures, os_pdb_hits, os_transplants;
+	std::forward_list<std::tuple<uint64_t, std::string, bool, std::string, std::string, std::string>> structures;
+	std::forward_list<std::tuple<uint64_t, uint64_t, double, int64_t, std::string, std::string, double>> pdb_hits;
+	std::forward_list<std::tuple<uint64_t, uint64_t, std::string, std::string, std::string, std::string, double>> transplants;
+
+	auto structures_i = structures.before_begin();
+	auto pdb_hits_i = pdb_hits.before_begin();
+	auto transplants_i = transplants.before_begin();
+
 	uint64_t structure_id = 0, pdb_hit_id = 0, transplant_id = 0;
 
 	auto as_string = [](json &e)
@@ -330,34 +336,19 @@ int data_service::rebuild()
 			bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
 
 			// id, name, chunked, af_version, created, af_file
-			os_structures << ++structure_id << '\t'
-						  << id << '\t'
-						  << (chunked ? 't' : 'f') << '\t'
-						  << as_string(data["alphafill_version"]) << '\t'
-						  << as_string(data["date"]) << '\t'
-						  << as_string(data["file"]) << '\n';
+			structures_i = structures.emplace_after(structures_i, ++structure_id, id, chunked ? 't' : 'f', as_string(data["alphafill_version"]), as_string(data["date"]), as_string(data["file"]));
 
 			for (auto &hit : data["hits"])
 			{
 				// id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd
-				os_pdb_hits << ++pdb_hit_id << '\t'
-							<< structure_id << '\t'
-							<< hit["alignment"]["identity"].as<double>() << '\t'
-							<< hit["alignment"]["length"].as<int64_t>() << '\t'
-							<< as_string(hit["pdb_asym_id"]) << '\t'
-							<< as_string(hit["pdb_id"]) << '\t'
-							<< hit["global_rmsd"].as<double>() << '\n';
+				pdb_hits_i = pdb_hits.emplace_after(pdb_hits_i,
+					++pdb_hit_id, structure_id, hit["alignment"]["identity"].as<double>(), hit["alignment"]["length"].as<int64_t>(), as_string(hit["pdb_asym_id"]), as_string(hit["pdb_id"]), hit["global_rmsd"].as<double>());
 
 				for (auto &transplant : hit["transplants"])
 				{
 					// id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd
-					os_transplants << ++transplant_id << '\t'
-								   << pdb_hit_id << '\t'
-								   << as_string(transplant["asym_id"]) << '\t'
-								   << as_string(transplant["compound_id"]) << '\t'
-								   << as_string(transplant["analogue_id"]) << '\t'
-								   << as_string(transplant["entity_id"]) << '\t'
-								   << transplant["local_rmsd"].as<double>() << '\n';
+					transplants_i = transplants.emplace_after(transplants_i,
+						++transplant_id, pdb_hit_id, as_string(transplant["asym_id"]), as_string(transplant["compound_id"]), as_string(transplant["analogue_id"]), as_string(transplant["entity_id"]), transplant["local_rmsd"].as<double>());
 				}
 			}
 		}
@@ -365,9 +356,13 @@ int data_service::rebuild()
 		{
 			std::clog << "\nError processing file " << di->path() << "\n";
 		}
+
+		break;
 	}
 
 	// --------------------------------------------------------------------
+
+	pqxx::work tx(db_connection::instance());
 
 	std::string db_user = config.get("db-user");
 
@@ -377,79 +372,47 @@ int data_service::rebuild()
 
 	cif::replace_all(script_1, "$OWNER", config.get("db-user"));
 
-	// --------------------------------------------------------------------
-
-	std::vector<std::string> vConn2{ "user=" + db_user, "password=" + config.get("db-password"), "dbname=" + config.get("db-dbname") };
-	for (std::string opt : { "db-host", "db-port" })
-	{
-		if (config.has(opt))
-			vConn2.push_back(opt.substr(3) + "=" + config.get(opt));
-	}
-
-	auto userConnect = zeep::join(vConn2, " ");
-
-	auto connection = PQconnectdb(userConnect.c_str());
-	if (connection == nullptr)
-		throw std::runtime_error("Unable to connect to database");
-
-	if (PQstatus(connection) != CONNECTION_OK)
-		throw std::runtime_error(PQerrorMessage(connection));
+	tx.exec(script_1);
 
 	// --------------------------------------------------------------------
-
-	auto r = PQexec(connection, script_1.c_str());
-	if (r == nullptr)
-		throw std::runtime_error(PQerrorMessage(connection));
-
-	if (PQresultStatus(r) != PGRES_COMMAND_OK)
-		throw std::runtime_error(PQresultErrorMessage(r));
-
-	PQclear(r);
-
 	// Copy data, table by table
 
-	for (auto &&[stmt, os] : std::initializer_list<std::tuple<const char *, std::stringstream &>>{
-			 { "copy af_structure (id, name, chunked, af_version, created, af_file) from stdin", os_structures },
-			 { "copy af_pdb_hit(id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd) from stdin", os_pdb_hits },
-			 { "copy af_transplant(id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd) from stdin", os_transplants }})
-	{
-		r = PQexec(connection, stmt);
+	pqxx::stream_to s1 = pqxx::stream_to::table(tx, { "public", "af_structure" },
+		{"id", "name", "chunked", "af_version", "created", "af_file"});
 
-		if (PQresultStatus(r) != PGRES_COPY_IN)
-			throw std::runtime_error(PQresultErrorMessage(r));
+	for (auto &t : structures)
+		s1 << t;
+	s1.complete();
 
-		auto buffer = os.str();
+	pqxx::stream_to s2 = pqxx::stream_to::table(tx, { "public", "af_pdb_hit" },
+		{"id", "af_id", "identity", "length", "pdb_asym_id", "pdb_id", "rmsd"});
 
-		int ri = PQputCopyData(connection, buffer.c_str(), buffer.length());
-		if (ri == -1)
-			throw std::runtime_error(PQerrorMessage(connection));
-		
-		ri = PQputCopyEnd(connection, nullptr);
-		if (ri == -1)
-			throw std::runtime_error(PQerrorMessage(connection));
+	for (auto &t : pdb_hits)
+		s2 << t;
+	s2.complete();
 
-		r = PQgetResult(connection);
-		if (PQresultStatus(r) != PGRES_COMMAND_OK)
-			throw std::runtime_error(PQresultErrorMessage(r));
-	}
+	pqxx::stream_to s3 = pqxx::stream_to::table(tx, { "public", "af_transplant" },
+		{"id", "hit_id", "asym_id", "compound_id", "analogue_id", "entity_id", "rmsd"});
+
+	for (auto &t : transplants)
+		s3 << t;
+	s3.complete();
+
+	tx.commit();
 
 	// Create indices
+
+	pqxx::work tx2(db_connection::instance());
 
 	auto schema2 = cif::load_resource("db-schema-tail.sql");
 	if (not schema2)
 		throw std::runtime_error("database schema not found (looking for db-schema-tail.sql)");
-	
+
 	std::ostringstream os2;
 	os2 << schema2->rdbuf();
 
-	r = PQexec(connection, os2.str().c_str());
-	if (r == nullptr)
-		throw std::runtime_error(PQerrorMessage(connection));
-
-	if (PQresultStatus(r) != PGRES_COMMAND_OK)
-		throw std::runtime_error(PQresultErrorMessage(r));	
-
-	PQfinish(connection);
+	tx2.exec(os2.str());
+	tx2.commit();
 
 	// --------------------------------------------------------------------
 
