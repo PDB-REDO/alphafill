@@ -294,7 +294,7 @@ int data_service::rebuild()
 	}
 
 	cif::progress_bar progress(files.size(), "Processing");
-	blocking_queue<json> q;
+	blocking_queue<std::filesystem::path> q;
 
 	// --------------------------------------------------------------------
 
@@ -302,90 +302,96 @@ int data_service::rebuild()
 	std::forward_list<std::tuple<uint64_t, uint64_t, double, int64_t, std::string, std::string, double>> pdb_hits;
 	std::forward_list<std::tuple<uint64_t, uint64_t, std::string, std::string, std::string, std::string, double>> transplants;
 
-	std::thread tp([&]()
-		{
-			auto structures_i = structures.before_begin();
-			auto pdb_hits_i = pdb_hits.before_begin();
-			auto transplants_i = transplants.before_begin();
+	auto structures_i = structures.before_begin();
+	auto pdb_hits_i = pdb_hits.before_begin();
+	auto transplants_i = transplants.before_begin();
 
-			uint64_t structure_id = 0, pdb_hit_id = 0, transplant_id = 0;
+	std::atomic<uint64_t> next_structure_id = 0, next_pdb_hit_id = 0, next_transplant_id = 0;
+	std::mutex m;
+	std::vector<std::thread> tg;
 
-			auto as_string = [](json &e)
+	auto as_string = [](json &e)
+	{
+		if (e.is_null())
+			return std::string{ "\\N" };
+		else
+			return e.as<std::string>();
+	};
+
+	for (size_t i = 0; i < std::max(1UL, config.get<size_t>("threads")); ++i)
+	{
+		tg.emplace_back([&]()
 			{
-				if (e.is_null())
-					return std::string{ "\\N" };
-				else
-					return e.as<std::string>();
-			};
-
-			for (;;)
-			{
-				auto data = q.pop();
-				if (data.empty())
-					break;
-				
-				progress.consumed(1);
-
-				try
+				for (;;)
 				{
-					std::string id = data["id"].as<std::string>();
+					auto file = q.pop();
+					if (file.empty())
+						break;
 
-					if (id == "nohd" or data["file"].is_null())
-						continue;
+					progress.consumed(1);
 
-					progress.message(id);
-
-					const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
-					bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
-
-					// id, name, chunked, af_version, created, af_file
-					structures_i = structures.emplace_after(structures_i, ++structure_id, id, chunked ? 't' : 'f',
-						as_string(data["alphafill_version"]), as_string(data["date"]), as_string(data["file"]));
-
-					for (auto &hit : data["hits"])
+					try
 					{
-						// id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd
-						pdb_hits_i = pdb_hits.emplace_after(pdb_hits_i,
-							++pdb_hit_id, structure_id, hit["alignment"]["identity"].as<double>(),
-							hit["alignment"]["length"].as<int64_t>(), as_string(hit["pdb_asym_id"]),
-							as_string(hit["pdb_id"]), hit["global_rmsd"].as<double>());
+						std::ifstream in(file);
 
-						for (auto &transplant : hit["transplants"])
+						zeep::json::element data;
+						zeep::json::parse_json(in, data);
+
+						std::string id = data["id"].as<std::string>();
+
+						if (id == "nohd" or data["file"].is_null())
+							continue;
+
+						progress.message(id);
+
+						const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
+						// we no longer support chunked data:
+					    // bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
+
+						std::unique_lock lock(m);
+
+						// id, name, chunked, af_version, created, af_file
+						auto structure_id = ++next_structure_id;
+						structures_i = structures.emplace_after(structures_i, structure_id, id, /* chunked ? 't' : 'f' */ 'f',
+							as_string(data["alphafill_version"]), as_string(data["date"]), as_string(data["file"]));
+
+						for (auto &hit : data["hits"])
 						{
-							// id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd
-							transplants_i = transplants.emplace_after(transplants_i,
-								++transplant_id, pdb_hit_id, as_string(transplant["asym_id"]),
-								as_string(transplant["compound_id"]), as_string(transplant["analogue_id"]),
-								as_string(transplant["entity_id"]), transplant["local_rmsd"].as<double>());
+							// id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd
+							auto pdb_hit_id = ++next_pdb_hit_id;
+							pdb_hits_i = pdb_hits.emplace_after(pdb_hits_i,
+								pdb_hit_id, structure_id, hit["alignment"]["identity"].as<double>(),
+								hit["alignment"]["length"].as<int64_t>(), as_string(hit["pdb_asym_id"]),
+								as_string(hit["pdb_id"]), hit["global_rmsd"].as<double>());
+
+							for (auto &transplant : hit["transplants"])
+							{
+								// id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd
+								auto transplant_id = ++next_transplant_id;
+								transplants_i = transplants.emplace_after(transplants_i,
+									transplant_id, pdb_hit_id, as_string(transplant["asym_id"]),
+									as_string(transplant["compound_id"]), as_string(transplant["analogue_id"]),
+									as_string(transplant["entity_id"]), transplant["local_rmsd"].as<double>());
+							}
 						}
 					}
+					catch (const std::exception &ex)
+					{
+						std::clog << "\nError processing file " << file << "\n";
+					}
 				}
-				catch (const std::exception &ex)
-				{
-					std::clog << "\nError processing json\n";
-				}
-			} });
+				//
+
+				q.push({}); });
+	}
 
 	for (auto &f : files)
-	{
-		try
-		{
-			std::ifstream file(f);
-
-			zeep::json::element data;
-			zeep::json::parse_json(file, data);
-
-			q.push(std::move(data));
-		}
-		catch (const std::exception &ex)
-		{
-			std::clog << "Error processing file " << f << "\n";
-		}
-	}
+		q.push(f);
 
 	q.push({});
 
-	tp.join();
+	for (auto &t : tg)
+		t.join();
 
 	// --------------------------------------------------------------------
 
