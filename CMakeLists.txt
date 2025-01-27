@@ -126,7 +126,7 @@ if(NOT libmcfp_FOUND)
 	FetchContent_MakeAvailable(libmcfp)
 endif()
 
-find_package(zeep 6.0.11 QUIET)
+find_package(zeep 6.0.16 QUIET)
 
 if(NOT zeep_FOUND)
 	FetchContent_Declare(
