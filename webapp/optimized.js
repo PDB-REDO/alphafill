@@ -18,7 +18,7 @@ window.addEventListener('load', async () => {
 		const molstarContainer = document.getElementById("app");
 		const viewer = new PDBeMolstarPlugin();
 
-		viewer.events.loadComplete.subscribe(async () => {
+		viewer.events.loadComplete.subscribe(() => {
 			viewer.visual.focus([{ struct_asym_id: ASYM_ID }]);
 		});
 
