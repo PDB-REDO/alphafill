@@ -25,8 +25,8 @@ window.addEventListener('load', async () => {
 		const options = {
 			bgColor: "white",
 			customData: {
-				url: `data:application/octet-stream,${encodeURI(data.model)}`,
-				// url: `v1/aff/${AF_ID}/optimized/A,${ASYM_ID}`,
+				// url: `data:${encodeURI(data.model)}`,
+				url: `v1/aff/${AF_ID}/optimized/A,${ASYM_ID}`,
 				format: "cif",
 				binary: false
 			},
