@@ -4,7 +4,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const SCRIPTS = __dirname + "/webapp/";
 const SCSS = __dirname + "/scss/";
-const DEST = __dirname + "/docroot/dist/";
+const DEST = __dirname + "/docroot/scripts/";
 
 module.exports = (env) => {
 
@@ -14,7 +14,6 @@ module.exports = (env) => {
 
 		entry: {
 			'pdb-redo-bootstrap': path.resolve(SCSS, "pdb-redo-bootstrap.scss"),
-			'molstar': path.resolve(SCRIPTS, "molstar.tsx"),
 			'index': path.resolve(SCRIPTS, "index.js"),
 			'model': path.resolve(SCRIPTS, "model.js"),
 			'optimized': path.resolve(SCRIPTS, "optimized.js"),
@@ -30,7 +29,7 @@ module.exports = (env) => {
 		module: {
 			rules: [
 				{
-					test: /\.(js|tsx)/,
+					test: /\.js/,
 					exclude: /node_modules/,
 					use: {
 						loader: "babel-loader",
@@ -60,7 +59,7 @@ module.exports = (env) => {
 
 
 		resolve: {
-			extensions: ['.tsx', '.ts', '.js', '.scss'],
+			extensions: ['.js', '.scss'],
 		},
 
 		plugins: [

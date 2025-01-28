@@ -7,7 +7,7 @@ window.addEventListener('load', () => {
 
 	const uploadBtn = document.getElementById('upload-btn');
 	if (uploadBtn) {
-		uploadBtn.addEventListener('click', (evt) => {
+		uploadBtn.addEventListener('click', async (evt) => {
 			evt.preventDefault();
 
 			const customFile = document.getElementById('custom-file');
@@ -18,28 +18,19 @@ window.addEventListener('load', () => {
 
 				fd.append("structure", customFile.files[0]);
 
-				var resultOK = false;
-
-				fetch("v1/aff", {
+				const r = await fetch("v1/aff", {
 					'Accept': 'application/json',
 					'method': "POST",
 					'body': fd
-				}).then(r => {
-					resultOK = r.ok;
-					return r.json()
-				}).then(r => {
-					if (resultOK) {
-						window.location = `model?id=${r.id}`;
-					}
-					else if (typeof(r.error) === "string") {
-						alert(r.error);
-					}
-					else {
-						throw "Failed to upload file";
-					}
-				}).catch(e => {
-					alert(e);
 				});
+				const data = await r.json();
+
+				if (r.ok)
+					window.location = `model?id=${data.id}`;
+				else if (typeof (data.error) === "string")
+					alert(data.error);
+				else
+					alert(`Failed to upload data: ${r.statusText}`);
 			}
 		});
 	}
