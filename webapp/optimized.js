@@ -25,7 +25,8 @@ window.addEventListener('load', async () => {
 		const options = {
 			bgColor: "white",
 			customData: {
-				url: `data:${encodeURI(data.model)}`,
+				// url: `data:${encodeURI(data.model)}`,
+				url: `v1/aff/${AF_ID}/optimized/A,${ASYM_ID}`,
 				format: "cif",
 				binary: false
 			},
