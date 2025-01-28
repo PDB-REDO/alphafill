@@ -53,8 +53,6 @@ window.addEventListener('load', async () => {
 		loadAlert.style.display = 'none';
 		errorAlert.style.display = '';
 		const msg = document.getElementById('error-message');
-		if (typeof (msg) === "string")
-			msg.textContent = err;
-
+		msg.textContent = err;
 	}
 })
