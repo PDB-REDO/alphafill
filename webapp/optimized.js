@@ -39,8 +39,8 @@ window.addEventListener('load', async () => {
 			maximumFractionDigits: 2,
 		});
 
-		document.getElementById("clash-original").textContent = formatter.format(+result.clash.before);
-		document.getElementById("clash-optimized").textContent = formatter.format(+result.clash.after);
+		document.getElementById("clash-original").textContent = formatter.format(+data.clash.before);
+		document.getElementById("clash-optimized").textContent = formatter.format(+data.clash.after);
 
 		const link = document.getElementById('model-link');
 		link.href = "data:text/plain;charset=utf-8," + encodeURIComponent(data.model);
