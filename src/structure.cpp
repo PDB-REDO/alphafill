@@ -116,7 +116,6 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	}
 
 	// For some reason, some filled structures contain spurrious struct_conn records...
-	existingAsyms.insert("A");
 	for (const auto &[asym_id_1, asym_id_2] : struct_conn.rows<std::string,std::string>("ptnr1_label_asym_id", "ptnr2_label_asym_id"))
 	{
 		existingAsyms.insert(asym_id_1);
@@ -131,6 +130,9 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 
 	for (auto &asymID : toBeRemoved)
 	{
+		if (asymID == "A")
+			continue;
+
 		struct_asym.erase("id"_key == asymID);
 		atom_site.erase("label_asym_id"_key == asymID);
 		struct_conn.erase("ptnr1_label_asym_id"_key == asymID or "ptnr2_label_asym_id"_key == asymID);
