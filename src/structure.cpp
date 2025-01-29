@@ -116,6 +116,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	}
 
 	// For some reason, some filled structures contain spurrious struct_conn records...
+	existingAsyms.insert("A");
 	for (const auto &[asym_id_1, asym_id_2] : struct_conn.rows<std::string,std::string>("ptnr1_label_asym_id", "ptnr2_label_asym_id"))
 	{
 		existingAsyms.insert(asym_id_1);
