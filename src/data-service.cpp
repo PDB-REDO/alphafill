@@ -257,24 +257,10 @@ uint32_t data_service::count_structures(float min_identity, const std::string &c
 
 // --------------------------------------------------------------------
 
-using json = zeep::json::element;
-
-void process(blocking_queue<json> &q, cif::progress_bar &p,
-	std::ostream &os_structures, std::ostream &os_pdb_hits, std::ostream &os_transplants)
-{
-
-	for (;;)
-	{
-		auto data = q.pop();
-		if (data.empty())
-			break;
-	}
-}
-
-// --------------------------------------------------------------------
-
 int data_service::rebuild()
 {
+	using json = zeep::json::element;
+
 	auto &config = mcfp::config::instance();
 
 	std::string db_dir = config.get("db-dir");
