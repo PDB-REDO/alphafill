@@ -176,7 +176,7 @@ if(BUILD_WEB_APPLICATION)
 		${PROJECT_SOURCE_DIR}/webapp/optimized.js
 		${PROJECT_SOURCE_DIR}/webapp/lists.js
 		${PROJECT_SOURCE_DIR}/webapp/wait.js
-		${PROJECT_SOURCE_DIR}/scss/pdb-redo-bootstrap.scss
+		${PROJECT_SOURCE_DIR}/scss/style.scss
 		${PROJECT_SOURCE_DIR}/webpack.config.js)
 
 	set(webpack_output ${PROJECT_SOURCE_DIR}/docroot/scripts/index.js)

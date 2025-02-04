@@ -85,11 +85,15 @@ window.addEventListener('load', () => {
 			const asymID = row.getAttribute('data-asym-id');
 			const cb = row.querySelector("input[type='checkbox']");
 
-			if (cb.checked)
-				viewer.visual.focus([{ struct_asym_id: asymID }]);
+			if (cb.checked) {
+				viewer.visual.select({ data: [{ struct_asym_id: asymID, color: "#2378de" }] })
+					.then(() => viewer.visual.focus([{ struct_asym_id: asymID }]));
+			}
 			else {
 				cb.checked = true;
-				updateModel(viewer, cbs, showAllCB).then(() => viewer.visual.focus([{ struct_asym_id: asymID }]));
+				updateModel(viewer, cbs, showAllCB)
+					.then(() => viewer.visual.focus([{ struct_asym_id: asymID }]))
+					.then(() => viewer.visual.select({ data: [{ struct_asym_id: asymID, color: "#2378de" }] }));
 			}
 		});
 	});
