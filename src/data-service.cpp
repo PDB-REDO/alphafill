@@ -279,7 +279,7 @@ int data_service::rebuild()
 		files.push_back(di->path());
 	}
 
-	cif::progress_bar progress(files.size(), "Processing");
+	auto progress = std::make_unique<cif::progress_bar>(files.size(), "Processing");
 	blocking_queue<std::filesystem::path> q;
 
 	// --------------------------------------------------------------------
@@ -314,7 +314,7 @@ int data_service::rebuild()
 					if (file.empty())
 						break;
 
-					progress.consumed(1);
+					progress->consumed(1);
 
 					try
 					{
@@ -328,7 +328,7 @@ int data_service::rebuild()
 						if (id == "nohd" or data["file"].is_null())
 							continue;
 
-						progress.message(id);
+						progress->message(id);
 
 						const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
 						// we no longer support chunked data:
@@ -338,7 +338,7 @@ int data_service::rebuild()
 
 						// id, name, chunked, af_version, created, af_file
 						auto structure_id = ++next_structure_id;
-						structures_i = structures.emplace_after(structures_i, structure_id, id, /* chunked ? 't' : 'f' */ 'f',
+						structures_i = structures.emplace_after(structures_i, structure_id, id, false,
 							as_string(data["alphafill_version"]), as_string(data["date"]), as_string(data["file"]));
 
 						for (auto &hit : data["hits"])
@@ -396,25 +396,40 @@ int data_service::rebuild()
 	// --------------------------------------------------------------------
 	// Copy data, table by table
 
+	progress.reset(new cif::progress_bar(next_structure_id, "storing 1"));
+
 	pqxx::stream_to s1 = pqxx::stream_to::table(tx, { "public", "af_structure" },
 		{ "id", "name", "chunked", "af_version", "created", "af_file" });
 
 	for (auto &t : structures)
+	{
 		s1 << t;
+		progress->consumed(1);
+	}
 	s1.complete();
+
+	progress.reset(new cif::progress_bar(next_pdb_hit_id, "storing 2"));
 
 	pqxx::stream_to s2 = pqxx::stream_to::table(tx, { "public", "af_pdb_hit" },
 		{ "id", "af_id", "identity", "length", "pdb_asym_id", "pdb_id", "rmsd" });
 
 	for (auto &t : pdb_hits)
+	{
 		s2 << t;
+		progress->consumed(1);
+	}
 	s2.complete();
+
+	progress.reset(new cif::progress_bar(next_transplant_id, "storing 3"));
 
 	pqxx::stream_to s3 = pqxx::stream_to::table(tx, { "public", "af_transplant" },
 		{ "id", "hit_id", "asym_id", "compound_id", "analogue_id", "entity_id", "rmsd" });
 
 	for (auto &t : transplants)
+	{
 		s3 << t;
+		progress->consumed(1);
+	}
 	s3.complete();
 
 	tx.commit();
