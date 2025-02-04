@@ -2,9 +2,9 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-const SCRIPTS = __dirname + "/webapp/";
+const SCRIPTS = path.resolve(__dirname, "webapp");
 const SCSS = __dirname + "/scss/";
-const DEST = __dirname + "/docroot/scripts/";
+const DEST = path.resolve(__dirname, "docroot");
 
 module.exports = (env) => {
 
@@ -23,7 +23,8 @@ module.exports = (env) => {
 
 		output: {
 			path: DEST,
-			crossOriginLoading: 'anonymous'
+			crossOriginLoading: 'anonymous',
+			filename: "scripts/[name].js"
 		},
 
 		module: {
@@ -42,7 +43,7 @@ module.exports = (env) => {
 				{
 					test: /\.(sa|sc|c)ss$/i,
 					use: [
-						/* PRODUCTION ?  */MiniCssExtractPlugin.loader/*  : "style-loader" */,
+						MiniCssExtractPlugin.loader,
 						"css-loader",
 						"postcss-loader",
 						"sass-loader"
@@ -52,43 +53,43 @@ module.exports = (env) => {
 				{
 					test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
 					include: path.resolve(__dirname, './node_modules/bootstrap-icons/font/fonts'),
-					type: 'asset/resource'
+					type: 'asset/resource',
+					generator: {
+						filename: 'fonts/[name][ext]'
+					}
 				}
 			]
 		},
-
 
 		resolve: {
 			extensions: ['.js', '.scss'],
 		},
 
-		plugins: [
-			new MiniCssExtractPlugin({}),
-			new CleanWebpackPlugin({
-				verbose: true,
-				cleanOnceBeforeBuildPatterns: [
-					'css/**/*',
-					'css/*',
-					'scripts/**/*',
-					'fonts/**/*'
-				]
-			})
-		],
+		optimization: { minimizer: [] },
 
-		optimization: {
-			minimizer: []
-		}
+		target: 'web',
+
+		plugins: [
+			new MiniCssExtractPlugin({
+				filename: "css/[name].css"
+			})
+		]
 	};
 
 	if (PRODUCTION) {
 		webpackConf.mode = "production";
 
-		// webpackConf.plugins.push(
-		// 	new CleanWebpackPlugin({
-		// 		verbose: true
-		// 	})/* ,
-		// 	new MiniCssExtractPlugin({}) */
-		// );
+		webpackConf.plugins.push(
+			new CleanWebpackPlugin({
+				verbose: true,
+				cleanOnceBeforeBuildPatterns: [
+					'css/*',
+					'fonts/*',
+					'scripts/*',
+				]
+				
+			})
+		);
 	} else {
 		webpackConf.mode = "development";
 		webpackConf.devtool = 'source-map';
@@ -96,4 +97,3 @@ module.exports = (env) => {
 
 	return webpackConf;
 };
-

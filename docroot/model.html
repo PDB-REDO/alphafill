@@ -71,17 +71,6 @@
 			</tr>
 		</table>
 
-		<table z:if="${type=='custom'}" class="table table-sm mt-4">
-			<tr>
-				<td>Structure file</td>
-				<td><a z:href="@{/v1/aff/${af_id}}" z:text="${af_id}"></a></td>
-			</tr>
-			<tr>
-				<td>Metadata</td>
-				<td><a z:href="@{/v1/aff/${af_id}/json}" z:text="|${af_id}/json|"></a></td>
-			</tr>
-		</table>
-
 		<div class="row mt-5">
 			<div class="col" id="app"></div>
 
