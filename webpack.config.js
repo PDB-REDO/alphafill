@@ -13,12 +13,13 @@ module.exports = (env) => {
 	const webpackConf = {
 
 		entry: {
-			'pdb-redo-bootstrap': path.resolve(SCSS, "pdb-redo-bootstrap.scss"),
+			'style': path.resolve(SCSS, "style.scss"),
 			'index': path.resolve(SCRIPTS, "index.js"),
 			'model': path.resolve(SCRIPTS, "model.js"),
 			'optimized': path.resolve(SCRIPTS, "optimized.js"),
 			'lists': path.resolve(SCRIPTS, "lists.js"),
 			'wait': path.resolve(SCRIPTS, "wait.js"),
+			'molstar': path.resolve('node_modules/pdbe-molstar/build/', "pdbe-molstar-light.css")
 		},
 
 		output: {
@@ -62,7 +63,7 @@ module.exports = (env) => {
 		},
 
 		resolve: {
-			extensions: ['.js', '.scss'],
+			extensions: ['.js', '.scss', '.css'],
 		},
 
 		optimization: { minimizer: [] },
