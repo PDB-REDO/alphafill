@@ -320,6 +320,7 @@ json optimizeWithYasara(const std::string &af_id, std::set<std::string> requeste
 	}
 
 	close(ifd[0]);
+	close(ifd[1]);
 	close(ofd[1]);
 
 	// start reading output
