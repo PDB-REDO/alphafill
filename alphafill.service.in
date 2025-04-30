@@ -1,0 +1,15 @@
+[Unit]
+Description=The alphafill web application
+After=network.target
+Wants=network-online.target
+
+[Service]
+Restart=on-failure
+Type=forking
+PIDFile=@ALPHAFILL_PID@
+ExecStart=@ALPHAFILL_EXE@ server start
+ExecReload=@ALPHAFILL_EXE@ server reload
+ExecStop=@ALPHAFILL_EXE@ server stop
+
+[Install]
+WantedBy=multi-user.target

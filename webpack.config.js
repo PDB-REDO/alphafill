@@ -2,9 +2,9 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const path = require('path');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
-const SCRIPTS = __dirname + "/webapp/";
+const SCRIPTS = path.resolve(__dirname, "webapp");
 const SCSS = __dirname + "/scss/";
-const DEST = __dirname + "/docroot/dist/";
+const DEST = path.resolve(__dirname, "docroot");
 
 module.exports = (env) => {
 
@@ -13,24 +13,25 @@ module.exports = (env) => {
 	const webpackConf = {
 
 		entry: {
-			'pdb-redo-bootstrap': path.resolve(SCSS, "pdb-redo-bootstrap.scss"),
-			'molstar': path.resolve(SCRIPTS, "molstar.tsx"),
+			'style': path.resolve(SCSS, "style.scss"),
 			'index': path.resolve(SCRIPTS, "index.js"),
 			'model': path.resolve(SCRIPTS, "model.js"),
 			'optimized': path.resolve(SCRIPTS, "optimized.js"),
 			'lists': path.resolve(SCRIPTS, "lists.js"),
 			'wait': path.resolve(SCRIPTS, "wait.js"),
+			'molstar': path.resolve('node_modules/pdbe-molstar/build/', "pdbe-molstar-light.css")
 		},
 
 		output: {
 			path: DEST,
-			crossOriginLoading: 'anonymous'
+			crossOriginLoading: 'anonymous',
+			filename: "scripts/[name].js"
 		},
 
 		module: {
 			rules: [
 				{
-					test: /\.(js|tsx)/,
+					test: /\.js/,
 					exclude: /node_modules/,
 					use: {
 						loader: "babel-loader",
@@ -43,7 +44,7 @@ module.exports = (env) => {
 				{
 					test: /\.(sa|sc|c)ss$/i,
 					use: [
-						/* PRODUCTION ?  */MiniCssExtractPlugin.loader/*  : "style-loader" */,
+						MiniCssExtractPlugin.loader,
 						"css-loader",
 						"postcss-loader",
 						"sass-loader"
@@ -53,43 +54,43 @@ module.exports = (env) => {
 				{
 					test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
 					include: path.resolve(__dirname, './node_modules/bootstrap-icons/font/fonts'),
-					type: 'asset/resource'
+					type: 'asset/resource',
+					generator: {
+						filename: 'fonts/[name][ext]'
+					}
 				}
 			]
 		},
 
-
 		resolve: {
-			extensions: ['.tsx', '.ts', '.js', '.scss'],
+			extensions: ['.js', '.scss', '.css'],
 		},
 
-		plugins: [
-			new MiniCssExtractPlugin({}),
-			new CleanWebpackPlugin({
-				verbose: true,
-				cleanOnceBeforeBuildPatterns: [
-					'css/**/*',
-					'css/*',
-					'scripts/**/*',
-					'fonts/**/*'
-				]
-			})
-		],
+		optimization: { minimizer: [] },
 
-		optimization: {
-			minimizer: []
-		}
+		target: 'web',
+
+		plugins: [
+			new MiniCssExtractPlugin({
+				filename: "css/[name].css"
+			})
+		]
 	};
 
 	if (PRODUCTION) {
 		webpackConf.mode = "production";
 
-		// webpackConf.plugins.push(
-		// 	new CleanWebpackPlugin({
-		// 		verbose: true
-		// 	})/* ,
-		// 	new MiniCssExtractPlugin({}) */
-		// );
+		webpackConf.plugins.push(
+			new CleanWebpackPlugin({
+				verbose: true,
+				cleanOnceBeforeBuildPatterns: [
+					'css/*',
+					'fonts/*',
+					'scripts/*',
+				]
+				
+			})
+		);
 	} else {
 		webpackConf.mode = "development";
 		webpackConf.devtool = 'source-map';
@@ -97,4 +98,3 @@ module.exports = (env) => {
 
 	return webpackConf;
 };
-

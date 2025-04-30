@@ -27,7 +27,6 @@ docs/conf.py
 new-alphafill.conf
 docroot/_sources/
 docroot/_static/
-docroot/dist/
 docroot/.doctrees/
 docroot/.buildinfo
 docroot/**/index.html

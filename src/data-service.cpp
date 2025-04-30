@@ -257,24 +257,10 @@ uint32_t data_service::count_structures(float min_identity, const std::string &c
 
 // --------------------------------------------------------------------
 
-using json = zeep::json::element;
-
-void process(blocking_queue<json> &q, cif::progress_bar &p,
-	std::ostream &os_structures, std::ostream &os_pdb_hits, std::ostream &os_transplants)
-{
-
-	for (;;)
-	{
-		auto data = q.pop();
-		if (data.empty())
-			break;
-	}
-}
-
-// --------------------------------------------------------------------
-
 int data_service::rebuild()
 {
+	using json = zeep::json::element;
+
 	auto &config = mcfp::config::instance();
 
 	std::string db_dir = config.get("db-dir");
@@ -283,15 +269,20 @@ int data_service::rebuild()
 	if (not schema)
 		throw std::runtime_error("database schema not found (looking for db-schema.sql)");
 
-	uint64_t file_count = 0;
+	// --------------------------------------------------------------------
+
+	std::vector<fs::path> files;
 	for (auto di = fs::recursive_directory_iterator(db_dir); di != fs::recursive_directory_iterator(); ++di)
 	{
 		if (di->path().extension() != ".json")
 			continue;
-		++file_count;
+		files.push_back(di->path());
 	}
 
-	cif::progress_bar progress(file_count, "Processing");
+	auto progress = std::make_unique<cif::progress_bar>(files.size(), "Processing");
+	blocking_queue<std::filesystem::path> q;
+
+	// --------------------------------------------------------------------
 
 	std::forward_list<std::tuple<uint64_t, std::string, bool, std::string, std::string, std::string>> structures;
 	std::forward_list<std::tuple<uint64_t, uint64_t, double, int64_t, std::string, std::string, double>> pdb_hits;
@@ -301,7 +292,9 @@ int data_service::rebuild()
 	auto pdb_hits_i = pdb_hits.before_begin();
 	auto transplants_i = transplants.before_begin();
 
-	uint64_t structure_id = 0, pdb_hit_id = 0, transplant_id = 0;
+	std::atomic<uint64_t> next_structure_id = 0, next_pdb_hit_id = 0, next_transplant_id = 0;
+	std::mutex m;
+	std::vector<std::thread> tg;
 
 	auto as_string = [](json &e)
 	{
@@ -311,52 +304,80 @@ int data_service::rebuild()
 			return e.as<std::string>();
 	};
 
-	for (auto di = fs::recursive_directory_iterator(db_dir); di != fs::recursive_directory_iterator(); ++di)
+	for (size_t i = 0; i < std::max(1UL, config.get<size_t>("threads")); ++i)
 	{
-		if (di->path().extension() != ".json")
-			continue;
-
-		progress.consumed(1);
-
-		try
-		{
-			std::ifstream file(di->path());
-
-			zeep::json::element data;
-			zeep::json::parse_json(file, data);
-
-			std::string id = data["id"].as<std::string>();
-
-			if (id == "nohd" or data["file"].is_null())
-				continue;
-
-			progress.message(id);
-
-			const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
-			bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
-
-			// id, name, chunked, af_version, created, af_file
-			structures_i = structures.emplace_after(structures_i, ++structure_id, id, chunked ? 't' : 'f', as_string(data["alphafill_version"]), as_string(data["date"]), as_string(data["file"]));
-
-			for (auto &hit : data["hits"])
+		tg.emplace_back([&]()
 			{
-				// id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd
-				pdb_hits_i = pdb_hits.emplace_after(pdb_hits_i,
-					++pdb_hit_id, structure_id, hit["alignment"]["identity"].as<double>(), hit["alignment"]["length"].as<int64_t>(), as_string(hit["pdb_asym_id"]), as_string(hit["pdb_id"]), hit["global_rmsd"].as<double>());
-
-				for (auto &transplant : hit["transplants"])
+				for (;;)
 				{
-					// id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd
-					transplants_i = transplants.emplace_after(transplants_i,
-						++transplant_id, pdb_hit_id, as_string(transplant["asym_id"]), as_string(transplant["compound_id"]), as_string(transplant["analogue_id"]), as_string(transplant["entity_id"]), transplant["local_rmsd"].as<double>());
+					auto file = q.pop();
+					if (file.empty())
+						break;
+
+					progress->consumed(1);
+
+					try
+					{
+						std::ifstream in(file);
+
+						zeep::json::element data;
+						zeep::json::parse_json(in, data);
+
+						std::string id = data["id"].as<std::string>();
+
+						if (id == "nohd" or data["file"].is_null())
+							continue;
+
+						progress->message(id);
+
+						const auto &[type, uniprot_id, chunk, version] = parse_af_id(id);
+						// we no longer support chunked data:
+					    // bool chunked = fs::exists(file_locator::get_metadata_file(type, uniprot_id, 2, version));
+
+						std::unique_lock lock(m);
+
+						// id, name, chunked, af_version, created, af_file
+						auto structure_id = ++next_structure_id;
+						structures_i = structures.emplace_after(structures_i, structure_id, id, false,
+							as_string(data["alphafill_version"]), as_string(data["date"]), as_string(data["file"]));
+
+						for (auto &hit : data["hits"])
+						{
+							// id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd
+							auto pdb_hit_id = ++next_pdb_hit_id;
+							pdb_hits_i = pdb_hits.emplace_after(pdb_hits_i,
+								pdb_hit_id, structure_id, hit["alignment"]["identity"].as<double>(),
+								hit["alignment"]["length"].as<int64_t>(), as_string(hit["pdb_asym_id"]),
+								as_string(hit["pdb_id"]), hit["global_rmsd"].as<double>());
+
+							for (auto &transplant : hit["transplants"])
+							{
+								// id, hit_id, asym_id, compound_id, analogue_id, entity_id, rmsd
+								auto transplant_id = ++next_transplant_id;
+								transplants_i = transplants.emplace_after(transplants_i,
+									transplant_id, pdb_hit_id, as_string(transplant["asym_id"]),
+									as_string(transplant["compound_id"]), as_string(transplant["analogue_id"]),
+									as_string(transplant["entity_id"]), transplant["local_rmsd"].as<double>());
+							}
+						}
+					}
+					catch (const std::exception &ex)
+					{
+						std::clog << "\nError processing file " << file << "\n";
+					}
 				}
-			}
-		}
-		catch (const std::exception &ex)
-		{
-			std::clog << "\nError processing file " << di->path() << "\n";
-		}
+				//
+
+				q.push({}); });
 	}
+
+	for (auto &f : files)
+		q.push(f);
+
+	q.push({});
+
+	for (auto &t : tg)
+		t.join();
 
 	// --------------------------------------------------------------------
 
@@ -375,25 +396,40 @@ int data_service::rebuild()
 	// --------------------------------------------------------------------
 	// Copy data, table by table
 
+	progress.reset(new cif::progress_bar(next_structure_id, "storing 1"));
+
 	pqxx::stream_to s1 = pqxx::stream_to::table(tx, { "public", "af_structure" },
-		{"id", "name", "chunked", "af_version", "created", "af_file"});
+		{ "id", "name", "chunked", "af_version", "created", "af_file" });
 
 	for (auto &t : structures)
+	{
 		s1 << t;
+		progress->consumed(1);
+	}
 	s1.complete();
 
+	progress.reset(new cif::progress_bar(next_pdb_hit_id, "storing 2"));
+
 	pqxx::stream_to s2 = pqxx::stream_to::table(tx, { "public", "af_pdb_hit" },
-		{"id", "af_id", "identity", "length", "pdb_asym_id", "pdb_id", "rmsd"});
+		{ "id", "af_id", "identity", "length", "pdb_asym_id", "pdb_id", "rmsd" });
 
 	for (auto &t : pdb_hits)
+	{
 		s2 << t;
+		progress->consumed(1);
+	}
 	s2.complete();
 
+	progress.reset(new cif::progress_bar(next_transplant_id, "storing 3"));
+
 	pqxx::stream_to s3 = pqxx::stream_to::table(tx, { "public", "af_transplant" },
-		{"id", "hit_id", "asym_id", "compound_id", "analogue_id", "entity_id", "rmsd"});
+		{ "id", "hit_id", "asym_id", "compound_id", "analogue_id", "entity_id", "rmsd" });
 
 	for (auto &t : transplants)
+	{
 		s3 << t;
+		progress->consumed(1);
+	}
 	s3.complete();
 
 	tx.commit();

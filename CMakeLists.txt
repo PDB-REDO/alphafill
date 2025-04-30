@@ -26,9 +26,9 @@ cmake_minimum_required(VERSION 3.21)
 
 # set the project name
 project(
-  alphafill
-  VERSION 2.2.0
-  LANGUAGES C CXX)
+	alphafill
+	VERSION 2.2.0
+	LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -38,6 +38,7 @@ include(CheckFunctionExists)
 include(CheckIncludeFiles)
 include(CheckLibraryExists)
 include(CMakePackageConfigHelpers)
+include(CMakeDependentOption)
 include(GenerateExportHeader)
 include(CTest)
 include(FetchContent)
@@ -46,8 +47,19 @@ set(CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(CMAKE_VERSION GREATER_EQUAL 3.30)
+	cmake_policy(SET CMP0167 NEW)
+endif()
+
+# options
 option(BUILD_DOCUMENTATION "Build the documentation" OFF)
 option(BUILD_WEB_APPLICATION "Build the web application" OFF)
+
+if(BUILD_WEB_APPLICATION)
+	cmake_dependent_option(AF_INSTALL_SYSTEMD_SCRIPT "Install systemd service file" ON "LINUX" OFF)
+	set(ALPHAFILL_PID "/var/run/alphafill" CACHE PATH "Location for the pid file of the running web application")
+	set(ALPHAFILL_EXE "${CMAKE_INSTALL_FULL_BINDIR}/alphafill")
+endif()
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	set(CMAKE_CXX_FLAGS
@@ -107,26 +119,26 @@ set(BUILD_TESTING OFF)
 find_package(cifpp 7 QUIET)
 
 if(NOT cifpp_FOUND)
-  FetchContent_Declare(
-    cifpp
-    GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git
-    GIT_TAG v7.0.0)
-  FetchContent_MakeAvailable(cifpp)
+	FetchContent_Declare(
+		cifpp
+		GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git
+		GIT_TAG v7.0.0)
+	FetchContent_MakeAvailable(cifpp)
 
 	set(CIFPP_SHARE_DIR ${cifpp_SOURCE_DIR}/rsrc)
 endif()
 
-find_package(libmcfp 1.2.4 QUIET)
+find_package(mcfp 1.3.4 QUIET)
 
-if(NOT libmcfp_FOUND)
+if(NOT mcfp_FOUND)
 	FetchContent_Declare(
-		libmcfp
+		mcfp
 		GIT_REPOSITORY https://github.com/mhekkel/libmcfp.git
-		GIT_TAG v1.2.4)
-	FetchContent_MakeAvailable(libmcfp)
+		GIT_TAG v1.3.4)
+	FetchContent_MakeAvailable(mcfp)
 endif()
 
-find_package(zeep 6.0.11 QUIET)
+find_package(zeep 6.0.16 QUIET)
 
 if(NOT zeep_FOUND)
 	FetchContent_Declare(
@@ -164,14 +176,13 @@ if(BUILD_WEB_APPLICATION)
 		${PROJECT_SOURCE_DIR}/webapp/optimized.js
 		${PROJECT_SOURCE_DIR}/webapp/lists.js
 		${PROJECT_SOURCE_DIR}/webapp/wait.js
-		${PROJECT_SOURCE_DIR}/webapp/molstar.tsx
-		${PROJECT_SOURCE_DIR}/scss/pdb-redo-bootstrap.scss)
+		${PROJECT_SOURCE_DIR}/scss/style.scss
+		${PROJECT_SOURCE_DIR}/webpack.config.js)
 
 	set(webpack_output ${PROJECT_SOURCE_DIR}/docroot/scripts/index.js)
 
 	add_custom_command(
 		OUTPUT ${webpack_output}
-		BYPRODUCTS
 		DEPENDS ${webpack_input}
 		COMMAND ${YARN} run $<IF:$<CONFIG:Debug>,build,build-production>
 		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
@@ -251,7 +262,7 @@ if(HAVE_SYSCONF)
 	target_compile_definitions(alphafill PUBLIC HAVE_SYSCONF)
 endif()
 
-target_link_libraries(alphafill libmcfp::libmcfp cifpp::cifpp zeep::zeep)
+target_link_libraries(alphafill mcfp::mcfp cifpp::cifpp zeep::zeep)
 
 if(BUILD_WEB_APPLICATION)
 	target_compile_definitions(alphafill PUBLIC BUILD_WEB_APPLICATION)
@@ -304,6 +315,12 @@ install(
 	message(NOTICE \"Please edit the ${CMAKE_INSTALL_FULL_SYSCONFDIR}/alphafill.conf file.\")
 ")
 
+if(AF_INSTALL_SYSTEMD_SCRIPT)
+	configure_file(alphafill.service.in ${CMAKE_CURRENT_BINARY_DIR}/alphafill.service @ONLY)
+
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/alphafill.service" DESTINATION "/etc/systemd/system")
+endif()
+
 # If we do not use resources, install the resource data in a share directory
 if(NOT USE_RSRC)
 	install(
@@ -346,7 +363,7 @@ if(BUILD_TESTING)
 
 	add_executable(validate-test-files
 		${PROJECT_SOURCE_DIR}/test/validate-test-files.cpp)
-	target_link_libraries(validate-test-files libmcfp::libmcfp cifpp::cifpp
+	target_link_libraries(validate-test-files mcfp::mcfp cifpp::cifpp
 		zeep::zeep)
 
 	add_test(NAME validate_files_test

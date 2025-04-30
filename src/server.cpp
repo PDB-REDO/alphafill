@@ -160,6 +160,7 @@ class affd_html_controller : public zh::html_controller
 		mount("structures", &affd_html_controller::structures);
 		mount("compounds", &affd_html_controller::compounds);
 		mount("about", &affd_html_controller::about);
+		mount("license", &affd_html_controller::license);
 		mount("download", &affd_html_controller::download);
 		mount("{css,scripts,fonts,images}/", &affd_html_controller::handle_file);
 		mount("browserconfig.xml", &affd_html_controller::handle_file);
@@ -178,6 +179,7 @@ class affd_html_controller : public zh::html_controller
 	void structures(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void compounds(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void about(const zh::request &request, const zh::scope &scope, zh::reply &reply);
+	void license(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void download(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void schema(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 
@@ -649,6 +651,11 @@ void affd_html_controller::optimized(const zh::request &request, const zh::scope
 void affd_html_controller::about(const zh::request &request, const zh::scope &scope, zh::reply &reply)
 {
 	return get_template_processor().create_reply_from_template("about", scope, reply);
+}
+
+void affd_html_controller::license(const zh::request &request, const zh::scope &scope, zh::reply &reply)
+{
+	return get_template_processor().create_reply_from_template("license", scope, reply);
 }
 
 void affd_html_controller::download(const zh::request &request, const zh::scope &scope, zh::reply &reply)
