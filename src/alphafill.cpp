@@ -35,7 +35,7 @@
 
 #include <cif++.hpp>
 #include <mcfp/mcfp.hpp>
-#include <zeep/json/element.hpp>
+#include <zeep/el/object.hpp>
 
 #include <chrono>
 #include <fstream>
@@ -43,7 +43,7 @@
 
 namespace fs = std::filesystem;
 
-using json = zeep::json::element;
+using json = zeep::el::object;
 
 // --------------------------------------------------------------------
 
@@ -492,7 +492,7 @@ void check_blast_index()
 
 // --------------------------------------------------------------------
 
-zeep::json::element alphafill(cif::datablock &db, const std::string &source,
+zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 	const std::vector<PAE_matrix> &v_pae, alphafill_progress_cb &&progress)
 {
 	using namespace std::literals;
@@ -526,7 +526,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::string &source,
 	if (db.get_validator() == nullptr or (db.get_validator()->name() != "mmcif_pdbx.dic" and db.get_validator()->name() != "mmcif_ma.dic"))
 		db.set_validator(&cif::validator_factory::instance()["mmcif_pdbx.dic"]);
 
-	cif::mm::structure af_structure(db, 1, cif::mm::StructureOpenOptions::SkipHydrogen);
+	cif::mm::structure af_structure(db, 1, { .skip_hydrogen = true });
 
 	if (af_structure.polymers().empty())
 		throw std::runtime_error("Structure file does not seem to contain polymers, perhaps pdbx_poly_seq_scheme is missing?");
@@ -547,7 +547,7 @@ zeep::json::element alphafill(cif::datablock &db, const std::string &source,
 		{ "source", source }
 	};
 
-	json &hits = result["hits"] = json::array();
+	json &hits = result["hits"] = json(json::array_type);
 
 	// keep a LRU cache of mmCIF parsed files
 	std::list<std::tuple<std::string, std::shared_ptr<cif::file>>> mmCifFiles;
@@ -670,13 +670,15 @@ zeep::json::element alphafill(cif::datablock &db, const std::string &source,
 
 						mmCifFiles.emplace_front(pdb_id, cf);
 
-						// PDB-REDO files don't have the correct audit_conform records, sometimes
-						if (cf->get_validator() == nullptr or
-							cf->get_validator()->name() == "mmcif_ddl" or
-							cf->get_validator()->name() == "mmcif_ddl.dic")
-						{
-							cf->load_dictionary("mmcif_pdbx");
-						}
+						cf->front().load_dictionary();
+
+						// // PDB-REDO files don't have the correct audit_conform records, sometimes
+						// if (cf->get_validator() == nullptr or
+						// 	cf->get_validator()->name() == "mmcif_ddl" or
+						// 	cf->get_validator()->name() == "mmcif_ddl.dic")
+						// {
+						// 	cf->load_dictionary("mmcif_pdbx");
+						// }
 
 						ci = mmCifFiles.begin();
 
@@ -982,8 +984,8 @@ zeep::json::element alphafill(cif::datablock &db, const std::string &source,
 									// {"entity_id", entity_id},
 									{ "asym_id", asym_id },
 									{ "pdb_asym_id", res.get_asym_id() },
-									{ "pdb_auth_asym_id", res.get_auth_asym_id() },
-									{ "pdb_auth_seq_id", res.get_auth_seq_id() },
+									{ "pdb_auth_asym_id", res.get_pdb_strand_id() },
+									{ "pdb_auth_seq_id", res.get_pdb_seq_num() },
 									{ "local_rmsd", rmsd },
 									{ "analogue_id", analogue },
 									{ "clash", clashInfo } });
@@ -1257,7 +1259,7 @@ int alphafill_main(int argc, char *const argv[])
 		const auto &[type, af_id, chunk, version] = parse_af_id(filename.string());
 
 		// paein = xyzin.parent_path() / std::format("AF-{}-F{}-predicted_aligned_error_v{}.json", af_id, chunk, version);
-		paein = xyzin.parent_path() / cif::format("AF-%s-F%d-predicted_aligned_error_v%d.json", af_id, chunk, version).str();
+		paein = xyzin.parent_path() / cif::format("AF-{:%s}-F{:%d}-predicted_aligned_error_v{:%d}.json", af_id, chunk, version);
 	}
 
 	std::vector<PAE_matrix> v_pae;

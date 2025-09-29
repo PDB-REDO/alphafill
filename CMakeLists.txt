@@ -104,7 +104,7 @@ include(VersionString)
 write_version_header("${PROJECT_SOURCE_DIR}/src/")
 
 # Optionally use mrc to create resources
-find_package(Mrc QUIET)
+find_package(mrc QUIET)
 
 if(MRC_FOUND)
 	option(USE_RSRC "Use mrc to create resources" ON)
@@ -122,7 +122,7 @@ if(NOT cifpp_FOUND)
 	FetchContent_Declare(
 		cifpp
 		GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git
-		GIT_TAG v7.0.0)
+		GIT_TAG v7.1.0)
 	FetchContent_MakeAvailable(cifpp)
 
 	set(CIFPP_SHARE_DIR ${cifpp_SOURCE_DIR}/rsrc)
@@ -138,13 +138,13 @@ if(NOT mcfp_FOUND)
 	FetchContent_MakeAvailable(mcfp)
 endif()
 
-find_package(zeep 6.0.16 QUIET)
+find_package(zeep 7.1.0 QUIET)
 
 if(NOT zeep_FOUND)
 	FetchContent_Declare(
 		zeep
 		GIT_REPOSITORY https://github.com/mhekkel/libzeep.git
-		GIT_TAG v6.0.16)
+		GIT_TAG v7.1.0)
 	FetchContent_MakeAvailable(zeep)
 endif()
 

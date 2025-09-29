@@ -28,9 +28,10 @@
 
 #include <atomic>
 #include <filesystem>
+#include <mxml/serialize.hpp>
 #include <thread>
 
-#include <zeep/nvp.hpp>
+#include <zeep/el/serializer.hpp>
 
 #include <cif++.hpp>
 
@@ -49,10 +50,10 @@ struct compound
 	template<typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
-		ar & zeep::make_nvp("id", id)
-		   & zeep::make_nvp("analogue", analogue)
-		   & zeep::make_nvp("structure-count", count_structures)
-		   & zeep::make_nvp("transplant-count", count_transplants);
+		ar & mxml::name_value_pair("id", id)
+		   & mxml::name_value_pair("analogue", analogue)
+		   & mxml::name_value_pair("structure-count", count_structures)
+		   & mxml::name_value_pair("transplant-count", count_transplants);
 	}
 };
 
@@ -66,10 +67,10 @@ struct structure
 	template<typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
-		ar & zeep::make_nvp("name", name)
-		   & zeep::make_nvp("hit-count", count_hits)
-		   & zeep::make_nvp("transplant-count", count_transplants)
-		   & zeep::make_nvp("distinct-analogues", distinct_analogues);
+		ar & mxml::name_value_pair("name", name)
+		   & mxml::name_value_pair("hit-count", count_hits)
+		   & mxml::name_value_pair("transplant-count", count_transplants)
+		   & mxml::name_value_pair("distinct-analogues", distinct_analogues);
 	}
 };
 
@@ -87,9 +88,9 @@ struct status_reply
 	template<typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
-		ar & zeep::make_nvp("status", status)
-		   & zeep::make_nvp("progress", progress)
-		   & zeep::make_nvp("message", message);
+		ar & mxml::name_value_pair("status", status)
+		   & mxml::name_value_pair("progress", progress)
+		   & mxml::name_value_pair("message", message);
 	}
 };
 

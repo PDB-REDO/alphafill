@@ -32,8 +32,7 @@
 
 #include <cif++.hpp>
 
-#include <zeep/json/element.hpp>
-#include <zeep/json/parser.hpp>
+#include <zeep/el/object.hpp>
 
 #include <fstream>
 #include <iomanip>
@@ -45,9 +44,7 @@
 #undef near
 #endif
 
-namespace fs = std::filesystem;
-
-using json = zeep::json::element;
+using json = zeep::el::object;
 
 // --------------------------------------------------------------------
 
@@ -417,7 +414,7 @@ float ClashScore(cif::datablock &db, float maxDistance)
 
 // --------------------------------------------------------------------
 
-zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae)
+zeep::el::object calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae)
 {
 	auto maxDistanceSq = maxDistance * maxDistance;
 
@@ -447,7 +444,7 @@ zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_
 		}
 	}
 
-	zeep::json::element result;
+	zeep::el::object result;
 	auto &pae_s = result["matrix"];
 
 	std::vector<float> vt;
@@ -520,7 +517,7 @@ zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_
 
 // --------------------------------------------------------------------
 
-zeep::json::element calculateValidationScores(
+zeep::el::object calculateValidationScores(
 	cif::datablock af_db, const std::string &asym_id,
 	const std::vector<cif::mm::residue *> &pdb_res,
 	const std::vector<size_t> &af_ix, const std::vector<size_t> &pdb_ix,

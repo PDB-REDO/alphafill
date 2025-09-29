@@ -34,11 +34,11 @@
 #include "utilities.hpp"
 
 #include <zeep/crypto.hpp>
+#include <zeep/el/serializer.hpp>
 #include <zeep/http/daemon.hpp>
 #include <zeep/http/html-controller.hpp>
-#include <zeep/http/rest-controller.hpp>
 #include <zeep/http/uri.hpp>
-#include <zeep/json/parser.hpp>
+#include <zeep/el/object.hpp>
 
 #include <cif++.hpp>
 #include <mcfp/mcfp.hpp>
@@ -79,7 +79,7 @@ class af_link_template_object : public zh::expression_utility_object<af_link_tem
 		{
 			try
 			{
-				auto id = parameters.front().as<std::string>();
+				auto id = parameters.front().get<std::string>();
 				std::regex rx(R"([0-9][0-9a-z]{3}(?:\.[a-z]+))", std::regex_constants::icase);
 
 				if (std::regex_match(id, rx))
@@ -90,7 +90,7 @@ class af_link_template_object : public zh::expression_utility_object<af_link_tem
 				while ((s = url.find("${id}")) != std::string::npos)
 					url.replace(s, 5, id);
 
-				to_element(result, url);
+				result = zeep::el::to_object(url);
 			}
 			catch (const std::exception &e)
 			{
@@ -149,34 +149,36 @@ bool missing_entry_error_handler::create_error_reply(const zeep::http::request &
 
 // --------------------------------------------------------------------
 
-class affd_html_controller : public zh::html_controller
+class affd_html_controller : public zh::html_controller_v1
 {
   public:
 	affd_html_controller()
 	{
-		mount("{,index,index.html}", &affd_html_controller::welcome);
+		map_get("{,index,index.html}", &affd_html_controller::welcome, "id");
+		map_get("structures", &affd_html_controller::structures, "compound", "identity");
+
 		mount("model", &affd_html_controller::model);
 		mount("optimized", &affd_html_controller::optimized);
-		mount("structures", &affd_html_controller::structures);
 		mount("compounds", &affd_html_controller::compounds);
 		mount("about", &affd_html_controller::about);
 		mount("download", &affd_html_controller::download);
-		mount("{css,scripts,fonts,images}/", &affd_html_controller::handle_file);
-		mount("browserconfig.xml", &affd_html_controller::handle_file);
+		map_get_file("{css,scripts,fonts,images}/");
+		map_get_file("browserconfig.xml");
 		mount("alphafill.json.schema", &affd_html_controller::schema);
-		mount("favicon.ico", &affd_html_controller::handle_file);
+		map_get_file("favicon.ico");
 
 		mount("structure-table-page", &affd_html_controller::structures_table);
 
 		mount("{manual,man,genindex}/", &affd_html_controller::handle_help_file);
-		mount("_static/", &affd_html_controller::handle_file);
+		map_get_file("_static/");
 	}
 
-	void welcome(const zh::request &request, const zh::scope &scope, zh::reply &reply);
+	zh::reply welcome(const zh::scope &scope, std::optional<int> id);
+	zh::reply structures(const zh::scope &scope, std::optional<std::string> compound, std::optional<int> identity);
+	void compounds(const zh::request &request, const zh::scope &scope, zh::reply &reply);
+
 	void model(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void optimized(const zh::request &request, const zh::scope &scope, zh::reply &reply);
-	void structures(const zh::request &request, const zh::scope &scope, zh::reply &reply);
-	void compounds(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void about(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void download(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void schema(const zh::request &request, const zh::scope &scope, zh::reply &reply);
@@ -185,69 +187,59 @@ class affd_html_controller : public zh::html_controller
 	void handle_help_file(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 };
 
-void affd_html_controller::welcome(const zh::request &request, const zh::scope &scope, zh::reply &reply)
+zh::reply affd_html_controller::welcome(const zh::scope &scope, std::optional<int> id)
 {
-	if (request.has_parameter("id"))
+	if (id.has_value())
 	{
-		zeep::http::uri uri(request.get_uri());
-		std::string afId = request.get_parameter("id");
-
-		reply = zeep::http::reply::redirect(uri.get_path().string() + "model?id=" + zeep::http::encode_url(afId));
-		return;
+		zeep::http::uri uri = scope.get_request().get_uri();
+		return zeep::http::reply::redirect(uri.get_path().string() + "model?id=" + zeep::http::encode_url(*id));
 	}
 
-	return get_template_processor().create_reply_from_template("index", scope, reply);
+	return get_template_processor().create_reply_from_template("index", scope);
 }
 
-void affd_html_controller::structures(const zh::request &request, const zh::scope &scope, zh::reply &reply)
+zh::reply affd_html_controller::structures(const zh::scope &scope, std::optional<std::string> compound, std::optional<int> identity)
 {
-	using json = zeep::json::element;
+	using json = zeep::el::object;
 
 	zh::scope sub(scope);
 
 	auto &ds = data_service::instance();
 
-	std::string compound;
-	if (request.has_parameter("compound"))
-		compound = request.get_parameter("compound");
-
-	int identity = kMaxIdentity;
-	if (request.has_parameter("identity"))
-		identity = std::stoi(request.get_parameter("identity"));
-
-	if (identity < kMinIdentity)
+	if (not identity.has_value())
+		identity = kMaxIdentity;
+	else if (*identity < kMinIdentity)
 		identity = kMinIdentity;
-	if (identity > 100)
+	else if (*identity > 100)
 		identity = 100;
 
-	sub.put("identity", identity);
+	sub.put("identity", *identity);
 
-	json structures;
 	auto allstructures =
-		compound.empty()
-			? ds.get_structures(identity * 0.01f, 0, kPageSize)
-			: ds.get_structures_for_compound(identity * 0.01f, compound, 0, kPageSize);
-	to_element(structures, allstructures);
+		compound.has_value()
+		? ds.get_structures_for_compound(*identity * 0.01f, *compound, 0, kPageSize)
+			: ds.get_structures(*identity * 0.01f, 0, kPageSize);
+	json structures = zeep::el::to_object(allstructures);
 	sub.put("structures", structures);
 
 	sub.put("structure-count",
-		compound.empty()
-			? ds.count_structures(identity * 0.01f)
-			: ds.count_structures(identity * 0.01f, compound));
+		compound.has_value()
+			? ds.count_structures(*identity * 0.01f, *compound))
+			: ds.count_structures(*identity * 0.01f);
 	sub.put("page-size", kPageSize);
 	sub.put("page", 1);
 
-	if (not compound.empty())
-		sub.put("compound", compound);
+	if (compound.has_value())
+		sub.put("compound", *compound);
 
-	return get_template_processor().create_reply_from_template("structures", sub, reply);
+	return get_template_processor().create_reply_from_template("structures", sub);
 }
 
 void affd_html_controller::structures_table(const zh::request &request, const zh::scope &scope, zh::reply &reply)
 {
 	int page = request.get_parameter("page", 0);
 
-	using json = zeep::json::element;
+	using json = zeep::el::object;
 
 	zh::scope sub(scope);
 
@@ -281,7 +273,7 @@ void affd_html_controller::structures_table(const zh::request &request, const zh
 
 void affd_html_controller::compounds(const zh::request &request, const zh::scope &scope, zh::reply &reply)
 {
-	using json = zeep::json::element;
+	using json = zeep::el::object;
 
 	zh::scope sub(scope);
 
@@ -374,7 +366,7 @@ struct transplant_info
 
 void affd_html_controller::model(const zh::request &request, const zh::scope &scope, zh::reply &reply)
 {
-	using json = zeep::json::element;
+	using json = zeep::el::object;
 
 	zh::scope sub(scope);
 
@@ -471,7 +463,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 		{
 			for (auto &hit : data["hits"])
 			{
-				if (hit["alignment"]["identity"].as<double>() * 100 < i)
+				if (hit["alignment"]["identity"].get<double>() * 100 < i)
 					continue;
 
 				identity = i;
@@ -489,7 +481,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 	std::vector<transplant_info> transplants;
 	for (auto &hit : data["hits"])
 	{
-		double hitIdentity = hit["alignment"]["identity"].as<double>();
+		double hitIdentity = hit["alignment"]["identity"].get<double>();
 		if (hitIdentity * 100 < identity)
 			continue;
 
@@ -502,23 +494,23 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 				for (auto &row : transplant["pae"]["matrix"])
 				{
 					for (auto &f : row)
-						pae.push_back(f.as<uint8_t>());
+						pae.push_back(f.get<uint8_t>());
 				}
 			}
 
 			transplants.emplace_back(transplant_info{
-				transplant["compound_id"].as<std::string>(),
-				transplant["analogue_id"].as<std::string>(),
+				transplant["compound_id"].get<std::string>(),
+				transplant["analogue_id"].get<std::string>(),
 				hit_nr,
-				hit["pdb_id"].as<std::string>() + '.' + hit["pdb_asym_id"].as<std::string>(),
+				hit["pdb_id"].get<std::string>() + '.' + hit["pdb_asym_id"].get<std::string>(),
 				hitIdentity,
-				hit["global_rmsd"].as<double>(),
-				transplant["asym_id"].as<std::string>(),
-				transplant["clash"]["score"].as<double>(),
-				transplant["local_rmsd"].as<double>(),
+				hit["global_rmsd"].get<double>(),
+				transplant["asym_id"].get<std::string>(),
+				transplant["clash"]["score"].get<double>(),
+				transplant["local_rmsd"].get<double>(),
 				std::move(pae),
-				transplant["pae"]["mean"].as<double>(),
-				transplant["pae"]["stddev"].as<double>() });
+				transplant["pae"]["mean"].get<double>(),
+				transplant["pae"]["stddev"].get<double>() });
 		}
 	}
 
@@ -588,7 +580,7 @@ void affd_html_controller::model(const zh::request &request, const zh::scope &sc
 
 void affd_html_controller::optimized(const zh::request &request, const zh::scope &scope, zh::reply &reply)
 {
-	using json = zeep::json::element;
+	using json = zeep::el::object;
 
 	zh::scope sub(scope);
 
@@ -667,7 +659,7 @@ void affd_html_controller::handle_help_file(const zh::request &request, const zh
 {
 	zh::scope sub(scope);
 
-	fs::path file = scope["baseuri"].as<std::string>();
+	fs::path file = scope["baseuri"].get<std::string>();
 	file /= "index.html";
 
 	sub.put("baseuri", file.string());
@@ -701,8 +693,8 @@ class affd_rest_controller : public zh::rest_controller
 	zh::reply get_aff_structure(const std::string &af_id);
 	status_reply get_aff_status(const std::string &af_id);
 
-	zeep::json::element get_aff_structure_json(const std::string &af_id);
-	zeep::json::element get_aff_3d_beacon(std::string id, std::string version);
+	zeep::el::object get_aff_structure_json(const std::string &af_id);
+	zeep::el::object get_aff_3d_beacon(std::string id, std::string version);
 
 	zh::reply get_aff_structure_stripped_def(const std::string &id, const std::optional<std::string> &asyms)
 	{
@@ -716,7 +708,7 @@ class affd_rest_controller : public zh::rest_controller
 
 	// --------------------------------------------------------------------
 
-	zeep::json::element post_custom_structure(const std::string &data, const std::optional<std::string> pae);
+	zeep::el::object post_custom_structure(const std::string &data, const std::optional<std::string> pae);
 };
 
 status_reply affd_rest_controller::get_aff_status(const std::string &af_id)
@@ -870,7 +862,7 @@ zh::reply affd_rest_controller::get_aff_structure_optimized_with_stats(const std
 	return rep;
 }
 
-zeep::json::element affd_rest_controller::get_aff_structure_json(const std::string &af_id)
+zeep::el::object affd_rest_controller::get_aff_structure_json(const std::string &af_id)
 {
 	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
 
@@ -879,7 +871,7 @@ zeep::json::element affd_rest_controller::get_aff_structure_json(const std::stri
 	if (not fs::exists(file))
 		throw zeep::http::not_found;
 
-	zeep::json::element result;
+	zeep::el::object result;
 
 	std::ifstream is(file);
 	parse_json(is, result);
@@ -887,7 +879,7 @@ zeep::json::element affd_rest_controller::get_aff_structure_json(const std::stri
 	return result;
 }
 
-zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, std::string version_3dbeacons)
+zeep::el::object affd_rest_controller::get_aff_3d_beacon(std::string af_id, std::string version_3dbeacons)
 {
 	using namespace cif::literals;
 
@@ -940,9 +932,9 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 	int uniprot_start, uniprot_end;
 	cif::tie(uniprot_start, uniprot_end) = struct_ref_seq.front().get("db_align_beg", "db_align_end");
 
-	std::string db_code = struct_ref.front()["db_code"].as<std::string>();
+	std::string db_code = struct_ref.front()["db_code"].get<std::string>();
 
-	zeep::json::element result{
+	zeep::el::object result{
 		{ "uniprot_entry", { //
 							   { "ac", id },
 							   { "id", db_code },
@@ -951,7 +943,7 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 
 	if (version_major >= 2)
 	{
-		zeep::json::element summary{
+		zeep::el::object summary{
 			{ "model_identifier", id },
 			{ "model_category", "TEMPLATE-BASED" },
 			{ "model_url", "https://alphafill.eu/v1/aff/" + id },
@@ -1015,7 +1007,7 @@ zeep::json::element affd_rest_controller::get_aff_3d_beacon(std::string af_id, s
 
 // --------------------------------------------------------------------
 
-zeep::json::element affd_rest_controller::post_custom_structure(const std::string &data, const std::optional<std::string> pae)
+zeep::el::object affd_rest_controller::post_custom_structure(const std::string &data, const std::optional<std::string> pae)
 {
 	auto id = "CS-" + zeep::encode_hex(zeep::sha1(data));
 

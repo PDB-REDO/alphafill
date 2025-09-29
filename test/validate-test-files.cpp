@@ -1,7 +1,7 @@
 #include <mcfp/mcfp.hpp>
 
 #include <cif++.hpp>
-#include <zeep/json/parser.hpp>
+#include <zeep/el/object.hpp>
 
 #include <fstream>
 
@@ -38,8 +38,7 @@ int main(int argc, char * const argv[])
 		exit(1);
 	}
 
-	zeep::json::element jdata;
-	zeep::json::parse_json(json_in, jdata);
+	auto jdata = zeep::el::object::parse_JSON(json_in);
 
 	auto hits = jdata["hits"];
 	if (not hits.is_array() or hits.empty())

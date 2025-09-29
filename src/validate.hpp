@@ -29,7 +29,7 @@
 #include "ligands.hpp"
 #include "alphafill.hpp"
 
-#include <zeep/json/element.hpp>
+#include <zeep/el/object.hpp>
 
 #include <filesystem>
 #include <tuple>
@@ -62,13 +62,13 @@ struct CAtom
 	std::string id;
 };
 
-std::tuple<int, zeep::json::element> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance);
+std::tuple<int, zeep::el::object> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance);
 
 float ClashScore(cif::datablock &db, float maxDistance = 4);
 
 // --------------------------------------------------------------------
 
-zeep::json::element calculateValidationScores(
+zeep::el::object calculateValidationScores(
 	cif::datablock af_db, const std::string &asym_id,
 	const std::vector<cif::mm::residue *> &pdb_res,
 	const std::vector<size_t> &af_ix, const std::vector<size_t> &pdb_ix,
@@ -77,4 +77,4 @@ zeep::json::element calculateValidationScores(
 
 // --------------------------------------------------------------------
 
-zeep::json::element calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae);
+zeep::el::object calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae);

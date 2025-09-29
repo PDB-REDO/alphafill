@@ -42,7 +42,7 @@
 #include <cif++.hpp>
 
 #include <zeep/http/reply.hpp>
-#include <zeep/json/parser.hpp>
+#include <zeep/el/object.hpp>
 
 #include "bsd-closefrom.h"
 
@@ -53,7 +53,7 @@
 
 namespace fs = std::filesystem;
 
-using json = zeep::json::element;
+using json = zeep::el::object;
 
 // --------------------------------------------------------------------
 
@@ -71,7 +71,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	// optionally remove asyms whose blast origin's identity is too low
 	if (identity > 0)
 	{
-		using json = zeep::json::element;
+		using json = zeep::el::object;
 
 		fs::path jsonFile = file_locator::get_metadata_file(type, id, chunkNr, version);
 

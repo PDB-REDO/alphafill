@@ -29,9 +29,9 @@
 #pragma once
 
 #include <zeep/http/reply.hpp>
-#include <zeep/json/element.hpp>
+#include <zeep/el/object.hpp>
 
 zeep::http::reply simple_request(std::string url, std::vector<zeep::http::header> headers = {});
 zeep::http::reply head_request(std::string url, std::vector<zeep::http::header> headers = {});
 
-zeep::http::reply post_request(std::string url, std::vector<zeep::http::header> headers, zeep::json::element&& payload);
+zeep::http::reply post_request(std::string url, std::vector<zeep::http::header> headers, zeep::el::object&& payload);

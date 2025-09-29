@@ -31,8 +31,7 @@
 #include <cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
-#include <zeep/json/element.hpp>
-#include <zeep/json/parser.hpp>
+#include <zeep/el/object.hpp>
 
 #include "revision.hpp"
 #include "utilities.hpp"
@@ -204,7 +203,7 @@ std::vector<cif::mm::residue *> get_residues_for_chain_id(cif::mm::structure &st
 
 	for (auto &poly : structure.polymers())
 	{
-		if (poly.get_auth_asym_id() != chain_id)
+		if (poly.get_pdb_strand_id() != chain_id)
 			continue;
 
 		for (auto &res : poly)
@@ -298,14 +297,12 @@ sequence getSequenceForStrand(cif::datablock &db, const std::string &strand)
 
 std::vector<cif::matrix<uint8_t>> load_pae_from_file(const std::filesystem::path &file)
 {
-	zeep::json::element data;
-
 	cif::gzio::ifstream in(file);
 
 	if (not in.is_open())
 		throw std::runtime_error("Could not open PAE file " + file.string());
 
-	zeep::json::parse_json(in, data);
+	auto data = zeep::el::object::parse_JSON(in);
 
 	if (not data.is_array())
 		throw std::runtime_error("Unexpected JSON result for PAE");

@@ -34,7 +34,7 @@
 #include <cif++.hpp>
 #include <mcfp/mcfp.hpp>
 #include <zeep/http/uri.hpp>
-#include <zeep/json/parser.hpp>
+#include <zeep/el/object.hpp>
 
 #include <forward_list>
 #include <fstream>
@@ -259,7 +259,7 @@ uint32_t data_service::count_structures(float min_identity, const std::string &c
 
 int data_service::rebuild()
 {
-	using json = zeep::json::element;
+	using json = zeep::el::object;
 
 	auto &config = mcfp::config::instance();
 
@@ -301,7 +301,7 @@ int data_service::rebuild()
 		if (e.is_null())
 			return std::string{ "\\N" };
 		else
-			return e.as<std::string>();
+			return e.get<std::string>();
 	};
 
 	for (size_t i = 0; i < std::max(1UL, config.get<size_t>("threads")); ++i)
@@ -320,10 +320,9 @@ int data_service::rebuild()
 					{
 						std::ifstream in(file);
 
-						zeep::json::element data;
-						zeep::json::parse_json(in, data);
+						zeep::el::object data = zeep::el::object::parse_JSON(in);
 
-						std::string id = data["id"].as<std::string>();
+						std::string id = data["id"].get<std::string>();
 
 						if (id == "nohd" or data["file"].is_null())
 							continue;
@@ -346,9 +345,9 @@ int data_service::rebuild()
 							// id, af_id, identity, length, pdb_asym_id, pdb_id, rmsd
 							auto pdb_hit_id = ++next_pdb_hit_id;
 							pdb_hits_i = pdb_hits.emplace_after(pdb_hits_i,
-								pdb_hit_id, structure_id, hit["alignment"]["identity"].as<double>(),
-								hit["alignment"]["length"].as<int64_t>(), as_string(hit["pdb_asym_id"]),
-								as_string(hit["pdb_id"]), hit["global_rmsd"].as<double>());
+								pdb_hit_id, structure_id, hit["alignment"]["identity"].get<double>(),
+								hit["alignment"]["length"].get<int64_t>(), as_string(hit["pdb_asym_id"]),
+								as_string(hit["pdb_id"]), hit["global_rmsd"].get<double>());
 
 							for (auto &transplant : hit["transplants"])
 							{
@@ -357,7 +356,7 @@ int data_service::rebuild()
 								transplants_i = transplants.emplace_after(transplants_i,
 									transplant_id, pdb_hit_id, as_string(transplant["asym_id"]),
 									as_string(transplant["compound_id"]), as_string(transplant["analogue_id"]),
-									as_string(transplant["entity_id"]), transplant["local_rmsd"].as<double>());
+									as_string(transplant["entity_id"]), transplant["local_rmsd"].get<double>());
 							}
 						}
 					}
@@ -471,10 +470,9 @@ bool data_service::exists_in_afdb(const std::string &id) const
 
 	if (rep.get_status() == zeep::http::ok)
 	{
-		zeep::json::element rep_j;
-		zeep::json::parse_json(rep.get_content(), rep_j);
+		zeep::el::object rep_j = zeep::el::object::parse_JSON(rep.get_content());
 
-		url = rep_j["structures"][0]["summary"]["model_url"].as<std::string>();
+		url = rep_j["structures"][0]["summary"]["model_url"].get<std::string>();
 
 		rep = head_request(url, { { "Accept-Encoding", "gzip" } });
 
@@ -499,10 +497,9 @@ std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_
 	if (rep.get_status() != zeep::http::ok)
 		throw std::runtime_error("The ID " + id + " was not found at AlphaFold");
 
-	zeep::json::element rep_j;
-	zeep::json::parse_json(rep.get_content(), rep_j);
+	zeep::el::object rep_j = zeep::el::object::parse_JSON(rep.get_content());
 
-	url = rep_j["structures"][0]["summary"]["model_url"].as<std::string>();
+	url = rep_j["structures"][0]["summary"]["model_url"].get<std::string>();
 
 	zeep::http::uri uri(url);
 
@@ -688,7 +685,7 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 void data_service::run()
 {
 	using namespace std::literals;
-	using namespace date;
+	// using namespace date;
 	using namespace std::chrono;
 
 	for (;;)
