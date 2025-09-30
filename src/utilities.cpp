@@ -152,20 +152,20 @@ std::vector<std::filesystem::path> file_locator::get_all_structure_files(const s
 
 // --------------------------------------------------------------------
 
-fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id)
+fs::path pdbFileForID(const fs::path &pdbDir, std::string pdb_id, std::error_code &ec)
 {
 	for (auto &ch : pdb_id)
 		ch = std::tolower(ch);
 
 	// try a PDB-REDO layout first
 	fs::path pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif");
-	if (not fs::exists(pdb_path))
+	if (not fs::exists(pdb_path, ec))
 		pdb_path = pdbDir / pdb_id.substr(1, 2) / pdb_id / (pdb_id + "_final.cif.gz");
-	if (not fs::exists(pdb_path))
+	if (not fs::exists(pdb_path, ec))
 		pdb_path = pdbDir / pdb_id.substr(1, 2) / (pdb_id + ".cif.gz");
 
-	if (not fs::exists(pdb_path))
-		throw std::runtime_error("PDB file for " + pdb_id + " not found");
+	if (not fs::exists(pdb_path, ec))
+		pdb_path.clear();
 
 	return pdb_path;
 }
@@ -325,7 +325,7 @@ std::vector<cif::matrix<uint8_t>> load_pae_from_file(const std::filesystem::path
 		for (size_t i = 0; i < len; ++i)
 		{
 			for (size_t j = 0; j < len; ++j)
-				m(i, j) = pae[i][j].as<int>();
+				m(i, j) = pae[i][j].get<int>();
 		}
 	}
 

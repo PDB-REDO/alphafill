@@ -37,3 +37,6 @@ src/config.hpp
 **/*.log
 **/*.tsv
 docs/man/alphafill.conf.rst
+.cache/
+
+docroot/.buildinfo.bak

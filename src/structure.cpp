@@ -24,6 +24,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cif++/validate.hpp>
 #include <fcntl.h>
 #include <fstream>
 #include <future>
@@ -78,27 +79,26 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 		if (not fs::exists(jsonFile))
 			throw zeep::http::not_found;
 
-		json data;
-
 		std::ifstream is(jsonFile);
-		parse_json(is, data);
+
+		json data = zeep::el::object::parse_JSON(is);
 
 		for (auto &hit : data["hits"])
 		{
-			float hi = hit["alignment"]["identity"].as<float>();
+			float hi = hit["alignment"]["identity"].get<float>();
 			if (hi >= identity * 0.01f)
 				continue;
 
 			for (auto &transplant : hit["transplants"])
-				requestedAsyms.erase(transplant["asym_id"].as<std::string>());
+				requestedAsyms.erase(transplant["asym_id"].get<std::string>());
 		}
 	}
 
 	cif::file cif(file);
 	auto &db = cif.front();
 
-	if (cif.get_validator() == nullptr)
-		cif.load_dictionary("mmcif_af");
+	if (cif.front().get_validator() == nullptr)
+		cif.front().set_validator(&cif::validator_factory::instance().get("mmcif_pdbx.dic"));
 
 	auto &struct_asym = db["struct_asym"];
 	auto &atom_site = db["atom_site"];
@@ -172,10 +172,10 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 	auto &db_i = fin.front();
 	auto &db_y = yin.front();
 
-	json info;
 	const auto &[type, afID, chunkNr, version] = parse_af_id(db_i.name());
 	std::ifstream infoFile(file_locator::get_metadata_file(type, afID, chunkNr, version));
-	zeep::json::parse_json(infoFile, info);
+
+	json info = zeep::el::object::parse_JSON(infoFile);
 
 	// statistics before
 

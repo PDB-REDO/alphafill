@@ -39,6 +39,7 @@
 #include <thread>
 
 #include <cassert>
+#include <zeep/el/serializer.hpp>
 
 #ifdef near
 #undef near
@@ -464,7 +465,7 @@ zeep::el::object calculatePAEScore(const std::vector<cif::mm::residue *> &af_res
 				vt.emplace_back(pae_v);
 		}
 
-		pae_s.push_back(v);
+		pae_s.push_back(zeep::el::to_object(v));
 	}
 
 	size_t N = (index.size() * (index.size() - 1));

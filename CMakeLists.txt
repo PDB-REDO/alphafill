@@ -116,13 +116,13 @@ endif()
 set(SAVE_BUILD_TESTING ${BUILD_TESTING})
 set(BUILD_TESTING OFF)
 
-find_package(cifpp 7 QUIET)
+find_package(cifpp 9.0.4 QUIET)
 
 if(NOT cifpp_FOUND)
 	FetchContent_Declare(
 		cifpp
 		GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git
-		GIT_TAG v7.1.0)
+		GIT_TAG v9.0.4)
 	FetchContent_MakeAvailable(cifpp)
 
 	set(CIFPP_SHARE_DIR ${cifpp_SOURCE_DIR}/rsrc)
@@ -138,13 +138,13 @@ if(NOT mcfp_FOUND)
 	FetchContent_MakeAvailable(mcfp)
 endif()
 
-find_package(zeep 7.1.0 QUIET)
+find_package(zeep 7.2.0 QUIET)
 
 if(NOT zeep_FOUND)
 	FetchContent_Declare(
 		zeep
 		GIT_REPOSITORY https://github.com/mhekkel/libzeep.git
-		GIT_TAG v7.1.0)
+		GIT_TAG v7.2.0)
 	FetchContent_MakeAvailable(zeep)
 endif()
 
@@ -155,7 +155,7 @@ if(BUILD_WEB_APPLICATION)
 		FetchContent_Declare(
 			libpqxx
 			GIT_REPOSITORY https://github.com/jtv/libpqxx
-			GIT_TAG 7.8.0)
+			GIT_TAG 7.10.1)
 		FetchContent_MakeAvailable(libpqxx)
 	endif()
 
