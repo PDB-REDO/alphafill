@@ -1,5 +1,4 @@
 import "core-js/stable";
-import "regenerator-runtime/runtime";
 import 'bootstrap';
 import 'pdbe-molstar/build/pdbe-molstar-component';
 
