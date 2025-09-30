@@ -1,3 +1,8 @@
+Version 2.3.0
+- Using new libcifpp, version 9
+- Using new libzeep, version 7.2
+- Updated NPM modules
+
 Version 2.2.0
 - Added option to write out source of data into json file
 - Updated node modules
