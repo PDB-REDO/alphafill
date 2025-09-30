@@ -164,6 +164,8 @@ class affd_html_controller : public zh::html_controller
 
 		map_get_simple("about", "about");
 		map_get_simple("download", "download");
+		map_get_simple("license", "license");
+
 		map_get_file("{css,scripts,fonts,images}/");
 		map_get_file("browserconfig.xml");
 		map_get("alphafill.json.schema", &affd_html_controller::schema);
