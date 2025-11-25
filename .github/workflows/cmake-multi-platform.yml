@@ -31,9 +31,9 @@ jobs:
     - name: Set reusable strings
       id: strings
       shell: bash
-      run:
-        echo "build-output-dir=${{ github.workspace }}/main/build" >> "$GITHUB_OUTPUT"
-        echo "libcifpp-output-dir=${{ github.workspace }}/libcifpp/build" >> "$GITHUB_OUTPUT"
+      run: >
+        echo "build-output-dir=${{ github.workspace }}/main/build
+        libcifpp-output-dir=${{ github.workspace }}/libcifpp/build" >> "$GITHUB_OUTPUT"
 
     - name: Install dependencies Ubuntu
       if: matrix.os == 'ubuntu-latest'
