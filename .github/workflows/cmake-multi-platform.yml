@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "trunk" ]
 
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -25,11 +29,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: Set reusable strings
-      id: strings
-      shell: bash
-      run: echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+      with:
+        path: main
 
     - name: Install dependencies Ubuntu
       if: matrix.os == 'ubuntu-latest'
@@ -38,12 +39,10 @@ jobs:
 
     - name: Install Boost Windows
       if: matrix.os == 'windows-latest'
-      uses: MarkusJx/install-boost@v2.4.4
+      uses: MarkusJx/install-boost@v2.5.1
       id: install-boost
       with:
           boost_version: 1.82.0
-          platform_version: 2019
-          toolset: msvc
 
     - name: Install ZLib Window
       if: matrix.os == 'windows-latest'
@@ -55,22 +54,34 @@ jobs:
       run: >
         brew install boost
 
+    - name: Checkout libcifpp
+      uses: actions/checkout@v4
+      with:
+        repository: pdb-redo/libcifpp
+        path: libcifpp
+
+    - name: Build & install libcifpp
+      run: |
+        cmake -B ${{github.workspace}}/libcifpp/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -S ${{github.workspace}}/libcifpp -DBUILD_DOCUMENTATION=OFF -DBUILD_TESTING=OFF
+        cmake --build ${{github.workspace}}/libcifpp/build
+        sudo cmake --install ${{github.workspace}}/libcifpp/build
+
     - name: Configure CMake
       env:
         BOOST_ROOT: ${{ steps.install-boost.outputs.BOOST_ROOT }}
       run: >
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        cmake -B ${{github.workspace}}/main/build
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_BUILD_TYPE=Release
-        -S ${{ github.workspace }}
+        -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        -S ${{ github.workspace }}/main
         
     - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config Release
+      run: cmake --build ${{github.workspace}}/main/build --config ${{env.BUILD_TYPE}}
       
     - name: Test
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: ctest --build-config Release --output-on-failure
+      working-directory: ${{github.workspace}}/main/build
+      run: ctest --build-config ${{env.BUILD_TYPE}} --output-on-failure
 
     - name: Install
       if: matrix.os != 'windows-latest'
-      run: sudo cmake --install ${{ steps.strings.outputs.build-output-dir }} --config Release
+      run: sudo cmake --install ${{github.workspace}}/main/build --config ${{env.BUILD_TYPE}}
