@@ -31,9 +31,8 @@ jobs:
     - name: Set reusable strings
       id: strings
       shell: bash
-      run: >
-        echo "build-output-dir=${{ github.workspace }}/main/build
-        libcifpp-output-dir=${{ github.workspace }}/libcifpp/build" >> "$GITHUB_OUTPUT"
+      run:
+        echo "build-output-dir=${{ github.workspace }}/main/build" >> "$GITHUB_OUTPUT"
 
     - name: Install dependencies Ubuntu
       if: matrix.os == 'ubuntu-latest'
@@ -67,16 +66,16 @@ jobs:
 
     - name: Configure libcifpp
       run: >
-        cmake -B ${{ steps.strings.outputs.libcifpp-output-dir }}
+        cmake ${{ github.workspace }}/libcifpp/build
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_BUILD_TYPE=Release
         -S ${{ github.workspace }}/libcifpp
 
     - name: Build libcifpp
-      run: cmake --build ${{ steps.strings.outputs.libcifpp-output-dir }}
+      run: cmake --build ${{ github.workspace }}/libcifpp/build
 
     - name: Install libcifpp
-      run: cmake --install ${{ steps.strings.outputs.libcifpp-output-dir }}
+      run: cmake --install ${{ github.workspace }}/libcifpp/build
 
     - name: Configure CMake
       env:
