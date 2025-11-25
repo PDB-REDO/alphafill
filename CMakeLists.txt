@@ -112,8 +112,9 @@ set(BUILD_TESTING OFF)
 CPMFindPackage(
     NAME cifpp
     GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git
-    GIT_TAG v9.0.4
-    EXCLUDE_FROM_ALL YES)
+    GIT_TAG v9.0.5
+    EXCLUDE_FROM_ALL YES
+	OPTIONS "BUILD_DOCUMENTATION OFF")
 
 CPMFindPackage(
     NAME mcfp
@@ -351,10 +352,8 @@ if(BUILD_TESTING)
 
     # If cifpp was not found, it means it was not installed so we might not have a
     # proper CIFPP_SHARE_DIR and the the tests will fail
-    if(NOT cifpp_FOUND)
-        set_property(TEST run_process_test
-            PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
-        set_property(TEST validate_files_test
-            PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
-    endif()
+	set_property(TEST run_process_test
+		PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
+	set_property(TEST validate_files_test
+		PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
 endif()
