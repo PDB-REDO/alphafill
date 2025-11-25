@@ -34,21 +34,16 @@ cmake_minimum_required(VERSION 3.15)
 
 
 #[=======================================================================[.rst:
-.. command:: write_version_header
+.. command:: add_version_header
 
   Write a file named revision.hpp containing version info::
 
-	write_version_header(<destdir>
-	                     [FILE_NAME <file-name>]
-						 [LIB_NAME <library-name>]
+	add_version_header(<target> <filename>
+	                     [LIB_NAME <library-name>]
 	                    )
   
-  This command will generate the code to write a file name
-  revision.hpp in the directory ``<destdir>``.
+  This command will generate the code to write a file named ``<filename>``.
   
-  ``FILE_NAME``
-	Specify the name of the file to create, default is ``revision.hpp``.
-
   ``LIB_NAME``
 	Specify the library name which will be used as a prefix part for the
 	variables contained in the revision file.
@@ -199,23 +194,12 @@ endif()
 endfunction()
 
 # Create a revision file, containing the current git version info, if any
-function(write_version_header dir)
+function(add_version_header _target _header_file)
 
 	set(flags )
-	set(options LIB_NAME FILE_NAME)
+	set(options LIB_NAME)
 	set(sources )
 	cmake_parse_arguments(VERSION_STRING_OPTION "${flags}" "${options}" "${sources}" ${ARGN})
-
-	# parameter check
-	if(NOT IS_DIRECTORY ${dir})
-		message(FATAL_ERROR "First parameter to write_version_header should be a directory where the final revision.hpp file will be placed")
-	endif()
-
-	if(VERSION_STRING_OPTION_FILE_NAME)
-		set(file_name "${VERSION_STRING_OPTION_FILE_NAME}")
-	else()
-		set(file_name "revision.hpp")
-	endif()
 
 	# Where to store intermediate files
 	set(VERSION_STRING_DATA "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/VersionString")
@@ -237,7 +221,11 @@ function(write_version_header dir)
 
 		if(res EQUAL 0)
 			set(REVISION_STRING "${out}")
+		else()
+			message(STATUS "Git hash not found, does this project have a 'build' tag?")
 		endif()
+	else()
+		message(STATUS "Git hash not found")
 	endif()
 
 	# Check the revision string, if it matches we fill in the required info
@@ -266,6 +254,27 @@ function(write_version_header dir)
 		set(BOOL_IS_MAIN "true")
 	endif()
 
-	configure_file("${_current_cmake_module_dir}/revision.hpp.in" "${dir}/${file_name}" @ONLY)
+	set(HEADER_IN_FILE "${_current_cmake_module_dir}/revision.hpp.in")
+	set(HEADER_OUT_FILE "${_header_file}")
+
+	file(WRITE "${VERSION_STRING_DATA}/generate-header.cmake.in" [[
+set(REVISION_GIT_TAGREF "@REVISION_GIT_TAGREF@")
+set(BUILD_NUMBER "@BUILD_NUMBER@")
+set(REVISION_DATE_TIME	 "@REVISION_DATE_TIME@")
+set(VAR_PREFIX "@VAR_PREFIX@")
+set(IDENT_PREFIX "@IDENT_PREFIX@")
+set(BOOL_IS_MAIN "@BOOL_IS_MAIN@")
+configure_file("@HEADER_IN_FILE@" "@HEADER_OUT_FILE@" @ONLY)
+]])
+
+	configure_file("${VERSION_STRING_DATA}/generate-header.cmake.in" "${VERSION_STRING_DATA}/generate-header.cmake" @ONLY)
+
+	add_custom_command(
+		OUTPUT "${_header_file}"
+		COMMAND "${CMAKE_COMMAND}" -P "${VERSION_STRING_DATA}/generate-header.cmake"
+	)
+
+	target_sources("${_target}" PRIVATE "${_header_file}")
+	set_target_properties("${_target}" PROPERTIES ADDITIONAL_CLEAN_FILES "${_header_file}")
 endfunction()
 
