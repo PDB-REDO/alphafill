@@ -352,8 +352,15 @@ if(BUILD_TESTING)
 
     # If cifpp was not found, it means it was not installed so we might not have a
     # proper CIFPP_SHARE_DIR and the the tests will fail
-	set_property(TEST run_process_test
-		PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
-	set_property(TEST validate_files_test
-		PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
+    if(IS_DIRECTORY "${CIFPP_SHARE_DIR}" AND EXISTS "${CIFPP_SHARE_DIR}/mmcif_ma.dic")
+        set_property(TEST run_process_test
+            PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
+        set_property(TEST validate_files_test
+            PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
+	else()
+        set_property(TEST run_process_test
+            PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${PROJECT_SOURCE_DIR}/rsrc")
+        set_property(TEST validate_files_test
+            PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${PROJECT_SOURCE_DIR}/rsrc")
+	endif()
 endif()
