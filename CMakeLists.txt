@@ -116,18 +116,7 @@ endif()
 set(SAVE_BUILD_TESTING ${BUILD_TESTING})
 set(BUILD_TESTING OFF)
 
-find_package(cifpp 9.0.4 QUIET)
-
-if(NOT cifpp_FOUND)
-	FetchContent_Declare(
-		cifpp
-		GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git
-		GIT_TAG v9.0.4)
-	FetchContent_MakeAvailable(cifpp)
-
-	set(CIFPP_SHARE_DIR ${cifpp_SOURCE_DIR}/rsrc)
-endif()
-
+find_package(cifpp 9.0.4 REQUIRED)
 find_package(mcfp 1.3.4 QUIET)
 
 if(NOT mcfp_FOUND)

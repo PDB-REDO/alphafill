@@ -25,11 +25,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        path: main
 
     - name: Set reusable strings
       id: strings
       shell: bash
-      run: echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+      run:
+        echo "build-output-dir=${{ github.workspace }}/main/build" >> "$GITHUB_OUTPUT"
+        echo "libcifpp-output-dir=${{ github.workspace }}/libcifpp/build" >> "$GITHUB_OUTPUT"
 
     - name: Install dependencies Ubuntu
       if: matrix.os == 'ubuntu-latest'
@@ -47,13 +51,32 @@ jobs:
 
     - name: Install ZLib Window
       if: matrix.os == 'windows-latest'
-      run: ./tools/depends.cmd
+      run: main/tools/depends.cmd
       shell: cmd
 
     - name: Install Boost macOS
       if: matrix.os == 'macos-latest'
       run: >
         brew install boost
+
+    - name: Checkout libcifpp
+      uses: actions/checkout@v6
+      with:
+        repository: pdb-redo/libcifpp
+        path: libcifpp
+
+    - name: Configure libcifpp
+      run: >
+        cmake -B ${{ steps.strings.outputs.libcifpp-output-dir }}
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_BUILD_TYPE=Release
+        -S ${{ github.workspace }}/libcifpp
+
+    - name: Build libcifpp
+      run: cmake --build ${{ steps.strings.outputs.libcifpp-output-dir }}
+
+    - name: Install libcifpp
+      run: cmake --install ${{ steps.strings.outputs.libcifpp-output-dir }}
 
     - name: Configure CMake
       env:
