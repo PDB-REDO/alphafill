@@ -110,33 +110,34 @@ set(SAVE_BUILD_TESTING ${BUILD_TESTING})
 set(BUILD_TESTING OFF)
 
 CPMFindPackage(
-	NAME cifpp
-	GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git
+    NAME cifpp
+    GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git
     GIT_TAG v9.0.4
     EXCLUDE_FROM_ALL YES)
 
 CPMFindPackage(
-	NAME mcfp
-	GIT_REPOSITORY https://github.com/mhekkel/libmcfp.git
-	GIT_TAG v1.3.4
-	EXCLUDE_FROM_ALL YES)
+    NAME mcfp
+    GIT_REPOSITORY https://github.com/mhekkel/libmcfp.git
+    GIT_TAG v1.3.4
+    EXCLUDE_FROM_ALL YES)
+
+CPMFindPackage(
+    NAME zeep
+    GIT_REPOSITORY https://github.com/mhekkel/libzeep.git
+    GIT_TAG v7.2.0
+    EXCLUDE_FROM_ALL YES)
 
 if(BUILD_WEB_APPLICATION)
-	CPMFindPackage(
-		NAME zeep
-		GIT_REPOSITORY https://github.com/mhekkel/libzeep.git
-		GIT_TAG v7.2.0
-		EXCLUDE_FROM_ALL YES)
 
-	CPMFindPackage(
-		NAME libpqxx
-		GIT_REPOSITORY https://github.com/jtv/libpqxx
-		GIT_TAG 7.10.1
-		EXCLUDE_FROM_ALL YES)
+    CPMFindPackage(
+        NAME libpqxx
+        GIT_REPOSITORY https://github.com/jtv/libpqxx
+        GIT_TAG 7.10.1
+        EXCLUDE_FROM_ALL YES)
 
     find_package(OpenSSL REQUIRED)
 
-	find_program(YARN yarn REQUIRED)
+    find_program(YARN yarn REQUIRED)
 
     # Make sure yarn is initialised
     add_custom_command(
