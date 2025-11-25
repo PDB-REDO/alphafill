@@ -34,6 +34,7 @@ list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(GNUInstallDirs)
 include(CheckSymbolExists)
+include(CheckFunctionExists)
 include(CMakeDependentOption)
 include(CPM)
 include(CTest)
