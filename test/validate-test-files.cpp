@@ -1,3 +1,6 @@
+#include <cif++/utilities.hpp>
+#include <cif++/validate.hpp>
+#include <filesystem>
 #include <mcfp/mcfp.hpp>
 
 #include <cif++.hpp>
@@ -29,6 +32,10 @@ int main(int argc, char * const argv[])
 
 	auto pdb_id = config.get("pdb-id");
 	auto pdb_asym_id = config.get("pdb-asym-id");
+
+	// the cif dictionary may be missing...
+	if (not cif::load_resource("mmcif_ma.dic"))
+		cif::add_file_resource("mmcif_ma.dic", "../rsrc/mmcif_ma.dic");
 
 	// JSON first
 	std::ifstream json_in(config.operands().back());
