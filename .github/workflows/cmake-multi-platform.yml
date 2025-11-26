@@ -46,7 +46,7 @@ jobs:
 
     - name: Install ZLib Window
       if: matrix.os == 'windows-latest'
-      run: ./tools/depends.cmd
+      run: ${{github.workspace}}/main/tools/depends.cmd
       shell: cmd
 
     - name: Install Boost macOS

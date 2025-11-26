@@ -109,12 +109,7 @@ endif()
 set(SAVE_BUILD_TESTING ${BUILD_TESTING})
 set(BUILD_TESTING OFF)
 
-CPMFindPackage(
-    NAME cifpp
-    GIT_REPOSITORY https://github.com/PDB-REDO/libcifpp.git
-    GIT_TAG v9.0.5
-    EXCLUDE_FROM_ALL YES
-	OPTIONS "BUILD_DOCUMENTATION OFF")
+find_package(cifpp 9.0.5 REQUIRED)
 
 CPMFindPackage(
     NAME mcfp
