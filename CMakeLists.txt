@@ -205,7 +205,7 @@ endif()
 add_executable(alphafill ${SOURCES})
 
 # Create a revision file, containing the current git version info
-add_version_header(alphafill "${PROJECT_SOURCE_DIR}/src/revision.hpp")
+write_version_header("${PROJECT_SOURCE_DIR}/src/")
 
 find_file(HAVE_DIRENT_H dirent.h)
 
