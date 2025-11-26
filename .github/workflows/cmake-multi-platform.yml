@@ -19,6 +19,7 @@ jobs:
 
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: windows-latest
             cpp_compiler: cl
@@ -52,7 +53,7 @@ jobs:
     - name: Install Boost macOS
       if: matrix.os == 'macos-latest'
       run: >
-        brew install boost
+        brew install boost fast_float
 
     - name: Checkout libcifpp
       uses: actions/checkout@v4
@@ -60,11 +61,18 @@ jobs:
         repository: pdb-redo/libcifpp
         path: libcifpp
 
-    - name: Build & install libcifpp
+    - name: Build libcifpp
       run: |
         cmake -B ${{github.workspace}}/libcifpp/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -S ${{github.workspace}}/libcifpp -DBUILD_DOCUMENTATION=OFF -DBUILD_TESTING=OFF
         cmake --build ${{github.workspace}}/libcifpp/build
-        sudo cmake --install ${{github.workspace}}/libcifpp/build
+
+    - name: Install libcifpp
+      if: matrix.os != 'windows-latest'
+      run: sudo cmake --install ${{github.workspace}}/libcifpp/build
+
+    - name: Install libcifpp (Windows)
+      if: matrix.os == 'windows-latest'
+      run: cmake --install ${{github.workspace}}/libcifpp/build
 
     - name: Configure CMake
       env:
