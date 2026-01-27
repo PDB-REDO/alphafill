@@ -109,7 +109,7 @@ endif()
 set(SAVE_BUILD_TESTING ${BUILD_TESTING})
 set(BUILD_TESTING OFF)
 
-find_package(cifpp 9.0.5 REQUIRED)
+find_package(cifpp 9.0.6 REQUIRED)
 
 CPMFindPackage(
     NAME mcfp
