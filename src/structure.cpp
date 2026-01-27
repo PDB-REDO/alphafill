@@ -24,6 +24,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <cif++/validate.hpp>
 #include <fcntl.h>
 #include <fstream>
 #include <future>

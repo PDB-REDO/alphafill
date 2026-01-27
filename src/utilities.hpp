@@ -44,7 +44,7 @@ std::tuple<EntryType,std::string,int,int> parse_af_id(std::string af_id);
 
 // --------------------------------------------------------------------
 
-std::filesystem::path pdbFileForID(const std::filesystem::path &pdbDir, std::string pdb_id);
+std::filesystem::path pdbFileForID(const std::filesystem::path &pdbDir, std::string pdb_id, std::error_code &ec);
 std::vector<cif::mm::residue *> get_residuesForAsymID(cif::mm::structure &structure, const std::string &asym_id);
 std::vector<cif::mm::residue *> get_residues_for_chain_id(cif::mm::structure &structure, const std::string &chain_id);
 std::vector<std::string> get_chain_ids_for_entity_id(const cif::datablock &db, const std::string &entity_id);

@@ -39,6 +39,7 @@
 #include <thread>
 
 #include <cassert>
+#include <zeep/el/serializer.hpp>
 
 #ifdef near
 #undef near

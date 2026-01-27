@@ -47,7 +47,7 @@ int main(int argc, char * const argv[])
 		exit(1);
 	}
 
-	auto first_hit = hits.front();
+	auto first_hit = hits[0];
 	if (first_hit["pdb_id"] != pdb_id)
 	{
 		std::cerr << "First hit pdb_id should be " << pdb_id << '\n';
@@ -67,12 +67,12 @@ int main(int argc, char * const argv[])
 		exit(1);
 	}
 
-	auto first_transplant = transplants.front();
+	auto first_transplant = transplants[0];
 
 	auto compound_id = first_transplant["compound_id"].get<std::string>();
 	auto asym_id = first_transplant["asym_id"].get<std::string>();
 	
-	cif::file f(config.operands().front());
+	cif::file f(config.operands()[0]);
 	auto &non_polies = f.front()["pdbx_nonpoly_scheme"];
 	if (non_polies.empty())
 	{

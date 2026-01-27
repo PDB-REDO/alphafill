@@ -33,8 +33,8 @@
 
 #include <cif++.hpp>
 #include <mcfp/mcfp.hpp>
-#include <zeep/uri.hpp>
 #include <zeep/el/object.hpp>
+#include <zeep/uri.hpp>
 
 #include <forward_list>
 #include <fstream>
@@ -223,36 +223,38 @@ uint32_t data_service::count_structures(float min_identity) const
 {
 	pqxx::work tx(db_connection::instance());
 
-	auto r = tx.exec1(R"(
+	auto r = tx.exec(R"(
 		  select count(distinct s.id)
 		    from af_structure s
 		   right join af_pdb_hit h on s.id = h.af_id
 		   right join af_transplant t on t.hit_id = h.id
 		   where h.identity >= )" +
-					  std::to_string(min_identity));
+					 std::to_string(min_identity))
+	             .one_field();
 
 	tx.commit();
 
-	return r.front().as<uint32_t>();
+	return r.as<uint32_t>();
 }
 
 uint32_t data_service::count_structures(float min_identity, const std::string &compound) const
 {
 	pqxx::work tx(db_connection::instance());
 
-	auto r = tx.exec1(R"(
+	auto r = tx.exec(R"(
 		  select count(distinct s.id)
 		    from af_structure s
 		   right join af_pdb_hit h on s.id = h.af_id
 		   right join af_transplant t on t.hit_id = h.id
 		   where h.identity >= )" +
-					  std::to_string(min_identity) + R"(
+					 std::to_string(min_identity) + R"(
 			 and (t.compound_id = )" +
-					  tx.quote(compound) + " or t.analogue_id = " + tx.quote(compound) + ")");
+					 tx.quote(compound) + " or t.analogue_id = " + tx.quote(compound) + ")")
+	             .one_field();
 
 	tx.commit();
 
-	return r.front().as<uint32_t>();
+	return r.as<uint32_t>();
 }
 
 // --------------------------------------------------------------------

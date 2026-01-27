@@ -34,7 +34,10 @@
 #include "validate.hpp"
 
 #include <cif++.hpp>
+#include <cif++/category.hpp>
+#include <exception>
 #include <mcfp/mcfp.hpp>
+#include <memory>
 #include <zeep/el/object.hpp>
 
 #include <chrono>
@@ -548,7 +551,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 		{ "source", source }
 	};
 
-	json &hits = result["hits"] = zeep::el::object(zeep::el::object::value_type::array);
+	json &hits = result["hits"] = json(json::value_type::array);
 
 	// keep a LRU cache of mmCIF parsed files
 	std::list<std::tuple<std::string, std::shared_ptr<cif::file>>> mmCifFiles;
@@ -663,34 +666,42 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 
 				if (ci == mmCifFiles.end())
 				{
-					try
+					std::error_code ec;
+					fs::path pdb_path = pdbFileForID(pdbDir, pdb_id, ec);
+					if (pdb_path.empty() or ec)
 					{
-						fs::path pdb_path = pdbFileForID(pdbDir, pdb_id);
-
-						auto cf = std::make_shared<cif::file>(pdb_path.string());
-
-						mmCifFiles.emplace_front(pdb_id, cf);
-
-						cf->front().load_dictionary();
-
-						// // PDB-REDO files don't have the correct audit_conform records, sometimes
-						// if (cf->get_validator() == nullptr or
-						// 	cf->get_validator()->name() == "mmcif_ddl" or
-						// 	cf->get_validator()->name() == "mmcif_ddl.dic")
-						// {
-						// 	cf->load_dictionary("mmcif_pdbx");
-						// }
-
-						ci = mmCifFiles.begin();
-
-						if (mmCifFiles.size() > 5)
-							mmCifFiles.pop_back();
-					}
-					catch (const std::exception &ex)
-					{
-						std::cerr << ex.what() << '\n';
+						std::cerr << "Missing PDB file for " << pdb_id;
+						if (ec)
+							std::cerr << ": " << ec.message() << '\n';
+						else
+							std::cerr << '\n';
 						continue;
 					}
+
+					auto cf = std::make_shared<cif::file>(pdb_path.string());
+
+					mmCifFiles.emplace_front(pdb_id, cf);
+
+					cf->front().load_dictionary();
+
+					static const cif::category af_dict("audit_conform", {
+						{
+							cif::item{ "dict_name", "mmcif_af.dic" }
+						}
+					});
+
+					// PDB-REDO files don't have the correct audit_conform records, sometimes
+					if (cf->front().get_validator() == nullptr or
+						cf->front().get_validator()->matches_audit_conform(af_dict))
+					{
+						cf->front().set_validator(
+							cif::validator_factory::instance().get("mmcif_pdbx.dic"));
+					}
+
+					ci = mmCifFiles.begin();
+
+					if (mmCifFiles.size() > 5)
+						mmCifFiles.pop_back();
 				}
 
 				auto &pdb_f = *std::get<1>(*ci);
@@ -721,7 +732,18 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 					continue;
 				}
 
-				cif::mm::structure pdb_structure(pdb_f);
+				std::unique_ptr<cif::mm::structure> pdb_structure_ptr;
+				try
+				{
+					pdb_structure_ptr.reset(new cif::mm::structure(pdb_f));
+				}
+				catch (const std::exception &ex)
+				{
+					std::cerr << "Failed to load " << pdb_id << ": " << ex.what() << '\n';
+					continue;
+				}
+
+				cif::mm::structure &pdb_structure = *pdb_structure_ptr.get();
 
 				// if (not validateHit(pdb_structure, hit))
 				// {
@@ -886,13 +908,19 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 
 											for (auto &hit : hits)
 											{
-												auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [id = replace_id](zeep::el::object &e)
-													{ return e["asym_id"] == id; });
-												if (ti != hit["transplants"].end())
+												bool removed = false;
+												auto &transplants = hit["transplants"];
+												for (auto ti = transplants.begin(); ti != transplants.end(); ++ti)
 												{
-													hit["transplants"].erase(ti);
+													if (ti->operator[]("asym_id") != id)
+														continue;
+
+													transplants.erase(ti);
+													removed = true;
 													break;
 												}
+												if (removed)
+													break;
 											}
 										}
 										catch (const std::exception &e)
@@ -1258,7 +1286,6 @@ int alphafill_main(int argc, char *const argv[])
 
 		const auto &[type, af_id, chunk, version] = parse_af_id(filename.string());
 
-		// paein = xyzin.parent_path() / std::format("AF-{}-F{}-predicted_aligned_error_v{}.json", af_id, chunk, version);
 		paein = xyzin.parent_path() / std::format("AF-{}-F{}-predicted_aligned_error_v{}.json", af_id, chunk, version);
 	}
 

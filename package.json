@@ -7,10 +7,8 @@
 	"author": "Maarten L. Hekkelman (NKI-AVL)",
 	"license": "BSD-2-Clause",
 	"dependencies": {
-		"@babel/runtime-corejs3": "^7.16.0",
 		"bootstrap": "^5.1.3",
-		"core-js": "^3.19.1",
-		"gyp": "^0.5.0"
+		"core-js": "^3.19.1"
 	},
 	"scripts": {
 		"build": "webpack --config webpack.config.js",
@@ -21,15 +19,13 @@
 		"@babel/preset-env": "^7.16.0",
 		"@babel/preset-typescript": "^7.16.0",
 		"@popperjs/core": "^2.10.2",
-		"babel-loader": "^9.2.1",
+		"babel-loader": "^10.0.0",
 		"clean-webpack-plugin": "^4.0.0",
 		"css-loader": "^7.1.2",
+		"glob-all": "^3.3.1",
 		"mini-css-extract-plugin": "^2.4.3",
 		"pdbe-molstar": "^3.3.2",
-		"postcss": "^8.4.49",
-		"postcss-loader": "^8.1.1",
-		"react": "^19.0.0",
-		"react-dom": "^19.0.0",
+		"purgecss-webpack-plugin": "^7.0.2",
 		"sass": "^1.43.4",
 		"sass-loader": "^16.0.4",
 		"terser-webpack-plugin": "^5.2.5",

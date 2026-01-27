@@ -1,6 +1,4 @@
 import "core-js/stable";
-import "regenerator-runtime/runtime";
-
 import 'bootstrap';
 
 /* global page, compound, PAGE_SIZE, STRUCTURE_COUNT */
