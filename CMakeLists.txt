@@ -91,9 +91,6 @@ if(MSVC)
     # make msvc standards compliant...
     add_compile_options(/permissive- /bigobj)
     add_link_options(/NODEFAULTLIB:library)
-
-    # static runtime
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
 # Optionally use mrc to create resources
@@ -114,13 +111,13 @@ find_package(cifpp 9.0.6 REQUIRED)
 CPMFindPackage(
     NAME mcfp
     GIT_REPOSITORY https://github.com/mhekkel/libmcfp.git
-    GIT_TAG v1.3.4
+    GIT_TAG v1.4.2
     EXCLUDE_FROM_ALL YES)
 
 CPMFindPackage(
     NAME zeep
     GIT_REPOSITORY https://github.com/mhekkel/libzeep.git
-    GIT_TAG v7.2.0
+    GIT_TAG v7.3.0
     EXCLUDE_FROM_ALL YES)
 
 if(BUILD_WEB_APPLICATION)
