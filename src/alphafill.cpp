@@ -33,6 +33,7 @@
 #include "utilities.hpp"
 #include "validate.hpp"
 
+#include <algorithm>
 #include <cif++.hpp>
 #include <cif++/category.hpp>
 #include <exception>
@@ -161,7 +162,7 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 		for (auto &a : lig.atoms())
 			atoms_a.emplace_back(a.get_label_atom_id(), a.get_location());
-		sort(atoms_a.begin(), atoms_a.end(), [](auto &a, auto &b)
+		std::ranges::sort(atoms_a, [](auto &a, auto &b)
 			{ return std::get<0>(a) < std::get<0>(b); });
 
 		for (auto &np : structure.non_polymers())
@@ -173,7 +174,7 @@ std::tuple<UniqueType, std::string> isUniqueLigand(const cif::mm::structure &str
 
 			for (auto &a : np.atoms())
 				atoms_b.emplace_back(a.get_label_atom_id(), a.get_location());
-			sort(atoms_b.begin(), atoms_b.end(), [](auto &a, auto &b)
+			std::ranges::sort(atoms_b, [](auto &a, auto &b)
 				{ return std::get<0>(a) < std::get<0>(b); });
 
 			std::vector<point> pa, pb;
@@ -316,9 +317,10 @@ int create_index(int argc, char *const argv[])
 				tmpFastA << '\n';
 		} });
 
+	t.reserve(nrOfThreads);
 	for (size_t i = 0; i < nrOfThreads; ++i)
 	{
-		t.emplace_back([&q1, &q2, ix = i]()
+		t.emplace_back([&q1, &q2]()
 			{
 			for (;;)
 			{
@@ -349,11 +351,11 @@ int create_index(int argc, char *const argv[])
 						if (std::regex_search(pdbID, m, rx))
 						{
 							pdbID = m[1];
-							std::clog << "\nInvalid PDB-ID in file " << std::quoted(f.string()) << ", using " << std::quoted(pdbID) << " instead\n";
+							std::clog << "Invalid PDB-ID in file " << std::quoted(f.string()) << ", using " << std::quoted(pdbID) << " instead\n";
 						}
 						else
 						{
-							std::clog << "\nInvalid PDB-ID in file " << std::quoted(f.string()) << ", skipping\n";
+							std::clog << "Invalid PDB-ID in file " << std::quoted(f.string()) << ", skipping\n";
 							continue;
 						}
 					}
@@ -538,7 +540,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 	// --------------------------------------------------------------------
 	// fetch the (single) chain
 
-	std::string afID = db["entry"].front().get<std::string>("id");
+	auto afID = db["entry"].front().get<std::string>("id");
 
 	auto v_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	std::ostringstream ss;
@@ -588,9 +590,8 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 		}
 
 		// strip all spaces from the sequence, to be able to check length later on
-		seq.erase(remove_if(seq.begin(), seq.end(), [](char aa)
-					  { return std::isspace(aa); }),
-			seq.end());
+		std::erase_if(seq, [](char aa)
+			{ return std::isspace(aa); });
 
 		if (seq.empty())
 		{
@@ -684,11 +685,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 
 					cf->front().load_dictionary();
 
-					static const cif::category af_dict("audit_conform", {
-						{
-							cif::item{ "dict_name", "mmcif_af.dic" }
-						}
-					});
+					static const cif::category af_dict("audit_conform", { { cif::item{ "dict_name", "mmcif_af.dic" } } });
 
 					// PDB-REDO files don't have the correct audit_conform records, sometimes
 					if (cf->front().get_validator() == nullptr or
@@ -735,7 +732,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 				std::unique_ptr<cif::mm::structure> pdb_structure_ptr;
 				try
 				{
-					pdb_structure_ptr.reset(new cif::mm::structure(pdb_f));
+					pdb_structure_ptr = std::make_unique<cif::mm::structure>(pdb_f);
 				}
 				catch (const std::exception &ex)
 				{
@@ -751,7 +748,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 				// 	exit(1);
 				// }
 
-				for (auto chain_id : get_chain_ids_for_entity_id(pdb_structure.get_datablock(), entity_id))
+				for (const auto& chain_id : get_chain_ids_for_entity_id(pdb_structure.get_datablock(), entity_id))
 				{
 					auto pdb_res = get_residues_for_chain_id(pdb_structure, chain_id);
 
@@ -1034,7 +1031,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 								auto &pdb_struct_conn = pdb_structure.get_category("struct_conn");
 								auto &af_struct_conn = af_structure.get_category("struct_conn");
 
-								for (auto atom : res.atoms())
+								for (const auto& atom : res.atoms())
 								{
 									for (auto conn : pdb_struct_conn.find(
 											 ("ptnr1_label_asym_id"_key == atom.get_label_asym_id() and "ptnr1_label_atom_id"_key == atom.get_label_atom_id()) or
@@ -1097,7 +1094,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 									for (auto r : db["pdbx_struct_assembly_gen"])
 									{
 										auto asym_id_list = cif::split<std::string>(r["asym_id_list"].as<std::string>(), ",", true);
-										if (find(asym_id_list.begin(), asym_id_list.end(), af_res.front()->get_asym_id()) == asym_id_list.end())
+										if (std::ranges::find(asym_id_list, af_res.front()->get_asym_id()) == asym_id_list.end())
 											continue;
 
 										asym_id_list.push_back(asym_id);
@@ -1141,7 +1138,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 			}
 			catch (const std::exception &e)
 			{
-				std::throw_with_nested(std::runtime_error("Error when processing " + pdb_id + " for " + afID));
+				std::throw_with_nested(std::runtime_error(std::format("Error when processing '{}' for '{}'", pdb_id, afID)));
 			}
 		}
 	}

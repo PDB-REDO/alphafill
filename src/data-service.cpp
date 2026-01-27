@@ -364,7 +364,7 @@ int data_service::rebuild()
 					}
 					catch (const std::exception &ex)
 					{
-						std::clog << "\nError processing file " << file << "\n";
+						std::clog << "Error processing file " << file << "\n";
 					}
 				}
 				//

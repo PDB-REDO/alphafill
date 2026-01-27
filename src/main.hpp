@@ -29,11 +29,11 @@
 #include <mcfp/mcfp.hpp>
 
 template <typename... Options>
-mcfp::config &load_and_init_config(std::string usage, Options... options)
+mcfp::config &load_and_init_config(std::string usage, Options &&... options)
 {
 	auto &config = mcfp::config::instance();
 
-	config.init(usage,
+	config.init(std::move(usage),
 		mcfp::make_option("version", "Show version number"),
 		mcfp::make_option("verbose,v", "Show verbose output"),
 

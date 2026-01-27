@@ -30,8 +30,6 @@
 
 #include <cif++.hpp>
 
-#include <functional>
-
 struct alphafill_progress_cb
 {
 	virtual ~alphafill_progress_cb() = default;

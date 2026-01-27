@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2021 Maarten L. Hekkelman, NKI-AVL
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -28,8 +28,8 @@
 
 #include <atomic>
 #include <filesystem>
-#include <zeem/serialize.hpp>
 #include <thread>
+#include <zeem/serialize.hpp>
 
 #include <zeep/el/serializer.hpp>
 
@@ -47,13 +47,15 @@ struct compound
 	uint32_t count_structures;
 	uint32_t count_transplants;
 
-	template<typename Archive>
-	void serialize(Archive &ar, unsigned long)
+	template <typename Archive>
+	void serialize(Archive &ar, uint64_t /*version*/)
 	{
+		// clang-format off
 		ar & zeem::name_value_pair("id", id)
 		   & zeem::name_value_pair("analogue", analogue)
 		   & zeem::name_value_pair("structure-count", count_structures)
 		   & zeem::name_value_pair("transplant-count", count_transplants);
+		// clang-format on
 	}
 };
 
@@ -64,19 +66,25 @@ struct structure
 	uint32_t count_transplants;
 	uint32_t distinct_analogues;
 
-	template<typename Archive>
-	void serialize(Archive &ar, unsigned long)
+	template <typename Archive>
+	void serialize(Archive &ar, uint64_t /*version*/)
 	{
+		// clang-format off
 		ar & zeem::name_value_pair("name", name)
 		   & zeem::name_value_pair("hit-count", count_hits)
 		   & zeem::name_value_pair("transplant-count", count_transplants)
 		   & zeem::name_value_pair("distinct-analogues", distinct_analogues);
+		// clang-format on
 	}
 };
 
 enum class CustomStatus
 {
-	Unknown, Queued, Running, Finished, Error
+	Unknown,
+	Queued,
+	Running,
+	Finished,
+	Error
 };
 
 struct status_reply
@@ -85,12 +93,14 @@ struct status_reply
 	std::optional<float> progress;
 	std::optional<std::string> message;
 
-	template<typename Archive>
-	void serialize(Archive &ar, unsigned long)
+	template <typename Archive>
+	void serialize(Archive &ar, uint64_t /*version*/)
 	{
+		// clang-format off
 		ar & zeem::name_value_pair("status", status)
 		   & zeem::name_value_pair("progress", progress)
 		   & zeem::name_value_pair("message", message);
+		// clang-format on
 	}
 };
 
@@ -115,7 +125,7 @@ class data_service
 	// On demand services
 
 	bool exists_in_afdb(const std::string &id) const;
-	std::tuple<std::filesystem::path,std::string,std::string> fetch_from_afdb(const std::string &id) const;
+	std::tuple<std::filesystem::path, std::string, std::string> fetch_from_afdb(const std::string &id) const;
 
 	status_reply get_status(const std::string &id) const;
 
@@ -123,7 +133,6 @@ class data_service
 	std::string queue_af_id(const std::string &id);
 
   private:
-
 	data_service();
 
 	void run();
@@ -137,7 +146,7 @@ class data_service
 
 	// threads processing AF entries
 	std::vector<std::thread> m_threads;
-	blocking_queue<std::string,100> m_queue;
+	blocking_queue<std::string, 100> m_queue;
 
 	std::mutex m_mutex;
 	std::string m_running;

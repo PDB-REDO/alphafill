@@ -24,33 +24,27 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "structure.hpp"
+#include "bsd-closefrom.h"
+#include "utilities.hpp"
+#include "validate.hpp"
+
+#include <algorithm>
+#include <atomic>
+#include <cif++.hpp>
 #include <cif++/validate.hpp>
+#include <cstring>
 #include <fcntl.h>
+#include <filesystem>
 #include <fstream>
-#include <future>
-#include <regex>
-#include <string.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <sys/wait.h>
 #include <unistd.h>
-
-#include <atomic>
-#include <filesystem>
-#include <fstream>
-
-#include <cif++.hpp>
-
-#include <zeep/http/reply.hpp>
 #include <zeep/el/object.hpp>
-
-#include "bsd-closefrom.h"
-
-#include "data-service.hpp"
-#include "utilities.hpp"
-#include "structure.hpp"
-#include "validate.hpp"
+#include <zeep/http/reply.hpp>
+#include <zeep/http/status.hpp>
 
 namespace fs = std::filesystem;
 
@@ -67,17 +61,15 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
-		throw zeep::http::not_found;
+		throw std::system_error(std::error_code(zeep::http::not_found, zeep::http::status_type_category()));
 
 	// optionally remove asyms whose blast origin's identity is too low
 	if (identity > 0)
 	{
-		using json = zeep::el::object;
-
 		fs::path jsonFile = file_locator::get_metadata_file(type, id, chunkNr, version);
 
 		if (not fs::exists(jsonFile))
-			throw zeep::http::not_found;
+			throw std::system_error(std::error_code(zeep::http::not_found, zeep::http::status_type_category()));
 
 		std::ifstream is(jsonFile);
 		auto data = zeep::el::object::parse_JSON(is);
@@ -105,7 +97,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	auto &entity_poly = db["entity_poly"];
 
 	std::set<std::string> existingAsyms;
-	for (const auto &[asymID, entityID] : struct_asym.rows<std::string,std::string>("id", "entity_id"))
+	for (const auto &[asymID, entityID] : struct_asym.rows<std::string, std::string>("id", "entity_id"))
 	{
 		// check if this is a nonpoly entity
 		if (entity_poly.contains("entity_id"_key == entityID))
@@ -115,14 +107,14 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	}
 
 	// For some reason, some filled structures contain spurrious struct_conn records...
-	for (const auto &[asym_id_1, asym_id_2] : struct_conn.rows<std::string,std::string>("ptnr1_label_asym_id", "ptnr2_label_asym_id"))
+	for (const auto &[asym_id_1, asym_id_2] : struct_conn.rows<std::string, std::string>("ptnr1_label_asym_id", "ptnr2_label_asym_id"))
 	{
 		existingAsyms.insert(asym_id_1);
 		existingAsyms.insert(asym_id_2);
 	}
 
 	std::vector<std::string> toBeRemoved;
-	std::set_difference(existingAsyms.begin(), existingAsyms.end(), requestedAsyms.begin(), requestedAsyms.end(), std::back_insert_iterator(toBeRemoved));
+	std::ranges::set_difference(existingAsyms, requestedAsyms, std::back_insert_iterator(toBeRemoved));
 
 	auto validator = db.get_validator();
 	db.set_validator(nullptr);
@@ -146,7 +138,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 			auto asym_id_list = cif::split<std::string>(r["asym_id_list"].as<std::string>(), ",", true);
 
 			std::vector<std::string> new_asym_id_list;
-			std::set_intersection(asym_id_list.begin(), asym_id_list.end(), requestedAsyms.begin(), requestedAsyms.end(), std::back_insert_iterator(new_asym_id_list));
+			std::ranges::set_intersection(asym_id_list, requestedAsyms, std::back_insert_iterator(new_asym_id_list));
 			r["asym_id_list"] = cif::join(new_asym_id_list, ",");
 		}
 	}
@@ -173,22 +165,20 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 
 	const auto &[type, afID, chunkNr, version] = parse_af_id(db_i.name());
 	std::ifstream infoFile(file_locator::get_metadata_file(type, afID, chunkNr, version));
-	auto info =zeep::el::object::parse_JSON(infoFile);
+	auto info = zeep::el::object::parse_JSON(infoFile);
 
 	// statistics before
-
-	std::string ligandAsymID = db_i["struct_asym"].find1<std::string>("id"_key != "A", "id");
 
 	float clashBefore = ClashScore(fin.front());
 
 	auto &as_y = db_y["atom_site"];
 
-	using key_type = std::tuple<std::string,int,std::string>;
-	using value_type = std::tuple<float,float,float>;
+	using key_type = std::tuple<std::string, int, std::string>;
+	using value_type = std::tuple<float, float, float>;
 	std::map<key_type, value_type> locations;
 
 	for (const auto &[asym_id, seq_id, atom_id, auth_seq_id, x, y, z] :
-		as_y.find<std::string,int,std::string,int,float,float,float>("type_symbol"_key != "H",
+		as_y.find<std::string, int, std::string, int, float, float, float>("type_symbol"_key != "H",
 			"label_asym_id", "label_seq_id", "label_atom_id", "auth_seq_id", "Cartn_x", "Cartn_y", "Cartn_z"))
 	{
 		if (asym_id == "A")
@@ -201,7 +191,7 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 
 	for (auto r : as_i.rows())
 	{
-		const auto &[asym_id, seq_id, atom_id, auth_seq_id] = r.get<std::string,int,std::string,int>("label_asym_id", "label_seq_id", "label_atom_id", "auth_seq_id");
+		const auto &[asym_id, seq_id, atom_id, auth_seq_id] = r.get<std::string, int, std::string, int>("label_asym_id", "label_seq_id", "label_atom_id", "auth_seq_id");
 
 		auto l = locations.find(asym_id == "A" ? key_type{ asym_id, seq_id, atom_id } : key_type{ asym_id, 0, atom_id });
 		if (l == locations.end())
@@ -216,11 +206,9 @@ json mergeYasaraOutput(const std::filesystem::path &input, const std::filesystem
 
 	float clashAfter = ClashScore(fin.front());
 
-	return{
-		{ "clash", {
-			{ "before", clashBefore },
-			{ "after", clashAfter }
-		}}
+	return {
+		{ "clash", { { "before", clashBefore },
+					   { "after", clashAfter } } }
 	};
 }
 
@@ -239,7 +227,7 @@ json optimizeWithYasara(const std::string &af_id, std::set<std::string> requeste
 	fs::create_directories(tmpdir);
 
 	std::ofstream input(tmpdir / "input.cif");
-	stripCifFile(af_id, requestedAsyms, 0, input);
+	stripCifFile(af_id, std::move(requestedAsyms), 0, input);
 	input.close();
 
 	std::string script_s = (tmpdir / "refine.mcr").c_str();
@@ -259,7 +247,8 @@ json optimizeWithYasara(const std::string &af_id, std::set<std::string> requeste
 		script_s.c_str(),
 		modelin.c_str(),
 		modelout.c_str(),
-		nullptr};
+		nullptr
+	};
 
 	if (not fs::exists(args.front()))
 		throw std::runtime_error("The executable '"s + args.front() + "' does not seem to exist");
@@ -301,7 +290,7 @@ json optimizeWithYasara(const std::string &af_id, std::set<std::string> requeste
 		std::error_code ec;
 		fs::current_path(tmpdir, ec);
 
-		const char *env[] = {nullptr};
+		const char *env[] = { nullptr };
 		(void)execve(args.front(), const_cast<char *const *>(&args[0]), const_cast<char *const *>(env));
 		exit(-1);
 	}
@@ -345,10 +334,10 @@ json optimizeWithYasara(const std::string &af_id, std::set<std::string> requeste
 				continue;
 			}
 
-			if (line.substr(0, 11) == " - ERROR - ")
+			if (line.starts_with(" - ERROR - "))
 				break;
 
-			if (line.substr(0, 4) == "DONE")
+			if (line.starts_with("DONE"))
 			{
 				done = true;
 				break;

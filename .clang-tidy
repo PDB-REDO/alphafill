@@ -4,6 +4,7 @@ Checks: >
     bugprone-*,
     -bugprone-easily-swappable-parameters,
     -bugprone-throwing-static-initialization,
+    -bugprone-narrowing-conversions,
     cert-*,
     -cert-int09-c,
     -cert-err58-cpp,
