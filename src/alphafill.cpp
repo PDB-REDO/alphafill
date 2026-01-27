@@ -523,8 +523,9 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 
 	// This sucks, kinda... The mmcif_af dictionary does not specify
 	// all links required to correctly work with libcifpp...
-	if (db.get_validator() == nullptr or (db.get_validator()->name() != "mmcif_pdbx.dic" and db.get_validator()->name() != "mmcif_ma.dic"))
-		db.set_validator(&cif::validator_factory::instance()["mmcif_pdbx.dic"]);
+#warning "Needs fix"
+	// if (db.get_validator() == nullptr or (db.get_validator()->name() != "mmcif_pdbx.dic" and db.get_validator()->name() != "mmcif_ma.dic"))
+	// 	db.set_validator(&cif::validator_factory::instance()["mmcif_pdbx.dic"]);
 
 	cif::mm::structure af_structure(db, 1, { .skip_hydrogen = true });
 
@@ -547,7 +548,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 		{ "source", source }
 	};
 
-	json &hits = result["hits"] = json(json::array_type);
+	json &hits = result["hits"] = zeep::el::object(zeep::el::object::value_type::array);
 
 	// keep a LRU cache of mmCIF parsed files
 	std::list<std::tuple<std::string, std::shared_ptr<cif::file>>> mmCifFiles;
@@ -885,7 +886,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 
 											for (auto &hit : hits)
 											{
-												auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [id = replace_id](json &e)
+												auto ti = std::find_if(hit["transplants"].begin(), hit["transplants"].end(), [id = replace_id](zeep::el::object &e)
 													{ return e["asym_id"] == id; });
 												if (ti != hit["transplants"].end())
 												{
@@ -1143,8 +1144,7 @@ struct my_progress : public alphafill_progress_cb
 
 	void set_max_1(size_t in_max) override
 	{
-		if (cif::VERBOSE < 1)
-			m_progress.reset(new cif::progress_bar(in_max + 1, "matching"));
+		m_progress.reset(new cif::progress_bar(in_max + 1, "matching"));
 	}
 
 	void consumed(size_t n) override
@@ -1259,7 +1259,7 @@ int alphafill_main(int argc, char *const argv[])
 		const auto &[type, af_id, chunk, version] = parse_af_id(filename.string());
 
 		// paein = xyzin.parent_path() / std::format("AF-{}-F{}-predicted_aligned_error_v{}.json", af_id, chunk, version);
-		paein = xyzin.parent_path() / cif::format("AF-{:%s}-F{:%d}-predicted_aligned_error_v{:%d}.json", af_id, chunk, version);
+		paein = xyzin.parent_path() / std::format("AF-{}-F{}-predicted_aligned_error_v{}.json", af_id, chunk, version);
 	}
 
 	std::vector<PAE_matrix> v_pae;

@@ -28,7 +28,7 @@
 
 #include <atomic>
 #include <filesystem>
-#include <mxml/serialize.hpp>
+#include <zeem/serialize.hpp>
 #include <thread>
 
 #include <zeep/el/serializer.hpp>
@@ -50,10 +50,10 @@ struct compound
 	template<typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
-		ar & mxml::name_value_pair("id", id)
-		   & mxml::name_value_pair("analogue", analogue)
-		   & mxml::name_value_pair("structure-count", count_structures)
-		   & mxml::name_value_pair("transplant-count", count_transplants);
+		ar & zeem::name_value_pair("id", id)
+		   & zeem::name_value_pair("analogue", analogue)
+		   & zeem::name_value_pair("structure-count", count_structures)
+		   & zeem::name_value_pair("transplant-count", count_transplants);
 	}
 };
 
@@ -67,10 +67,10 @@ struct structure
 	template<typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
-		ar & mxml::name_value_pair("name", name)
-		   & mxml::name_value_pair("hit-count", count_hits)
-		   & mxml::name_value_pair("transplant-count", count_transplants)
-		   & mxml::name_value_pair("distinct-analogues", distinct_analogues);
+		ar & zeem::name_value_pair("name", name)
+		   & zeem::name_value_pair("hit-count", count_hits)
+		   & zeem::name_value_pair("transplant-count", count_transplants)
+		   & zeem::name_value_pair("distinct-analogues", distinct_analogues);
 	}
 };
 
@@ -88,9 +88,9 @@ struct status_reply
 	template<typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
-		ar & mxml::name_value_pair("status", status)
-		   & mxml::name_value_pair("progress", progress)
-		   & mxml::name_value_pair("message", message);
+		ar & zeem::name_value_pair("status", status)
+		   & zeem::name_value_pair("progress", progress)
+		   & zeem::name_value_pair("message", message);
 	}
 };
 

@@ -464,7 +464,7 @@ zeep::el::object calculatePAEScore(const std::vector<cif::mm::residue *> &af_res
 				vt.emplace_back(pae_v);
 		}
 
-		pae_s.push_back(v);
+		pae_s.emplace_back(v);
 	}
 
 	size_t N = (index.size() * (index.size() - 1));

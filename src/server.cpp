@@ -34,11 +34,11 @@
 #include "utilities.hpp"
 
 #include <zeep/crypto.hpp>
+#include <zeep/el/object.hpp>
 #include <zeep/el/serializer.hpp>
 #include <zeep/http/daemon.hpp>
 #include <zeep/http/html-controller.hpp>
-#include <zeep/http/uri.hpp>
-#include <zeep/el/object.hpp>
+#include <zeep/uri.hpp>
 
 #include <cif++.hpp>
 #include <mcfp/mcfp.hpp>
@@ -167,13 +167,14 @@ class affd_html_controller : public zh::html_controller_v1
 		mount("alphafill.json.schema", &affd_html_controller::schema);
 		map_get_file("favicon.ico");
 
-		mount("structure-table-page", &affd_html_controller::structures_table);
+		map_get("structure-table-page", &affd_html_controller::structures_table,
+			"compound", "identity", "page");
 
 		mount("{manual,man,genindex}/", &affd_html_controller::handle_help_file);
 		map_get_file("_static/");
 	}
 
-	zh::reply welcome(const zh::scope &scope, std::optional<int> id);
+	zh::reply welcome(const zh::scope &scope, std::optional<std::string> id);
 	zh::reply structures(const zh::scope &scope, std::optional<std::string> compound, std::optional<int> identity);
 	void compounds(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 
@@ -183,16 +184,17 @@ class affd_html_controller : public zh::html_controller_v1
 	void download(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 	void schema(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 
-	void structures_table(const zh::request &request, const zh::scope &scope, zh::reply &reply);
+	zh::reply structures_table(const zh::scope &scope, std::optional<std::string> compound,
+		std::optional<int> identity, std::optional<int> page);
 	void handle_help_file(const zh::request &request, const zh::scope &scope, zh::reply &reply);
 };
 
-zh::reply affd_html_controller::welcome(const zh::scope &scope, std::optional<int> id)
+zh::reply affd_html_controller::welcome(const zh::scope &scope, std::optional<std::string> id)
 {
 	if (id.has_value())
 	{
-		zeep::http::uri uri = scope.get_request().get_uri();
-		return zeep::http::reply::redirect(uri.get_path().string() + "model?id=" + zeep::http::encode_url(*id));
+		zeep::uri uri = scope.get_request().get_uri();
+		return zeep::http::reply::redirect(uri.get_path().string() + "model?id=" + zeep::encode_url(*id));
 	}
 
 	return get_template_processor().create_reply_from_template("index", scope);
@@ -200,8 +202,6 @@ zh::reply affd_html_controller::welcome(const zh::scope &scope, std::optional<in
 
 zh::reply affd_html_controller::structures(const zh::scope &scope, std::optional<std::string> compound, std::optional<int> identity)
 {
-	using json = zeep::el::object;
-
 	zh::scope sub(scope);
 
 	auto &ds = data_service::instance();
@@ -217,15 +217,15 @@ zh::reply affd_html_controller::structures(const zh::scope &scope, std::optional
 
 	auto allstructures =
 		compound.has_value()
-		? ds.get_structures_for_compound(*identity * 0.01f, *compound, 0, kPageSize)
+			? ds.get_structures_for_compound(*identity * 0.01f, *compound, 0, kPageSize)
 			: ds.get_structures(*identity * 0.01f, 0, kPageSize);
-	json structures = zeep::el::to_object(allstructures);
+	auto structures = zeep::el::to_object(allstructures);
 	sub.put("structures", structures);
 
 	sub.put("structure-count",
 		compound.has_value()
-			? ds.count_structures(*identity * 0.01f, *compound))
-			: ds.count_structures(*identity * 0.01f);
+			? ds.count_structures(*identity * 0.01f, *compound)
+			: ds.count_structures(*identity * 0.01f));
 	sub.put("page-size", kPageSize);
 	sub.put("page", 1);
 
@@ -235,40 +235,31 @@ zh::reply affd_html_controller::structures(const zh::scope &scope, std::optional
 	return get_template_processor().create_reply_from_template("structures", sub);
 }
 
-void affd_html_controller::structures_table(const zh::request &request, const zh::scope &scope, zh::reply &reply)
+zh::reply affd_html_controller::structures_table(const zh::scope &scope,
+	std::optional<std::string> compound, std::optional<int> identity,
+	std::optional<int> page)
 {
-	int page = request.get_parameter("page", 0);
-
 	using json = zeep::el::object;
 
 	zh::scope sub(scope);
 
 	auto &ds = data_service::instance();
 
-	std::string compound;
-	if (request.has_parameter("compound"))
-		compound = request.get_parameter("compound");
-
-	int identity = kMaxIdentity;
-	if (request.has_parameter("identity"))
-		identity = std::stoi(request.get_parameter("identity"));
-
-	if (identity < kMinIdentity)
+	if (identity.value_or(0) < kMinIdentity)
 		identity = kMinIdentity;
-	if (identity > 100)
+	else if (identity > 100)
 		identity = 100;
 
-	sub.put("identity", identity);
+	sub.put("identity", *identity);
 
 	json structures;
 	auto allstructures =
 		compound.empty()
-			? ds.get_structures(identity * 0.01f, page, kPageSize)
-			: ds.get_structures_for_compound(identity * 0.01f, compound, page, kPageSize);
-	to_element(structures, allstructures);
-	sub.put("structures", structures);
+			? ds.get_structures(*identity * 0.01f, page.value_or(0), kPageSize)
+			: ds.get_structures_for_compound(*identity * 0.01f, *compound, page.value_or(0), kPageSize);
+	sub.put("structures", zeep::el::to_object(structures));
 
-	return get_template_processor().create_reply_from_template("structures::structure-table-fragment", sub, reply);
+	return get_template_processor().create_reply_from_template("structures::structure-table-fragment", sub);
 }
 
 void affd_html_controller::compounds(const zh::request &request, const zh::scope &scope, zh::reply &reply)
@@ -319,21 +310,23 @@ struct transplant_info
 	template <typename Archive>
 	void serialize(Archive &ar, unsigned long)
 	{
-		ar &zeep::make_nvp("compound_id", compound_id)             //
-			& zeep::make_nvp("analogue_id", analogue_id)           //
-			& zeep::make_nvp("pdb_id", pdb_id)                     //
-			& zeep::make_nvp("identity", identity)                 //
-			& zeep::make_nvp("global-rmsd", gRMSd)                 //
-			& zeep::make_nvp("asym_id", asym_id)                   //
-			& zeep::make_nvp("local-rmsd", lRMSd)                  //
-			& zeep::make_nvp("pae", pae)                           //
-			& zeep::make_nvp("pae-mean", paeMean)                  //
-			& zeep::make_nvp("pae-sd", paeSD)                      //
-			& zeep::make_nvp("clash-score", clashScore)            //
-			& zeep::make_nvp("first-hit", firstHit)                //
-			& zeep::make_nvp("first-transplant", firstTransplant)  //
-			& zeep::make_nvp("hit-count", hitCount)                //
-			& zeep::make_nvp("transplant-count", transplantCount); //
+		// clang-format off
+		ar & zeep::name_value_pair("compound_id", compound_id)             //
+		   & zeep::name_value_pair("analogue_id", analogue_id)           //
+		   & zeep::name_value_pair("pdb_id", pdb_id)                     //
+		   & zeep::name_value_pair("identity", identity)                 //
+		   & zeep::name_value_pair("global-rmsd", gRMSd)                 //
+		   & zeep::name_value_pair("asym_id", asym_id)                   //
+		   & zeep::name_value_pair("local-rmsd", lRMSd)                  //
+		   & zeep::name_value_pair("pae", pae)                           //
+		   & zeep::name_value_pair("pae-mean", paeMean)                  //
+		   & zeep::name_value_pair("pae-sd", paeSD)                      //
+		   & zeep::name_value_pair("clash-score", clashScore)            //
+		   & zeep::name_value_pair("first-hit", firstHit)                //
+		   & zeep::name_value_pair("first-transplant", firstTransplant)  //
+		   & zeep::name_value_pair("hit-count", hitCount)                //
+		   & zeep::name_value_pair("transplant-count", transplantCount); //
+		// clang-format on
 	}
 
 	bool operator<(const transplant_info &rhs) const

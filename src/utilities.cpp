@@ -325,7 +325,7 @@ std::vector<cif::matrix<uint8_t>> load_pae_from_file(const std::filesystem::path
 		for (size_t i = 0; i < len; ++i)
 		{
 			for (size_t j = 0; j < len; ++j)
-				m(i, j) = pae[i][j].as<int>();
+				m(i, j) = pae[i][j].get<int>();
 		}
 	}
 

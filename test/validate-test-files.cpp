@@ -69,8 +69,8 @@ int main(int argc, char * const argv[])
 
 	auto first_transplant = transplants.front();
 
-	auto compound_id = first_transplant["compound_id"].as<std::string>();
-	auto asym_id = first_transplant["asym_id"].as<std::string>();
+	auto compound_id = first_transplant["compound_id"].get<std::string>();
+	auto asym_id = first_transplant["asym_id"].get<std::string>();
 	
 	cif::file f(config.operands().front());
 	auto &non_polies = f.front()["pdbx_nonpoly_scheme"];

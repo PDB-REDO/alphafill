@@ -29,7 +29,7 @@
 #include <mcfp/mcfp.hpp>
 
 template <typename... Options>
-mcfp::config &load_and_init_config(std::string_view usage, Options... options)
+mcfp::config &load_and_init_config(std::string usage, Options... options)
 {
 	auto &config = mcfp::config::instance();
 
@@ -42,7 +42,7 @@ mcfp::config &load_and_init_config(std::string_view usage, Options... options)
 
 		mcfp::make_option<std::string>("config", "alphafill.conf", "Configuration file to use"),
 
-		options...
+		std::forward<Options>(options)...
 	);
 
 	return config;
