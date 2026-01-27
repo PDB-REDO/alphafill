@@ -64,7 +64,7 @@ void db_connection::reset()
 
 // --------------------------------------------------------------------
 
-bool db_error_handler::create_error_reply(const zeep::http::request& req, std::exception_ptr eptr, zeep::http::reply& reply)
+bool db_error_handler::create_error_reply(const zeep::http::request& req, const std::exception_ptr &eptr, zeep::http::reply& reply)
 {
 	try
 	{

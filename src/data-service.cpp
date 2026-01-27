@@ -34,7 +34,7 @@
 #include <cif++.hpp>
 #include <mcfp/mcfp.hpp>
 #include <zeep/el/object.hpp>
-#include <zeep/http/uri.hpp>
+#include <zeep/uri.hpp>
 
 #include <forward_list>
 #include <fstream>
@@ -364,7 +364,7 @@ int data_service::rebuild()
 					}
 					catch (const std::exception &ex)
 					{
-						std::clog << "\nError processing file " << file << "\n";
+						std::clog << "Error processing file " << file << "\n";
 					}
 				}
 				//
@@ -503,7 +503,7 @@ std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_
 
 	url = rep_j["structures"][0]["summary"]["model_url"].get<std::string>();
 
-	zeep::http::uri uri(url);
+	zeep::uri uri(url);
 
 	if (uri.get_path().get_segments().empty())
 		throw std::runtime_error("Empy uri returned");

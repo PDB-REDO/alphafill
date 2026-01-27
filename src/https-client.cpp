@@ -35,8 +35,8 @@
 #include <zeep/http/message-parser.hpp>
 #include <zeep/streambuf.hpp>
 
-#include <mcfp/mcfp.hpp>
 #include <cif++/text.hpp>
+#include <mcfp/mcfp.hpp>
 
 #include "https-client.hpp"
 
@@ -46,8 +46,6 @@ namespace zh = zeep::http;
 // Sometimes we need to fetch media that is not available yet
 
 using boost::asio::ip::tcp;
-using std::placeholders::_1;
-using std::placeholders::_2;
 
 template <typename SocketType>
 class client_base
@@ -55,15 +53,15 @@ class client_base
   public:
 	using socket_type = SocketType;
 
-	virtual ~client_base() {}
+	virtual ~client_base() = default;
 
-	bool done() const { return m_done; }
+	[[nodiscard]] bool done() const { return m_done; }
 	zh::reply get_reply() { return m_reply_parser.get_reply(); }
 
   protected:
 	virtual socket_type &get_socket() = 0;
 
-	client_base(const std::string &url)
+	explicit client_base(const std::string &url)
 		: m_req({ "GET", url })
 		, m_verbose(mcfp::config::instance().has("m_verbose"))
 	{
@@ -71,10 +69,13 @@ class client_base
 
 	void send_request()
 	{
-		auto buffers = m_req.to_buffers();
+		std::vector<boost::asio::const_buffer> buffers;
+		for (auto &buffer : m_req.to_buffers())
+			buffers.emplace_back(buffer.data(), buffer.size());
+
 		boost::asio::async_write(get_socket(),
 			buffers,
-			[this](const boost::system::error_code &error, std::size_t length)
+			[this](const boost::system::error_code &error, std::size_t  /*length*/)
 			{
 				if (not error)
 					receive_response();
@@ -106,7 +107,7 @@ class client_base
 			});
 	}
 
-	std::array<char, 4096> m_buffer;
+	std::array<char, 4096> m_buffer{};
 	const zh::request m_req;
 	bool m_done = false, m_verbose = false;
 	zh::reply_parser m_reply_parser;
@@ -125,7 +126,7 @@ class client : public client_base<tcp::socket>
 	}
 
   private:
-	virtual socket_type &get_socket() { return m_socket; }
+	socket_type &get_socket() override { return m_socket; }
 
 	void connect(const tcp::resolver::results_type &endpoints)
 	{
@@ -155,13 +156,16 @@ class ssl_client : public client_base<boost::asio::ssl::stream<tcp::socket>>
 	{
 		m_socket.set_verify_mode(boost::asio::ssl::verify_peer);
 		m_socket.set_verify_callback(
-			std::bind(&ssl_client::verify_certificate, this, _1, _2));
+			[this](auto &&preverified, auto &&ctx)
+			{ return verify_certificate(
+				  std::forward<decltype(preverified)>(preverified),
+				  std::forward<decltype(ctx)>(ctx)); });
 
 		connect(endpoints);
 	}
 
   private:
-	virtual socket_type &get_socket() { return m_socket; }
+	socket_type &get_socket() override { return m_socket; }
 
 	bool verify_certificate(bool preverified,
 		boost::asio::ssl::verify_context &ctx)
@@ -221,17 +225,20 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 
 	// prepare a request
 
-	req.get_headers().push_back({ "Host", host });
-	auto req_buffer = req.to_buffers();
+	req.get_headers().emplace_back("Host", host);
 
-	auto reader = [&,is_head=cif::iequals(req.get_method(), "HEAD")](auto &socket)
+	std::vector<boost::asio::const_buffer> req_buffer;
+	for (auto &buffer : req.to_buffers())
+		req_buffer.emplace_back(buffer.data(), buffer.size());
+
+	auto reader = [&, is_head = cif::iequals(req.get_method(), "HEAD")](auto &socket)
 	{
 		zh::reply result;
 		zh::reply_parser p;
 
 		for (;;)
 		{
-			std::array<char, 4096> buf;
+			std::array<char, 4096> buf{};
 			boost::system::error_code error{};
 
 			size_t len = socket.read_some(boost::asio::buffer(buf), error);
@@ -311,7 +318,7 @@ zh::reply head_request(std::string url, std::vector<zeep::http::header> headers)
 
 	// prepare a request
 
-	headers.push_back({ "Host", host });
+	headers.emplace_back("Host", host);
 
 	zh::request req{ "HEAD", url, { 1, 0 }, std::move(headers) };
 
@@ -335,7 +342,7 @@ zh::reply simple_request(std::string url, std::vector<zeep::http::header> header
 
 	// prepare a request
 
-	headers.push_back({ "Host", host });
+	headers.emplace_back("Host", host);
 
 	zh::request req{ "GET", url, { 1, 0 }, std::move(headers) };
 
@@ -359,7 +366,7 @@ zeep::http::reply post_request(std::string url, std::vector<zeep::http::header> 
 
 	// prepare a request
 
-	headers.push_back({ "Host", host });
+	headers.emplace_back("Host", host);
 
 	zh::request req{ "POST", url, { 1, 0 }, std::move(headers) };
 

@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 // --------------------------------------------------------------------
@@ -52,7 +53,7 @@ std::string decode(const sequence &s);
 class blast_exception : public std::runtime_error
 {
   public:
-	blast_exception(std::string msg)
+	blast_exception(const std::string& msg)
 		: std::runtime_error(msg.c_str())
 	{
 	}
@@ -62,23 +63,23 @@ class blast_exception : public std::runtime_error
 
 struct BlastHsp
 {
-	uint32_t mScore;
-	uint32_t mQueryStart, mQueryEnd, mTargetStart, mTargetEnd;
+	uint32_t mScore{};
+	uint32_t mQueryStart{}, mQueryEnd{}, mTargetStart{}, mTargetEnd{};
 	sequence mAlignedQuery, mAlignedTarget;
-	double mBitScore;
-	double mExpect;
-	bool mGapped;
+	double mBitScore{};
+	double mExpect{};
+	bool mGapped{};
 
 	bool operator>(const BlastHsp &inHsp) const { return mScore > inHsp.mScore; }
 	void CalculateExpect(int64_t inSearchSpace, double inLambda, double inLogKappa);
 
-	bool Overlaps(const BlastHsp &inOther) const
+	[[nodiscard]] bool Overlaps(const BlastHsp &inOther) const
 	{
 		return mQueryEnd >= inOther.mQueryStart and mQueryStart <= inOther.mQueryEnd and
 		       mTargetEnd >= inOther.mTargetStart and mTargetStart <= inOther.mTargetEnd;
 	}
 
-	size_t length() const
+	[[nodiscard]] size_t length() const
 	{
 		return mAlignedQuery.length();
 	}
@@ -105,9 +106,9 @@ struct BlastHit
 	sequence mTarget;
 	std::vector<BlastHsp> mHsps;
 
-	BlastHit(const std::string &inDefLine, const sequence &inTarget)
-		: mDefLine(inDefLine)
-		, mTarget(inTarget)
+	BlastHit(std::string inDefLine, sequence inTarget)
+		: mDefLine(std::move(inDefLine))
+		, mTarget(std::move(inTarget))
 	{
 	}
 

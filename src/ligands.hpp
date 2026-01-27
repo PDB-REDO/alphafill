@@ -27,6 +27,7 @@
 #pragma once
 
 #include <cif++.hpp>
+#include <memory>
 
 class Ligand
 {
@@ -47,26 +48,26 @@ class Ligand
 
 	void modify(cif::mm::structure &structure, const std::string &asymID) const;
 
-	std::string analogueID() const
+	[[nodiscard]] std::string analogueID() const
 	{
 		return mLigand->front()["analogue_id"].as<std::string>();
 	}
 
-	std::string ID() const
+	[[nodiscard]] std::string ID() const
 	{
 		return mDb->name();
 	}
 
-	std::string description() const
+	[[nodiscard]] std::string description() const
 	{
 		return mLigand->front()["description"].as<std::string>();
 	}
 
-	size_t atom_count(const cif::mm::residue &res) const;
+	[[nodiscard]] size_t atom_count(const cif::mm::residue &res) const;
 
-	bool drops(const std::string &atomID) const;
+	[[nodiscard]] bool drops(const std::string &atomID) const;
 
-	std::string map(const std::string &atomID) const;
+	[[nodiscard]] std::string map(const std::string &atomID) const;
 
   private:
 	const cif::datablock *mDb;
@@ -80,7 +81,7 @@ class LigandsTable
   public:
 	static void init(const std::filesystem::path &file)
 	{
-		sInstance.reset(new LigandsTable(file));
+		sInstance = std::make_unique<LigandsTable>(file);
 	}
 
 	static LigandsTable &instance()
@@ -98,7 +99,7 @@ class LigandsTable
 		return {&mCifFile[id]};
 	}
 
-	bool contains_any(const std::vector<std::string_view> &compounds) const;
+	[[nodiscard]] bool contains_any(const std::vector<std::string_view> &compounds) const;
 
   private:
 	cif::file mCifFile;

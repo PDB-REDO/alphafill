@@ -14,7 +14,6 @@ BraceWrapping:
   BeforeLambdaBody: false
 AlignAfterOpenBracket: DontAlign
 Cpp11BracedListStyle: false
-# IncludeBlocks: Regroup
 LambdaBodyIndentation: Signature
 AllowShortLambdasOnASingleLine: Inline
 EmptyLineBeforeAccessModifier: LogicalBlock

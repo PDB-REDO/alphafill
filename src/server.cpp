@@ -33,14 +33,14 @@
 #include "structure.hpp"
 #include "utilities.hpp"
 
-#include <mxml/serialize.hpp>
+#include <zeem/serialize.hpp>
 #include <zeep/crypto.hpp>
 #include <zeep/el/object.hpp>
 #include <zeep/el/serializer.hpp>
 #include <zeep/http/daemon.hpp>
 #include <zeep/http/html-controller.hpp>
 #include <zeep/http/reply.hpp>
-#include <zeep/http/uri.hpp>
+#include <zeep/uri.hpp>
 
 #include <cif++.hpp>
 #include <mcfp/mcfp.hpp>
@@ -174,7 +174,7 @@ class affd_html_controller : public zh::html_controller
 		map_get_file("_static/");
 	}
 
-	zh::reply welcome(const zh::scope &scope, std::optional<int> id);
+	zh::reply welcome(const zh::scope &scope, std::optional<std::string> id);
 	zh::reply structures(const zh::scope &scope, std::optional<std::string> compound, std::optional<int> identity, std::optional<int> page);
 	zh::reply compounds(const zh::scope &scope, std::optional<int> identity);
 	zh::reply model(const zh::scope &scope, std::string id, std::optional<int> identity);
@@ -184,12 +184,12 @@ class affd_html_controller : public zh::html_controller
 	zh::reply handle_help_file(const zh::scope &scope);
 };
 
-zh::reply affd_html_controller::welcome(const zh::scope &scope, std::optional<int> id)
+zh::reply affd_html_controller::welcome(const zh::scope &scope, std::optional<std::string> id)
 {
 	if (id.has_value())
 	{
-		zeep::http::uri uri = scope.get_request().get_uri();
-		return zeep::http::reply::redirect(uri.get_path().string() + "model?id=" + zeep::http::encode_url(std::to_string(*id)));
+		zeep::uri uri = scope.get_request().get_uri();
+		return zeep::http::reply::redirect(uri.get_path().string() + "model?id=" + zeep::encode_url(*id));
 	}
 
 	return get_template_processor().create_reply_from_template("index", scope);
@@ -235,22 +235,19 @@ zh::reply affd_html_controller::structures(const zh::scope &scope, std::optional
 		return get_template_processor().create_reply_from_template("structures::structure-table-fragment", sub);
 }
 
-zh::reply affd_html_controller::compounds(const zh::scope &scope, std::optional<int> identity_o)
+zh::reply affd_html_controller::compounds(const zh::scope &scope, std::optional<int> identity)
 {
 	zh::scope sub(scope);
 
 	auto &ds = data_service::instance();
 
-	int identity = identity_o.value_or(kMaxIdentity);
-
-	if (identity < kMinIdentity)
+	if (identity.value_or(0) < kMinIdentity)
 		identity = kMinIdentity;
-	if (identity > 100)
+	else if (identity > 100)
 		identity = 100;
 
-	sub.put("identity", identity);
-
-	sub.put("compounds", zeep::el::to_object(ds.get_compounds(identity * 0.01f)));
+	sub.put("identity", *identity);
+	sub.put("compounds", zeep::el::to_object(ds.get_compounds(*identity * 0.01f)));
 
 	return get_template_processor().create_reply_from_template("compounds", sub);
 }
@@ -277,21 +274,21 @@ struct transplant_info
 	void serialize(Archive &ar, unsigned long)
 	{
 		// clang-format off
-		ar & mxml::name_value_pair("compound_id", compound_id)
-		   & mxml::name_value_pair("analogue_id", analogue_id)
-		   & mxml::name_value_pair("pdb_id", pdb_id)
-		   & mxml::name_value_pair("identity", identity)
-		   & mxml::name_value_pair("global-rmsd", gRMSd)
-		   & mxml::name_value_pair("asym_id", asym_id)
-		   & mxml::name_value_pair("local-rmsd", lRMSd)
-		   & mxml::name_value_pair("pae", pae)
-		   & mxml::name_value_pair("pae-mean", paeMean)
-		   & mxml::name_value_pair("pae-sd", paeSD)
-		   & mxml::name_value_pair("clash-score", clashScore)
-		   & mxml::name_value_pair("first-hit", firstHit)
-		   & mxml::name_value_pair("first-transplant", firstTransplant)
-		   & mxml::name_value_pair("hit-count", hitCount)
-		   & mxml::name_value_pair("transplant-count", transplantCount);
+		ar & zeem::name_value_pair("compound_id", compound_id)
+		   & zeem::name_value_pair("analogue_id", analogue_id)
+		   & zeem::name_value_pair("pdb_id", pdb_id)
+		   & zeem::name_value_pair("identity", identity)
+		   & zeem::name_value_pair("global-rmsd", gRMSd)
+		   & zeem::name_value_pair("asym_id", asym_id)
+		   & zeem::name_value_pair("local-rmsd", lRMSd)
+		   & zeem::name_value_pair("pae", pae)
+		   & zeem::name_value_pair("pae-mean", paeMean)
+		   & zeem::name_value_pair("pae-sd", paeSD)
+		   & zeem::name_value_pair("clash-score", clashScore)
+		   & zeem::name_value_pair("first-hit", firstHit)
+		   & zeem::name_value_pair("first-transplant", firstTransplant)
+		   & zeem::name_value_pair("hit-count", hitCount)
+		   & zeem::name_value_pair("transplant-count", transplantCount);
 		// clang-format on
 	}
 
