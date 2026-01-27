@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <cif++.hpp>
 #include <cif++/category.hpp>
+#include <cif++/validate.hpp>
 #include <exception>
 #include <mcfp/mcfp.hpp>
 #include <memory>
@@ -497,6 +498,17 @@ void check_blast_index()
 
 // --------------------------------------------------------------------
 
+template <typename ValidatorFactory>
+void set_validator(cif::datablock &db, std::string_view name)
+{
+	auto &cf = ValidatorFactory::instance();
+	if constexpr (std::is_pointer_v<decltype(std::declval<cif::validator_factory>().get(""))>)
+		db.set_validator(cf.get("mmcif_pdbx.dic"));
+	else
+		db.set_validator(&cf.get("mmcif_pdbx.dic"));
+}
+
+
 zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 	const std::vector<PAE_matrix> &v_pae, alphafill_progress_cb &&progress)
 {
@@ -528,9 +540,14 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 
 	// This sucks, kinda... The mmcif_af dictionary does not specify
 	// all links required to correctly work with libcifpp...
-#warning "Needs fix"
-	// if (db.get_validator() == nullptr or (db.get_validator()->name() != "mmcif_pdbx.dic" and db.get_validator()->name() != "mmcif_ma.dic"))
-	// 	db.set_validator(&cif::validator_factory::instance()["mmcif_pdbx.dic"]);
+
+	static const cif::category
+		af_dict("audit_conform", { { cif::item{ "dict_name", "mmcif_af.dic" } } }),
+		ma_dict("audit_conform", { { cif::item{ "dict_name", "mmcif_ma.dic" } } }),
+		pdbx_dict("audit_conform", { { cif::item{ "dict_name", "mmcif_pdbx.dic" } } });
+
+	if (db.get_validator() == nullptr or not (db.get_validator()->matches_audit_conform(ma_dict) or db.get_validator()->matches_audit_conform(pdbx_dict)))
+		set_validator<cif::validator_factory>(db, "mmcif_pdbx.dic");
 
 	cif::mm::structure af_structure(db, 1, { .skip_hydrogen = true });
 
@@ -685,14 +702,11 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 
 					cf->front().load_dictionary();
 
-					static const cif::category af_dict("audit_conform", { { cif::item{ "dict_name", "mmcif_af.dic" } } });
-
 					// PDB-REDO files don't have the correct audit_conform records, sometimes
 					if (cf->front().get_validator() == nullptr or
 						cf->front().get_validator()->matches_audit_conform(af_dict))
 					{
-						cf->front().set_validator(
-							cif::validator_factory::instance().get("mmcif_pdbx.dic"));
+						set_validator<cif::validator_factory>(cf->front(), "mmcif_pdbx.dic");
 					}
 
 					ci = mmCifFiles.begin();
@@ -748,7 +762,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 				// 	exit(1);
 				// }
 
-				for (const auto& chain_id : get_chain_ids_for_entity_id(pdb_structure.get_datablock(), entity_id))
+				for (const auto &chain_id : get_chain_ids_for_entity_id(pdb_structure.get_datablock(), entity_id))
 				{
 					auto pdb_res = get_residues_for_chain_id(pdb_structure, chain_id);
 
@@ -1031,7 +1045,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 								auto &pdb_struct_conn = pdb_structure.get_category("struct_conn");
 								auto &af_struct_conn = af_structure.get_category("struct_conn");
 
-								for (const auto& atom : res.atoms())
+								for (const auto &atom : res.atoms())
 								{
 									for (auto conn : pdb_struct_conn.find(
 											 ("ptnr1_label_asym_id"_key == atom.get_label_asym_id() and "ptnr1_label_atom_id"_key == atom.get_label_atom_id()) or
