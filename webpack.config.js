@@ -49,13 +49,27 @@ module.exports = (env) => {
 					use: [
 						MiniCssExtractPlugin.loader,
 						"css-loader",
-						"sass-loader"
+						{
+							loader: "sass-loader",
+							options: {
+								sassOptions: {
+									silenceDeprecations: [
+										"color-functions",
+										"global-builtin",
+										"import",
+									]
+								}
+							}
+						}
 					]
 				},
 
 				{
-					test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-					include: path.resolve(__dirname, './node_modules/bootstrap-icons/font/fonts'),
+					test: /\.(woff(2)?|ttf)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+					include: [
+						path.resolve(__dirname, './node_modules/bootstrap-icons/font/fonts'),
+						path.resolve(__dirname, 'fonts')
+					],
 					type: 'asset/resource',
 					generator: {
 						filename: 'fonts/[name][ext]'

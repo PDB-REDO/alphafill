@@ -20,6 +20,7 @@
 		"@babel/preset-typescript": "^7.16.0",
 		"@popperjs/core": "^2.10.2",
 		"babel-loader": "^10.0.0",
+		"baseline-browser-mapping": "^2.10.0",
 		"clean-webpack-plugin": "^4.0.0",
 		"css-loader": "^7.1.2",
 		"glob-all": "^3.3.1",
