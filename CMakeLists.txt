@@ -265,7 +265,7 @@ target_compile_definitions(alphafill
 
 if(USE_RSRC)
 	message("Using resources compiled with ${MRC_EXECUTABLE}")
-	add_compile_definitions(USE_RSRC WEBAPP_USES_RESOURCES)
+	add_compile_definitions(WEBAPP_USES_RESOURCES USE_RSRC)
 
 	list(APPEND RESOURCES ${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic
 		${PROJECT_SOURCE_DIR}/rsrc/mmcif_ma.dic)

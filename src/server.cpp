@@ -1118,9 +1118,10 @@ int server_main(int argc, char *const argv[])
 		s->add_error_handler(new db_error_handler());
 		s->add_error_handler(new missing_entry_error_handler());
 
-#if not defined(NDEBUG)
-		s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
-#elif defined(WEBAPP_USES_RESOURCES) and WEBAPP_USES_RESOURCES
+// #if not defined(NDEBUG)
+// 		s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
+// #elif defined(WEBAPP_USES_RESOURCES) and WEBAPP_USES_RESOURCES
+#if defined(WEBAPP_USES_RESOURCES) and WEBAPP_USES_RESOURCES
 		s->set_template_processor(new zeep::http::rsrc_based_html_template_processor());
 #else
 		s->set_template_processor(new zeep::http::file_based_html_template_processor(ALPHAFILL_DATA_DIR "/docroot"));
