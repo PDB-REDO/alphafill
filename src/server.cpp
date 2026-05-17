@@ -34,6 +34,7 @@
 #include "utilities.hpp"
 
 #include <exception>
+#include <semaphore>
 #include <zeem/serialize.hpp>
 #include <zeep/crypto.hpp>
 #include <zeep/el/object.hpp>
@@ -157,7 +158,8 @@ bool missing_entry_error_handler::create_error_reply(const zeep::http::request &
 class affd_html_controller : public zh::html_controller
 {
   public:
-	affd_html_controller()
+	affd_html_controller(ptrdiff_t max_yasara_runs = 3)
+		: m_optimizer_semaphore(max_yasara_runs)
 	{
 		map_get("{,index,index.html}", &affd_html_controller::welcome, "id");
 		map_get("{structures,structure-table-page}", &affd_html_controller::structures, "compound", "identity", "page");
@@ -185,6 +187,8 @@ class affd_html_controller : public zh::html_controller
 	zh::reply schema(const zh::scope &scope);
 
 	zh::reply handle_help_file(const zh::scope &scope);
+
+	std::counting_semaphore<4> m_optimizer_semaphore;
 };
 
 zh::reply affd_html_controller::welcome(const zh::scope &scope, std::optional<std::string> id)
@@ -532,49 +536,58 @@ zh::reply affd_html_controller::optimized(const zh::scope &scope, std::string af
 	if (asymID.empty())
 		throw missing_entry_error("<missing-asym>");
 
-	const auto &[type, afId, chunkNr, version] = parse_af_id(af_id);
-
-	sub.put("af_id", af_id);
-	sub.put("chunk", chunkNr);
-	sub.put("asym_id", asymID);
-	sub.put("version", version);
-
-	try
+	if (m_optimizer_semaphore.try_acquire())
 	{
-		using namespace cif::literals;
+		try
+		{
+			const auto &[type, afId, chunkNr, version] = parse_af_id(af_id);
 
-		auto cif = file_locator::get_structure_file(type, afId, chunkNr, version);
-		cif::file cf(cif);
-		if (cf.empty())
-			throw zeep::http::not_found;
+			sub.put("af_id", af_id);
+			sub.put("chunk", chunkNr);
+			sub.put("asym_id", asymID);
+			sub.put("version", version);
 
-		auto &db = cf.front();
-		auto entity_id = db["struct_asym"].find1<std::string>("id"_key == asymID, "entity_id");
-		const auto &[compound_name, compound_id] = db["pdbx_entity_nonpoly"].find1<std::string, std::string>("entity_id"_key == entity_id, "name", "comp_id");
+			using namespace cif::literals;
 
-		sub.put("compound-name", compound_name);
-		sub.put("compound-id", compound_id);
+			auto cif = file_locator::get_structure_file(type, afId, chunkNr, version);
+			cif::file cf(cif);
+			if (cf.empty())
+				throw zeep::http::not_found;
+
+			auto &db = cf.front();
+			auto entity_id = db["struct_asym"].find1<std::string>("id"_key == asymID, "entity_id");
+			const auto &[compound_name, compound_id] = db["pdbx_entity_nonpoly"].find1<std::string, std::string>("entity_id"_key == entity_id, "name", "comp_id");
+
+			sub.put("compound-name", compound_name);
+			sub.put("compound-id", compound_id);
+
+			bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2, version));
+
+			sub.put("chunked", chunked);
+
+			if (chunked)
+			{
+				auto allChunks = file_locator::get_all_structure_files(afId, version);
+				zeep::el::object chunks;
+
+				for (size_t i = 0; i < allChunks.size(); ++i)
+					chunks.emplace_back(afId + "-F" + std::to_string(i + 1));
+
+				sub.put("chunks", chunks);
+			}
+
+			m_optimizer_semaphore.release();
+
+			return get_template_processor().create_reply_from_template("optimized", sub);
+		}
+		catch (...)
+		{
+			m_optimizer_semaphore.release();
+			throw;
+		}
 	}
-	catch (...)
-	{
-	}
-
-	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2, version));
-
-	sub.put("chunked", chunked);
-
-	if (chunked)
-	{
-		auto allChunks = file_locator::get_all_structure_files(afId, version);
-		zeep::el::object chunks;
-
-		for (size_t i = 0; i < allChunks.size(); ++i)
-			chunks.emplace_back(afId + "-F" + std::to_string(i + 1));
-
-		sub.put("chunks", chunks);
-	}
-
-	return get_template_processor().create_reply_from_template("optimized", sub);
+	else
+		return zh::reply(static_cast<zh::status_type>(429), { 1, 0 }, {}, "Too many requests, please try again later");
 }
 
 zh::reply affd_html_controller::schema(const zh::scope &scope)
