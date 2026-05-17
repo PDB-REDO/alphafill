@@ -31,7 +31,7 @@
 
 #include <algorithm>
 #include <atomic>
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <cif++/validate.hpp>
 #include <cstring>
 #include <fcntl.h>

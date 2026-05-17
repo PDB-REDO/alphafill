@@ -33,16 +33,19 @@
 #include "structure.hpp"
 #include "utilities.hpp"
 
+#include <exception>
 #include <zeem/serialize.hpp>
 #include <zeep/crypto.hpp>
 #include <zeep/el/object.hpp>
 #include <zeep/el/serializer.hpp>
+#include <zeep/exception.hpp>
 #include <zeep/http/daemon.hpp>
 #include <zeep/http/html-controller.hpp>
 #include <zeep/http/reply.hpp>
+#include <zeep/http/status.hpp>
 #include <zeep/uri.hpp>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
 #include <filesystem>
@@ -72,8 +75,8 @@ class af_link_template_object : public zh::expression_utility_object<af_link_tem
 		m_template = t;
 	}
 
-	virtual zh::object evaluate(const zh::scope &scope, const std::string &methodName,
-		const std::vector<zh::object> &parameters) const
+	[[nodiscard]] zh::object evaluate(const zh::scope &scope, const std::string &methodName,
+		const std::vector<zh::object> &parameters) const override
 	{
 		zh::object result;
 
@@ -123,10 +126,10 @@ class missing_entry_error : public std::runtime_error
 class missing_entry_error_handler : public zeep::http::error_handler
 {
   public:
-	virtual bool create_error_reply(const zeep::http::request &req, std::exception_ptr eptr, zeep::http::reply &reply);
+	bool create_error_reply(const zeep::http::request &req, const std::exception_ptr &eptr, zeep::http::reply &reply) override;
 };
 
-bool missing_entry_error_handler::create_error_reply(const zeep::http::request &req, std::exception_ptr eptr, zeep::http::reply &reply)
+bool missing_entry_error_handler::create_error_reply(const zeep::http::request &req, const std::exception_ptr &eptr, zeep::http::reply &reply)
 {
 	bool result = false;
 
@@ -635,7 +638,7 @@ class affd_rest_controller : public zh::controller
 
 	// --------------------------------------------------------------------
 
-	zeep::el::object post_custom_structure(const std::string &data, const std::optional<std::string> pae);
+	zeep::http::reply post_custom_structure(const std::string &data, const std::optional<std::string> pae);
 };
 
 status_reply affd_rest_controller::get_aff_status(const std::string &af_id)
@@ -855,7 +858,7 @@ zeep::el::object affd_rest_controller::get_aff_3d_beacon(std::string af_id, std:
 	int uniprot_start, uniprot_end;
 	cif::tie(uniprot_start, uniprot_end) = struct_ref_seq.front().get("db_align_beg", "db_align_end");
 
-	std::string db_code = struct_ref.front()["db_code"].as<std::string>();
+	std::string db_code = struct_ref.front()["db_code"].get<std::string>();
 
 	zeep::el::object result{
 		{ "uniprot_entry", { //
@@ -930,22 +933,29 @@ zeep::el::object affd_rest_controller::get_aff_3d_beacon(std::string af_id, std:
 
 // --------------------------------------------------------------------
 
-zeep::el::object affd_rest_controller::post_custom_structure(const std::string &data, const std::optional<std::string> pae)
+zeep::http::reply affd_rest_controller::post_custom_structure(const std::string &data, const std::optional<std::string> pae)
 {
-	auto id = "CS-" + zeep::encode_hex(zeep::sha1(data));
+	auto &ds = data_service::instance();
 
-	auto status = data_service::instance().get_status(id);
+	auto id = "CS-" + zeep::encode_hex(zeep::sha1(data));
+	auto status = ds.get_status(id);
 
 	if (status.status == CustomStatus::Unknown)
-	{
-		data_service::instance().queue(data, pae, id);
-		status.status = CustomStatus::Queued;
-	}
+		status.status = ds.queue(data, pae, id) ? CustomStatus::Queued : CustomStatus::TooManyRequests;
 
-	return {
+	zeep::http::reply r(status.status == CustomStatus::TooManyRequests ? //
+							static_cast<zeep::http::status_type>(429)
+																	   : //
+							zeep::http::status_type::ok);
+
+	zeep::el::object ro{
 		{ "id", id },
 		{ "status", zeep::value_serializer<CustomStatus>::to_string(status.status) }
 	};
+
+	r.set_content(ro);
+
+	return r;
 }
 
 // --------------------------------------------------------------------

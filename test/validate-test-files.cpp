@@ -1,6 +1,6 @@
 #include <mcfp/mcfp.hpp>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <zeep/el/object.hpp>
 
 #include <fstream>

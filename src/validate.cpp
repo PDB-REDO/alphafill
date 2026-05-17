@@ -30,7 +30,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <utility>
 #include <zeep/el/object.hpp>
 #include <zeep/el/serializer.hpp>

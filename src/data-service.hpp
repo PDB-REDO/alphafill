@@ -33,7 +33,7 @@
 
 #include <zeep/el/serializer.hpp>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 
 #include "queue.hpp"
 
@@ -82,6 +82,7 @@ enum class CustomStatus
 {
 	Unknown,
 	Queued,
+	TooManyRequests,
 	Running,
 	Finished,
 	Error
@@ -129,7 +130,7 @@ class data_service
 
 	status_reply get_status(const std::string &id) const;
 
-	void queue(const std::string &data, const std::optional<std::string> pae, const std::string &id);
+	bool queue(const std::string &data, const std::optional<std::string> pae, const std::string &id);
 	std::string queue_af_id(const std::string &id);
 
   private:
@@ -146,7 +147,7 @@ class data_service
 
 	// threads processing AF entries
 	std::vector<std::thread> m_threads;
-	blocking_queue<std::string, 100> m_queue;
+	blocking_queue<std::string, 10> m_queue;
 
 	std::mutex m_mutex;
 	std::string m_running;

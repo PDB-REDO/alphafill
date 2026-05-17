@@ -31,7 +31,7 @@
 #include "queue.hpp"
 #include "utilities.hpp"
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 #include <zeep/el/object.hpp>
 #include <zeep/uri.hpp>
@@ -815,12 +815,12 @@ status_reply data_service::get_status(const std::string &af_id) const
 	return reply;
 }
 
-void data_service::queue(const std::string &data, const std::optional<std::string> pae, const std::string &id)
+bool data_service::queue(const std::string &data, const std::optional<std::string> pae, const std::string &id)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
 	if (m_queue.is_full())
-		throw std::runtime_error("The server is too busy to handle your request, please try again later");
+		return false;
 
 	struct membuf : public std::streambuf
 	{
@@ -858,6 +858,7 @@ void data_service::queue(const std::string &data, const std::optional<std::strin
 	}
 
 	m_queue.push(id);
+	return true;
 }
 
 std::string data_service::queue_af_id(const std::string &id)

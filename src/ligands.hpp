@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <memory>
 
 class Ligand
@@ -43,14 +43,14 @@ class Ligand
 
 	explicit operator bool() const
 	{
-		return mDb != nullptr and mLigand != nullptr and mLigand->front()["priority"].as<std::string>() != "n";
+		return mDb != nullptr and mLigand != nullptr and mLigand->front()["priority"].get<std::string>() != "n";
 	}
 
 	void modify(cif::mm::structure &structure, const std::string &asymID) const;
 
 	[[nodiscard]] std::string analogueID() const
 	{
-		return mLigand->front()["analogue_id"].as<std::string>();
+		return mLigand->front()["analogue_id"].get<std::string>();
 	}
 
 	[[nodiscard]] std::string ID() const
@@ -60,7 +60,7 @@ class Ligand
 
 	[[nodiscard]] std::string description() const
 	{
-		return mLigand->front()["description"].as<std::string>();
+		return mLigand->front()["description"].get<std::string>();
 	}
 
 	[[nodiscard]] size_t atom_count(const cif::mm::residue &res) const;

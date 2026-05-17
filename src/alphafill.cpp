@@ -34,7 +34,7 @@
 #include "validate.hpp"
 
 #include <algorithm>
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <cif++/category.hpp>
 #include <exception>
 #include <mcfp/mcfp.hpp>
@@ -363,7 +363,7 @@ int create_index(int argc, char *const argv[])
 					std::vector<std::string> ligands;
 
 					auto &chem_comp = db["chem_comp"];
-					for (auto &comp_id : chem_comp.rows<std::string>("id"))
+					for (auto comp_id : chem_comp.rows<std::string>("id"))
 					{
 						if (cif::compound_factory::instance().is_std_peptide(comp_id) or
 							cif::compound_factory::instance().is_std_base(comp_id) or
@@ -1038,16 +1038,16 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 											 ("ptnr2_label_asym_id"_key == atom.get_label_asym_id() and "ptnr2_label_atom_id"_key == atom.get_label_atom_id())))
 									{
 										std::string a_type, a_comp;
-										if (conn["ptnr1_label_asym_id"].as<std::string>() == atom.get_label_asym_id() and
-											conn["ptnr1_label_atom_id"].as<std::string>() == atom.get_label_atom_id())
+										if (conn["ptnr1_label_asym_id"].get<std::string>() == atom.get_label_asym_id() and
+											conn["ptnr1_label_atom_id"].get<std::string>() == atom.get_label_atom_id())
 										{
-											a_type = conn["ptnr2_label_atom_id"].as<std::string>();
-											a_comp = conn["ptnr2_label_comp_id"].as<std::string>();
+											a_type = conn["ptnr2_label_atom_id"].get<std::string>();
+											a_comp = conn["ptnr2_label_comp_id"].get<std::string>();
 										}
 										else
 										{
-											a_type = conn["ptnr1_label_atom_id"].as<std::string>();
-											a_comp = conn["ptnr1_label_comp_id"].as<std::string>();
+											a_type = conn["ptnr1_label_atom_id"].get<std::string>();
+											a_comp = conn["ptnr1_label_comp_id"].get<std::string>();
 										}
 
 										// locate the corresponding atom in the af structure
@@ -1060,7 +1060,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 											continue;
 										}
 
-										auto conn_type = conn["conn_type_id"].as<std::string>();
+										auto conn_type = conn["conn_type_id"].get<std::string>();
 
 										af_struct_conn.emplace({ { "id", af_struct_conn.get_unique_id(conn_type) },
 											{ "conn_type_id", conn_type },
@@ -1093,7 +1093,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 								{
 									for (auto r : db["pdbx_struct_assembly_gen"])
 									{
-										auto asym_id_list = cif::split<std::string>(r["asym_id_list"].as<std::string>(), ",", true);
+										auto asym_id_list = cif::split<std::string>(r["asym_id_list"].get<std::string>(), ",", true);
 										if (std::ranges::find(asym_id_list, af_res.front()->get_asym_id()) == asym_id_list.end())
 											continue;
 

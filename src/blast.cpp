@@ -10,7 +10,7 @@
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 
 #include <atomic>
 #include <cmath>
@@ -541,9 +541,8 @@ void Window::Trim(uint64_t &ioEndL, uint64_t &ioEndR, uint64_t inMaxTrim)
 	uint64_t lEnd = 0;
 	uint64_t rEnd = mLength - 1;
 	int64_t minLen = 1;
-	int64_t maxTrim = inMaxTrim;
-	if (minLen < mLength - maxTrim)
-		minLen = mLength - maxTrim;
+	if (std::cmp_less(minLen, mLength - inMaxTrim))
+		minLen = mLength - inMaxTrim;
 
 	for (int64_t len = mLength; len > minLen; --len)
 	{
