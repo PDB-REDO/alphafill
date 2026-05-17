@@ -55,7 +55,7 @@ pygments==2.20.0
     # via sphinx
 pyyaml==6.0.1
     # via myst-parser
-requests==2.32.4
+requests==2.33.0
     # via sphinx
 six==1.16.0
     # via exhale
