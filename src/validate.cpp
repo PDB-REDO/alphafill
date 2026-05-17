@@ -24,25 +24,19 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "utilities.hpp"
-#include "data-service.hpp"
-#include "ligands.hpp"
-#include "queue.hpp"
 #include "validate.hpp"
+#include "ligands.hpp"
+#include "utilities.hpp"
 
-#include <cif++.hpp>
-
-#include <zeep/el/object.hpp>
-
-#include <fstream>
-#include <iomanip>
-#include <thread>
-
+#include <algorithm>
 #include <cassert>
+#include <cif++/cif++.hpp>
+#include <utility>
+#include <zeep/el/object.hpp>
 #include <zeep/el/serializer.hpp>
 
 #ifdef near
-#undef near
+# undef near
 #endif
 
 using json = zeep::el::object;
@@ -120,7 +114,7 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 
 	std::vector<std::tuple<int, std::string, cif::mm::atom>> aI, bI;
 
-	for (auto atom : ra.atoms())
+	for (const auto& atom : ra.atoms())
 	{
 		aL.emplace_back(atom);
 
@@ -128,7 +122,7 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 
 		for (auto &r : pa)
 		{
-			for (auto rAtom : r->atoms())
+			for (const auto& rAtom : r->atoms())
 			{
 				if (distance_squared(atom, rAtom) <= maxDistanceSq)
 					aI.emplace_back(i, rAtom.get_label_atom_id(), rAtom);
@@ -138,7 +132,7 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 		}
 	}
 
-	for (auto atom : rb.atoms())
+	for (const auto& atom : rb.atoms())
 	{
 		if (ligand.drops(atom.get_label_atom_id()))
 			continue;
@@ -149,7 +143,7 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 
 		for (auto &r : pb)
 		{
-			for (auto rAtom : r->atoms())
+			for (const auto& rAtom : r->atoms())
 			{
 				if (distance_squared(atom, rAtom) <= maxDistanceSq)
 					bI.emplace_back(i, ligand.map(rAtom.get_label_atom_id()), rAtom);
@@ -159,7 +153,7 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 		}
 	}
 
-	auto atomLess = [&ligand](const std::tuple<int, std::string, cif::mm::atom> &a, const std::tuple<int, std::string, cif::mm::atom> &b)
+	auto atomLess = [](const std::tuple<int, std::string, cif::mm::atom> &a, const std::tuple<int, std::string, cif::mm::atom> &b)
 	{
 		const auto &[ai, an, aa] = a;
 		const auto &[bi, bn, ba] = b;
@@ -172,10 +166,10 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 		return d < 0;
 	};
 
-	sort(aI.begin(), aI.end(), atomLess);
-	aI.erase(std::unique(aI.begin(), aI.end()), aI.end());
-	sort(bI.begin(), bI.end(), atomLess);
-	bI.erase(std::unique(bI.begin(), bI.end()), bI.end());
+	std::ranges::sort(aI, atomLess);
+	aI.erase(std::ranges::begin(std::ranges::unique(aI)), aI.end());
+	std::ranges::sort(bI, atomLess);
+	bI.erase(std::ranges::begin(std::ranges::unique(bI)), bI.end());
 
 	auto aIi = aI.begin(), bIi = bI.begin();
 
@@ -213,8 +207,10 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 	}
 
 	// Sort ligand atoms and make sure both are known
-	std::sort(aL.begin(), aL.end(), [](const cif::mm::atom &a, const cif::mm::atom &b) { return a.get_label_atom_id().compare(b.get_label_atom_id()) < 0; });
-	std::sort(bL.begin(), bL.end(), [](const cif::mm::atom &a, const cif::mm::atom &b) { return a.get_label_atom_id().compare(b.get_label_atom_id()) < 0; });
+	std::ranges::sort(aL, [](const cif::mm::atom &a, const cif::mm::atom &b)
+		{ return a.get_label_atom_id().compare(b.get_label_atom_id()) < 0; });
+	std::ranges::sort(bL, [](const cif::mm::atom &a, const cif::mm::atom &b)
+		{ return a.get_label_atom_id().compare(b.get_label_atom_id()) < 0; });
 
 	auto aLi = aL.begin();
 	auto bLi = bL.begin();
@@ -244,13 +240,16 @@ FindAtomsNearLigand(const std::vector<cif::mm::monomer *> &pa, const std::vector
 	if (bLi != bL.end())
 		bL.erase(bLi, bL.end());
 
-	return {aP, bP, aL, bL};
+	return { aP, bP, aL, bL };
 }
 
 // --------------------------------------------------------------------
 
-CAtom::CAtom(cif::atom_type type, cif::point pt, int charge, int get_seq_id, const std::string &id)
-	: type(type), pt(pt), seqID(get_seq_id), id(id)
+CAtom::CAtom(cif::atom_type type, cif::point pt, int charge, int get_seq_id, std::string id)
+	: type(type)
+	, pt(pt)
+	, seqID(get_seq_id)
+	, id(std::move(id))
 {
 	const cif::atom_type_traits att(type);
 
@@ -276,7 +275,7 @@ CAtom::CAtom(cif::atom_type type, cif::point pt, int charge, int get_seq_id, con
 		throw std::runtime_error("Unknown radius for atom " + att.symbol() + " with charge " + std::to_string(charge));
 }
 
-std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance)
+std::tuple<int, json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, const std::vector<CAtom> &resAtoms, float maxDistance)
 {
 	auto maxDistanceSq = maxDistance * maxDistance;
 
@@ -295,7 +294,7 @@ std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, co
 
 			if (d >= maxDistanceSq)
 				continue;
-			
+
 			near = true;
 
 			d = std::sqrt(d);
@@ -303,22 +302,18 @@ std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, co
 			auto overlap = pa.radius + ra.radius - d;
 			if (overlap < 0)
 				overlap = 0;
-			
+
 			if (overlap > 0)
 			{
 				++n;
 				sumOverlapSq += overlap * overlap;
 			}
-			
+
 			json d_info{
 				{ "distance", d },
 				{ "VdW_overlap", overlap },
-				{
-					"poly_atom", {
-						{ "seq_id", pa.seqID },
-						{ "id", pa.id }
-					}
-				}
+				{ "poly_atom", { { "seq_id", pa.seqID },
+								   { "id", pa.id } } }
 			};
 			if (resAtoms.size() > 1)
 				d_info["res_atom_id"] = ra.id;
@@ -331,13 +326,11 @@ std::tuple<int,json> CalculateClashScore(const std::vector<CAtom> &polyAtoms, co
 
 	return {
 		m,
-		{
-			{ "score", m ? std::sqrt(sumOverlapSq / distancePairs.size()) : 0 },
+		{ { "score", m ? std::sqrt(sumOverlapSq / distancePairs.size()) : 0 },
 			{ "clash_count", n },
 			{ "poly_atom_count", m },
 			{ "transplant_atom_count", resAtoms.size() },
-			{ "distances", std::move(distancePairs) }
-		}
+			{ "distances", std::move(distancePairs) } }
 	};
 }
 
@@ -363,8 +356,8 @@ float ClashScore(cif::datablock &db, float maxDistance)
 
 	std::vector<CAtom> cP, cL;
 
-	for (const auto &[asym_id, px, py, pz, symbol, comp_id, charge] : atom_site.rows<std::string,float,float,float,std::string,std::string,int>(
-			"label_asym_id", "Cartn_x", "Cartn_y", "Cartn_z", "type_symbol", "label_comp_id", "pdbx_formal_charge"))
+	for (const auto &[asym_id, px, py, pz, symbol, comp_id, charge] : atom_site.rows<std::string, float, float, float, std::string, std::string, int>(
+			 "label_asym_id", "Cartn_x", "Cartn_y", "Cartn_z", "type_symbol", "label_comp_id", "pdbx_formal_charge"))
 	{
 		if (asym_id == "A")
 			addAtom(symbol, comp_id, charge, { px, py, pz }, cP);
@@ -376,7 +369,7 @@ float ClashScore(cif::datablock &db, float maxDistance)
 
 	auto maxDistanceSq = maxDistance * maxDistance;
 
-	int n = 0, m = 0, o = 0;
+	int m = 0, o = 0;
 	double sumOverlapSq = 0;
 
 	for (auto &pa : cP)
@@ -389,7 +382,7 @@ float ClashScore(cif::datablock &db, float maxDistance)
 
 			if (d >= maxDistanceSq)
 				continue;
-			
+
 			near = true;
 			++o;
 
@@ -398,12 +391,9 @@ float ClashScore(cif::datablock &db, float maxDistance)
 			auto overlap = pa.radius + ra.radius - d;
 			if (overlap < 0)
 				overlap = 0;
-			
+
 			if (overlap > 0)
-			{
-				++n;
 				sumOverlapSq += overlap * overlap;
-			}
 		}
 
 		if (near)
@@ -458,14 +448,14 @@ zeep::el::object calculatePAEScore(const std::vector<cif::mm::residue *> &af_res
 		for (size_t j = 0; j < index.size(); ++j)
 		{
 			auto pae_v = pae(index[i], index[j]);
-			
+
 			v[j] = pae_v;
 
 			if (i != j)
 				vt.emplace_back(pae_v);
 		}
 
-		pae_s.push_back(zeep::el::to_object(v));
+		pae_s.emplace_back(v);
 	}
 
 	size_t N = (index.size() * (index.size() - 1));
@@ -506,11 +496,11 @@ zeep::el::object calculatePAEScore(const std::vector<cif::mm::residue *> &af_res
 		result["mean"] = avg;
 		result["stddev"] = stddev;
 
-		std::sort(vt.begin(), vt.end());
+		std::ranges::sort(vt);
 
 		result["median"] = vt.size() % 1 == 0
-			? (vt[vt.size() / 2 - 1] + vt[vt.size() / 2]) / 2.0f
-			: vt[vt.size() / 2];
+		                       ? (vt[vt.size() / 2 - 1] + vt[vt.size() / 2]) / 2.0f
+		                       : vt[vt.size() / 2];
 	}
 
 	return result;
@@ -532,8 +522,8 @@ zeep::el::object calculateValidationScores(
 
 	for (size_t i = 0; i < af_ix.size(); ++i)
 	{
-		af_res_selected.emplace_back(static_cast<cif::mm::monomer*>(&poly[af_ix[i]]));
-		pdb_res_selected.emplace_back(static_cast<cif::mm::monomer*>(pdb_res[pdb_ix[i]]));
+		af_res_selected.emplace_back(static_cast<cif::mm::monomer *>(&poly[af_ix[i]]));
+		pdb_res_selected.emplace_back(static_cast<cif::mm::monomer *>(pdb_res[pdb_ix[i]]));
 
 		auto &rA = *af_res_selected.back();
 		auto &rP = *pdb_res_selected.back();

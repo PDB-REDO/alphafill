@@ -31,7 +31,6 @@
 
 #include <zeep/el/object.hpp>
 
-#include <filesystem>
 #include <tuple>
 #include <vector>
 
@@ -48,7 +47,7 @@ struct CAtom
 	CAtom(const CAtom &) = default;
 	CAtom(CAtom &&) = default;
 
-	CAtom(cif::atom_type type, cif::point pt, int charge, int seqID, const std::string &id);
+	CAtom(cif::atom_type type, cif::point pt, int charge, int seqID, std::string id);
 
 	CAtom(const cif::mm::atom &atom)
 		: CAtom(atom.get_type(), atom.get_location(), atom.get_charge(), atom.get_label_seq_id(), atom.get_label_atom_id())

@@ -28,7 +28,7 @@
 #include <fstream>
 #include <iostream>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
 #include <zeep/el/object.hpp>
@@ -287,7 +287,7 @@ sequence getSequenceForStrand(cif::datablock &db, const std::string &strand)
 	if (r.empty())
 		throw std::runtime_error("Could not locate sequence in PDB for strand id " + strand);
 
-	auto entity_id = r.front()["entity_id"].as<std::string>();
+	auto entity_id = r.front()["entity_id"].get<std::string>();
 
 	auto &entity_poly = db["entity_poly"];
 	auto pdb_seq = entity_poly.find1<std::string>("entity_id"_key == entity_id, "pdbx_seq_one_letter_code_can");

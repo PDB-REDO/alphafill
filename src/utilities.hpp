@@ -27,7 +27,7 @@
 #include "blast.hpp"
 #include "ligands.hpp"
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
 #include <filesystem>

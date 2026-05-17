@@ -31,10 +31,10 @@
 #include "queue.hpp"
 #include "utilities.hpp"
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 #include <zeep/el/object.hpp>
-#include <zeep/http/uri.hpp>
+#include <zeep/uri.hpp>
 
 #include <forward_list>
 #include <fstream>
@@ -364,7 +364,7 @@ int data_service::rebuild()
 					}
 					catch (const std::exception &ex)
 					{
-						std::clog << "\nError processing file " << file << "\n";
+						std::clog << "Error processing file " << file << "\n";
 					}
 				}
 				//
@@ -503,7 +503,7 @@ std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_
 
 	url = rep_j["structures"][0]["summary"]["model_url"].get<std::string>();
 
-	zeep::http::uri uri(url);
+	zeep::uri uri(url);
 
 	if (uri.get_path().get_segments().empty())
 		throw std::runtime_error("Empy uri returned");
@@ -815,12 +815,12 @@ status_reply data_service::get_status(const std::string &af_id) const
 	return reply;
 }
 
-void data_service::queue(const std::string &data, const std::optional<std::string> pae, const std::string &id)
+bool data_service::queue(const std::string &data, const std::optional<std::string> pae, const std::string &id)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
 	if (m_queue.is_full())
-		throw std::runtime_error("The server is too busy to handle your request, please try again later");
+		return false;
 
 	struct membuf : public std::streambuf
 	{
@@ -858,6 +858,7 @@ void data_service::queue(const std::string &data, const std::optional<std::strin
 	}
 
 	m_queue.push(id);
+	return true;
 }
 
 std::string data_service::queue_af_id(const std::string &id)

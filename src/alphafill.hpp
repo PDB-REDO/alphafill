@@ -28,9 +28,7 @@
 
 #include <zeep/el/object.hpp>
 
-#include <cif++.hpp>
-
-#include <functional>
+#include <cif++/cif++.hpp>
 
 struct alphafill_progress_cb
 {

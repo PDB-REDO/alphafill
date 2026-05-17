@@ -6,20 +6,23 @@
 #include "blast.hpp"
 #include "matrix.hpp"
 
+#include <algorithm>
 #include <boost/interprocess/file_mapping.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 
+#include <atomic>
+#include <cmath>
+#include <cstddef>
 #include <filesystem>
 #include <limits>
-#include <mutex>
-#include <numeric>
-#include <thread>
-#include <regex>
-#include <cmath>
 #include <map>
-#include <atomic>
+#include <memory>
+#include <mutex>
+#include <regex>
+#include <thread>
+#include <utility>
 
 namespace fs = std::filesystem;
 
@@ -30,7 +33,8 @@ const char kResidues[] = "ACDEFGHIKLMNPQRSTVWYBZX";
 const uint8_t kResidueNrTable[] = {
 	//  A   B   C   D   E   F   G   H   I       K   L   M   N       P   Q   R   S   T  U=X  V   W   X   Y   Z
 	//  0,  1,  2,  3,  4,  5,  6,  7,  8, 23,  9, 10, 11, 12, 23, 13, 14, 15, 16, 17, 22, 18, 19, 22, 20, 21
-	    0, 20,  1,  2,  3,  4,  5,  6,  7, 23,  8,  9, 10, 11, 23, 12, 13, 14, 15, 16, 22, 17, 18, 22, 19, 21};
+	0, 20, 1, 2, 3, 4, 5, 6, 7, 23, 8, 9, 10, 11, 23, 12, 13, 14, 15, 16, 22, 17, 18, 22, 19, 21
+};
 
 sequence encode(const std::string &s)
 {
@@ -41,7 +45,7 @@ sequence encode(const std::string &s)
 	{
 		if (ch == '\n' or ch == '\r' or ch == '\t')
 			continue;
-		
+
 		result.push_back(is_gap(ch) ? '-' : ResidueNr(ch));
 	}
 
@@ -62,7 +66,6 @@ std::regex
 	// kFastARE("^>(\\w+)((?:\\|([^| ]*))?(?:\\|([^| ]+))?(?:\\|([^| ]+))?(?:\\|([^| ]+))?)(?: (.+))\n?");
 	kFastARE(R"(^>(\w+)((?:\|([^| ]*))?(?:\|([^| ]+))?(?:\|([^| ]+))?(?:\|([^| ]+))?)(?: (.+))\n?)");
 
-
 const uint32_t
 	kAACount = 22,  // 20 + B and Z
 	kResCount = 23, // includes X
@@ -79,7 +82,7 @@ const int32_t
 	kHitWindow = 40;
 
 const double
-	kLn2 = std::log(2.);
+	kLn2 = std::numbers::ln2;
 
 const int16_t
 	kSentinalScore = -9999;
@@ -92,23 +95,23 @@ class Matrix
 	int8_t operator()(char inAA1, char inAA2) const;
 	int8_t operator()(uint8_t inAA1, uint8_t inAA2) const;
 
-	int32_t OpenCost() const { return mData.mGapOpen; }
-	int32_t ExtendCost() const { return mData.mGapExtend; }
+	[[nodiscard]] int32_t OpenCost() const { return mData.mGapOpen; }
+	[[nodiscard]] int32_t ExtendCost() const { return mData.mGapExtend; }
 
-	double GappedLambda() const { return mData.mGappedStats.lambda; }
-	double GappedKappa() const { return mData.mGappedStats.kappa; }
-	double GappedEntropy() const { return mData.mGappedStats.entropy; }
-	double GappedAlpha() const { return mData.mGappedStats.alpha; }
-	double GappedBeta() const { return mData.mGappedStats.beta; }
+	[[nodiscard]] double GappedLambda() const { return mData.mGappedStats.lambda; }
+	[[nodiscard]] double GappedKappa() const { return mData.mGappedStats.kappa; }
+	[[nodiscard]] double GappedEntropy() const { return mData.mGappedStats.entropy; }
+	[[nodiscard]] double GappedAlpha() const { return mData.mGappedStats.alpha; }
+	[[nodiscard]] double GappedBeta() const { return mData.mGappedStats.beta; }
 
-	double UngappedLambda() const { return mData.mUngappedStats.lambda; }
-	double UngappedKappa() const { return mData.mUngappedStats.kappa; }
-	double UngappedEntropy() const { return mData.mUngappedStats.entropy; }
-	double UngappedAlpha() const { return mData.mUngappedStats.alpha; }
-	double UngappedBeta() const { return mData.mUngappedStats.beta; }
+	[[nodiscard]] double UngappedLambda() const { return mData.mUngappedStats.lambda; }
+	[[nodiscard]] double UngappedKappa() const { return mData.mUngappedStats.kappa; }
+	[[nodiscard]] double UngappedEntropy() const { return mData.mUngappedStats.entropy; }
+	[[nodiscard]] double UngappedAlpha() const { return mData.mUngappedStats.alpha; }
+	[[nodiscard]] double UngappedBeta() const { return mData.mUngappedStats.beta; }
 
   private:
-	MMatrixData mData;
+	MMatrixData mData{};
 };
 
 Matrix::Matrix(const std::string &inName, int32_t inGapOpen, int32_t inGapExtend)
@@ -156,15 +159,15 @@ class Alphabet
   public:
 	Alphabet(const char *inChars);
 
-	bool Contains(char inChar) const;
-	long GetIndex(char inChar) const;
-	long GetSize() const { return mAlphaSize; }
-	double GetLnSize() const { return mAlphaLnSize; }
+	[[nodiscard]] bool Contains(char inChar) const;
+	[[nodiscard]] uint64_t GetIndex(char inChar) const;
+	[[nodiscard]] uint64_t GetSize() const { return mAlphaSize; }
+	[[nodiscard]] double GetLnSize() const { return mAlphaLnSize; }
 
   private:
-	long mAlphaSize;
+	uint64_t mAlphaSize;
 	double mAlphaLnSize;
-	long mAlphaIndex[128];
+	uint64_t mAlphaIndex[128]{};
 	const char *mAlphaChars;
 };
 
@@ -177,7 +180,7 @@ Alphabet::Alphabet(const char *inChars)
 	for (uint32_t i = 0; i < 128; ++i)
 	{
 		mAlphaIndex[i] =
-			static_cast<long>(std::find(mAlphaChars, mAlphaChars + mAlphaSize, toupper(i)) - mAlphaChars);
+			static_cast<uint64_t>(std::find(mAlphaChars, mAlphaChars + mAlphaSize, toupper(i)) - mAlphaChars);
 	}
 }
 
@@ -189,7 +192,7 @@ bool Alphabet::Contains(char inChar) const
 	return result;
 }
 
-long Alphabet::GetIndex(char inChar) const
+uint64_t Alphabet::GetIndex(char inChar) const
 {
 	return mAlphaIndex[toupper(inChar)];
 }
@@ -201,42 +204,40 @@ const Alphabet
 class Window
 {
   public:
-	Window(const std::string &inSequence, long inStart, long inLength, const Alphabet &inAlphabet);
+	Window(const std::string &inSequence, uint64_t inStart, uint64_t inLength, const Alphabet &inAlphabet);
 
 	void CalcEntropy();
 	bool ShiftWindow();
 
-	double GetEntropy() const { return mEntropy; }
-	long GetBogus() const { return mBogus; }
+	[[nodiscard]] double GetEntropy() const { return mEntropy; }
+	[[nodiscard]] uint64_t GetBogus() const { return mBogus; }
 
-	void DecState(long inCount);
-	void IncState(long inCount);
+	void DecState(uint64_t inCount);
+	void IncState(uint64_t inCount);
 
-	void Trim(long &ioEndL, long &ioEndR, long inMaxTrim);
+	void Trim(uint64_t &ioEndL, uint64_t &ioEndR, uint64_t inMaxTrim);
 
   private:
 	const std::string &mSequence;
-	std::vector<long> mComposition;
-	std::vector<long> mState;
-	long mStart;
-	long mLength;
-	long mBogus;
-	double mEntropy;
+	std::vector<uint64_t> mComposition;
+	std::vector<uint64_t> mState;
+	uint64_t mStart;
+	uint64_t mLength;
+	uint64_t mBogus{ 0 };
+	double mEntropy{ -2.0 };
 	const Alphabet &mAlphabet;
 };
 
-Window::Window(const std::string &inSequence, long inStart, long inLength, const Alphabet &inAlphabet)
+Window::Window(const std::string &inSequence, uint64_t inStart, uint64_t inLength, const Alphabet &inAlphabet)
 	: mSequence(inSequence)
 	, mComposition(inAlphabet.GetSize())
 	, mStart(inStart)
 	, mLength(inLength)
-	, mBogus(0)
-	, mEntropy(-2.0)
 	, mAlphabet(inAlphabet)
 {
-	long alphaSize = mAlphabet.GetSize();
+	uint64_t alphaSize = mAlphabet.GetSize();
 
-	for (long i = mStart; i < mStart + mLength; ++i)
+	for (uint64_t i = mStart; i < mStart + mLength; ++i)
 	{
 		if (mAlphabet.Contains(mSequence[i]))
 			++mComposition[mAlphabet.GetIndex(mSequence[i])];
@@ -247,7 +248,7 @@ Window::Window(const std::string &inSequence, long inStart, long inLength, const
 	mState.insert(mState.begin(), alphaSize + 1, 0);
 
 	int n = 0;
-	for (long i = 0; i < alphaSize; ++i)
+	for (uint64_t i = 0; i < alphaSize; ++i)
 	{
 		if (mComposition[i] > 0)
 		{
@@ -256,7 +257,7 @@ Window::Window(const std::string &inSequence, long inStart, long inLength, const
 		}
 	}
 
-	std::sort(mState.begin(), mState.begin() + n, std::greater<long>());
+	std::sort(mState.begin(), mState.begin() + n, std::greater<>());
 }
 
 void Window::CalcEntropy()
@@ -278,7 +279,7 @@ void Window::CalcEntropy()
 	}
 }
 
-void Window::DecState(long inClass)
+void Window::DecState(uint64_t inClass)
 {
 	for (uint32_t ix = 0; ix < mState.size() and mState[ix] != 0; ++ix)
 	{
@@ -290,13 +291,13 @@ void Window::DecState(long inClass)
 	}
 }
 
-void Window::IncState(long inClass)
+void Window::IncState(uint64_t inClass)
 {
-	for (uint32_t ix = 0; ix < mState.size(); ++ix)
+	for (uint64_t &ix : mState)
 	{
-		if (mState[ix] == inClass)
+		if (ix == inClass)
 		{
-			++mState[ix];
+			++ix;
 			break;
 		}
 	}
@@ -304,13 +305,13 @@ void Window::IncState(long inClass)
 
 bool Window::ShiftWindow()
 {
-	if (uint32_t(mStart + mLength) >= mSequence.length())
+	if (static_cast<uint32_t>(mStart + mLength) >= mSequence.length())
 		return false;
 
 	char ch = mSequence[mStart];
 	if (mAlphabet.Contains(ch))
 	{
-		long ix = mAlphabet.GetIndex(ch);
+		uint64_t ix = mAlphabet.GetIndex(ch);
 		DecState(mComposition[ix]);
 		--mComposition[ix];
 	}
@@ -322,7 +323,7 @@ bool Window::ShiftWindow()
 	ch = mSequence[mStart + mLength - 1];
 	if (mAlphabet.Contains(ch))
 	{
-		long ix = mAlphabet.GetIndex(ch);
+		uint64_t ix = mAlphabet.GetIndex(ch);
 		IncState(mComposition[ix]);
 		++mComposition[ix];
 	}
@@ -335,99 +336,215 @@ bool Window::ShiftWindow()
 	return true;
 }
 
-static double lnfac(long inN)
+namespace
 {
-	const double c[] = {
-		76.18009172947146,
-		-86.50532032941677,
-		24.01409824083091,
-		-1.231739572450155,
-		0.1208650973866179e-2,
-		-0.5395239384953e-5};
-	static std::map<long, double> sLnFacMap;
-
-	if (sLnFacMap.find(inN) == sLnFacMap.end())
+	double lnfac(uint64_t inN)
 	{
-		double x = inN + 1;
-		double t = x + 5.5;
-		t -= (x + 0.5) * std::log(t);
-		double ser = 1.000000000190015;
-		for (int i = 0; i <= 5; i++)
+		const double c[] = {
+			76.18009172947146,
+			-86.50532032941677,
+			24.01409824083091,
+			-1.231739572450155,
+			0.1208650973866179e-2,
+			-0.5395239384953e-5
+		};
+		std::map<uint64_t, double> sLnFacMap;
+
+		if (sLnFacMap.find(inN) == sLnFacMap.end())
 		{
-			++x;
-			ser += c[i] / x;
+			double x = inN + 1;
+			double t = x + 5.5;
+			t -= (x + 0.5) * std::log(t);
+			double ser = 1.000000000190015;
+			for (int i = 0; i <= 5; i++)
+			{
+				++x;
+				ser += c[i] / x;
+			}
+			sLnFacMap[inN] = -t + log(2.5066282746310005 * ser / (inN + 1));
 		}
-		sLnFacMap[inN] = -t + log(2.5066282746310005 * ser / (inN + 1));
+
+		return sLnFacMap[inN];
 	}
 
-	return sLnFacMap[inN];
-}
-
-static double lnperm(std::vector<long> &inState, long inTotal)
-{
-	double ans = lnfac(inTotal);
-	for (uint32_t i = 0; i < inState.size() and inState[i] != 0; ++i)
-		ans -= lnfac(inState[i]);
-	return ans;
-}
-
-static double lnass(std::vector<long> &inState, Alphabet inAlphabet)
-{
-	double result = lnfac(inAlphabet.GetSize());
-	if (inState.size() == 0 or inState[0] == 0)
-		return result;
-
-	int total = inAlphabet.GetSize();
-	int cl = 1;
-	int i = 1;
-	int sv_cl = inState[0];
-
-	while (inState[i] != 0)
+	double lnperm(std::vector<uint64_t> &inState, uint64_t inTotal)
 	{
-		if (inState[i] == sv_cl)
-			cl++;
+		double ans = lnfac(inTotal);
+		for (uint32_t i = 0; i < inState.size() and inState[i] != 0; ++i)
+			ans -= lnfac(inState[i]);
+		return ans;
+	}
+
+	double lnass(std::vector<uint64_t> &inState, Alphabet inAlphabet)
+	{
+		double result = lnfac(inAlphabet.GetSize());
+		if (inState.size() == 0 or inState[0] == 0)
+			return result;
+
+		int total = inAlphabet.GetSize();
+		int cl = 1;
+		int i = 1;
+		int sv_cl = inState[0];
+
+		while (inState[i] != 0)
+		{
+			if (std::cmp_equal(inState[i], sv_cl))
+				cl++;
+			else
+			{
+				total -= cl;
+				result -= lnfac(cl);
+				sv_cl = inState[i];
+				cl = 1;
+			}
+			i++;
+		}
+
+		result -= lnfac(cl);
+		total -= cl;
+		if (total > 0)
+			result -= lnfac(total);
+
+		return result;
+	}
+
+	double lnprob(std::vector<uint64_t> &inState, uint64_t inTotal, const Alphabet &inAlphabet)
+	{
+		double ans1, ans2 = 0, totseq;
+
+		totseq = inTotal * inAlphabet.GetLnSize();
+		ans1 = lnass(inState, inAlphabet);
+		if (ans1 > -100000.0 and inState[0] != std::numeric_limits<uint64_t>::min())
+			ans2 = lnperm(inState, inTotal);
+		else
+			throw blast_exception("Error in calculating lnass");
+		return ans1 + ans2 - totseq;
+	}
+
+	bool GetEntropy(const std::string &inSequence, const Alphabet &inAlphabet,
+		uint64_t inWindow, uint64_t inMaxBogus, std::vector<double> &outEntropy)
+	{
+		bool result = false;
+
+		uint64_t downset = (inWindow + 1) / 2 - 1;
+		uint64_t upset = inWindow - downset;
+
+		if (static_cast<size_t>(inWindow) <= inSequence.length())
+		{
+			result = true;
+			outEntropy.clear();
+			outEntropy.insert(outEntropy.begin(), inSequence.length(), -1.0);
+
+			Window win(inSequence, 0, inWindow, inAlphabet);
+			win.CalcEntropy();
+
+			uint64_t first = downset;
+			auto last = static_cast<uint64_t>(inSequence.length() - upset);
+			for (uint64_t i = first; i <= last; ++i)
+			{
+				//			if (GetPunctuation() and win.HasDash())
+				//			{
+				//				win.ShiftWindow();
+				//				continue;
+				//			}
+				if (win.GetBogus() > inMaxBogus)
+					continue;
+
+				outEntropy[i] = win.GetEntropy();
+				win.ShiftWindow();
+			}
+		}
+
+		return result;
+	}
+
+	void GetMaskSegments(bool inProtein, const std::string &inSequence, uint64_t inOffset,
+		std::vector<std::pair<uint64_t, uint64_t>> &outSegments)
+	{
+		double loCut, hiCut;
+		uint64_t window, maxbogus, maxtrim;
+		const Alphabet *alphabet;
+
+		if (inProtein)
+		{
+			window = 12;
+			loCut = 2.2;
+			hiCut = 2.5;
+			maxtrim = 50;
+			maxbogus = 2;
+			alphabet = &kProtAlphabet;
+		}
 		else
 		{
-			total -= cl;
-			result -= lnfac(cl);
-			sv_cl = inState[i];
-			cl = 1;
+			window = 32;
+			loCut = 1.4;
+			hiCut = 1.6;
+			maxtrim = 100;
+			maxbogus = 3;
+			alphabet = &kNuclAlphabet;
 		}
-		i++;
+
+		uint64_t downset = (window + 1) / 2 - 1;
+		uint64_t upset = window - downset;
+
+		std::vector<double> e;
+		GetEntropy(inSequence, *alphabet, window, maxbogus, e);
+
+		uint64_t first = downset;
+		auto last = static_cast<uint64_t>(inSequence.length() - upset);
+		uint64_t lowlim = first;
+
+		for (uint64_t i = first; i <= last; ++i)
+		{
+			if (e[i] <= loCut and e[i] != -1.0)
+			{
+				uint64_t loi = i;
+				while (loi >= lowlim and e[loi] != -1.0 and e[loi] <= hiCut)
+					--loi;
+				++loi;
+
+				uint64_t hii = i;
+				while (hii <= last and e[hii] != -1.0 and e[hii] <= hiCut)
+					++hii;
+				--hii;
+
+				uint64_t leftend = loi - downset;
+				uint64_t rightend = hii + upset - 1;
+
+				std::string s(inSequence.substr(leftend, rightend - leftend + 1));
+				Window w(s, 0, rightend - leftend + 1, *alphabet);
+				w.Trim(leftend, rightend, maxtrim);
+
+				if (i + upset - 1 < leftend)
+				{
+					uint64_t lend = loi - downset;
+					uint64_t rend = leftend - 1;
+
+					std::string left(inSequence.substr(lend, rend - lend + 1));
+					GetMaskSegments(inProtein, left, inOffset + lend, outSegments);
+				}
+
+				outSegments.emplace_back(leftend + inOffset, rightend + inOffset + 1);
+				i = rightend + downset;
+				if (i > hii)
+					i = hii;
+				lowlim = i + 1;
+			}
+		}
 	}
 
-	result -= lnfac(cl);
-	total -= cl;
-	if (total > 0)
-		result -= lnfac(total);
+} // namespace
 
-	return result;
-}
-
-static double lnprob(std::vector<long> &inState, long inTotal, const Alphabet &inAlphabet)
-{
-	double ans1, ans2 = 0, totseq;
-
-	totseq = inTotal * inAlphabet.GetLnSize();
-	ans1 = lnass(inState, inAlphabet);
-	if (ans1 > -100000.0 and inState[0] != std::numeric_limits<long>::min())
-		ans2 = lnperm(inState, inTotal);
-	else
-		throw blast_exception("Error in calculating lnass");
-	return ans1 + ans2 - totseq;
-}
-
-void Window::Trim(long &ioEndL, long &ioEndR, long inMaxTrim)
+void Window::Trim(uint64_t &ioEndL, uint64_t &ioEndR, uint64_t inMaxTrim)
 {
 	double minprob = 1.0;
-	long lEnd = 0;
-	long rEnd = mLength - 1;
-	int minLen = 1;
-	int maxTrim = inMaxTrim;
-	if (minLen < mLength - maxTrim)
-		minLen = mLength - maxTrim;
+	uint64_t lEnd = 0;
+	uint64_t rEnd = mLength - 1;
+	int64_t minLen = 1;
+	if (std::cmp_less(minLen, mLength - inMaxTrim))
+		minLen = mLength - inMaxTrim;
 
-	for (long len = mLength; len > minLen; --len)
+	for (int64_t len = mLength; len > minLen; --len)
 	{
 		Window w(mSequence, mStart, len, mAlphabet);
 
@@ -451,129 +568,16 @@ void Window::Trim(long &ioEndL, long &ioEndR, long inMaxTrim)
 	ioEndR -= mLength - rEnd - 1;
 }
 
-static bool GetEntropy(const std::string &inSequence, const Alphabet &inAlphabet,
-	long inWindow, long inMaxBogus, std::vector<double> &outEntropy)
-{
-	bool result = false;
-
-	long downset = (inWindow + 1) / 2 - 1;
-	long upset = inWindow - downset;
-
-	if (static_cast<size_t>(inWindow) <= inSequence.length())
-	{
-		result = true;
-		outEntropy.clear();
-		outEntropy.insert(outEntropy.begin(), inSequence.length(), -1.0);
-
-		Window win(inSequence, 0, inWindow, inAlphabet);
-		win.CalcEntropy();
-
-		long first = downset;
-		long last = static_cast<long>(inSequence.length() - upset);
-		for (long i = first; i <= last; ++i)
-		{
-			//			if (GetPunctuation() and win.HasDash())
-			//			{
-			//				win.ShiftWindow();
-			//				continue;
-			//			}
-			if (win.GetBogus() > inMaxBogus)
-				continue;
-
-			outEntropy[i] = win.GetEntropy();
-			win.ShiftWindow();
-		}
-	}
-
-	return result;
-}
-
-static void GetMaskSegments(bool inProtein, const std::string &inSequence, long inOffset,
-	std::vector<std::pair<long, long>> &outSegments)
-{
-	double loCut, hiCut;
-	long window, maxbogus, maxtrim;
-	const Alphabet *alphabet;
-
-	if (inProtein)
-	{
-		window = 12;
-		loCut = 2.2;
-		hiCut = 2.5;
-		maxtrim = 50;
-		maxbogus = 2;
-		alphabet = &kProtAlphabet;
-	}
-	else
-	{
-		window = 32;
-		loCut = 1.4;
-		hiCut = 1.6;
-		maxtrim = 100;
-		maxbogus = 3;
-		alphabet = &kNuclAlphabet;
-	}
-
-	long downset = (window + 1) / 2 - 1;
-	long upset = window - downset;
-
-	std::vector<double> e;
-	GetEntropy(inSequence, *alphabet, window, maxbogus, e);
-
-	long first = downset;
-	long last = static_cast<long>(inSequence.length() - upset);
-	long lowlim = first;
-
-	for (long i = first; i <= last; ++i)
-	{
-		if (e[i] <= loCut and e[i] != -1.0)
-		{
-			long loi = i;
-			while (loi >= lowlim and e[loi] != -1.0 and e[loi] <= hiCut)
-				--loi;
-			++loi;
-
-			long hii = i;
-			while (hii <= last and e[hii] != -1.0 and e[hii] <= hiCut)
-				++hii;
-			--hii;
-
-			long leftend = loi - downset;
-			long rightend = hii + upset - 1;
-
-			std::string s(inSequence.substr(leftend, rightend - leftend + 1));
-			Window w(s, 0, rightend - leftend + 1, *alphabet);
-			w.Trim(leftend, rightend, maxtrim);
-
-			if (i + upset - 1 < leftend)
-			{
-				long lend = loi - downset;
-				long rend = leftend - 1;
-
-				std::string left(inSequence.substr(lend, rend - lend + 1));
-				GetMaskSegments(inProtein, left, inOffset + lend, outSegments);
-			}
-
-			outSegments.push_back(
-				std::pair<long, long>(leftend + inOffset, rightend + inOffset + 1));
-			i = rightend + downset;
-			if (i > hii)
-				i = hii;
-			lowlim = i + 1;
-		}
-	}
-}
-
 std::string SEG(const std::string &inSequence)
 {
 	std::string result = inSequence;
 
-	std::vector<std::pair<long, long>> segments;
+	std::vector<std::pair<uint64_t, uint64_t>> segments;
 	GetMaskSegments(true, result, 0, segments);
 
-	for (uint32_t i = 0; i < segments.size(); ++i)
+	for (auto &segment : segments)
 	{
-		for (long j = segments[i].first; j < segments[i].second; ++j)
+		for (uint64_t j = segment.first; j < segment.second; ++j)
 			result[j] = 'X';
 	}
 
@@ -584,19 +588,19 @@ std::string DUST(const std::string &inSequence)
 {
 	std::string result = inSequence;
 
-	std::vector<std::pair<long, long>> segments;
+	std::vector<std::pair<uint64_t, uint64_t>> segments;
 	GetMaskSegments(false, inSequence, 0, segments);
 
-	for (uint32_t i = 0; i < segments.size(); ++i)
+	for (auto &segment : segments)
 	{
-		for (long j = segments[i].first; j < segments[i].second; ++j)
+		for (uint64_t j = segment.first; j < segment.second; ++j)
 			result[j] = 'X';
 	}
 
 	return result;
 }
 
-//int main()
+// int main()
 //{
 //	std::string seq;
 //
@@ -604,7 +608,7 @@ std::string DUST(const std::string &inSequence)
 //	in >> seq;
 //	cout << FilterProtSeq(seq);
 //	return 0;
-//}
+// }
 
 } // namespace filter
 
@@ -613,33 +617,33 @@ std::string DUST(const std::string &inSequence)
 namespace ncbi
 {
 
-/** 
+/**
  * Computes the adjustment to the lengths of the query and database sequences
- * that is used to compensate for edge effects when computing evalues. 
+ * that is used to compensate for edge effects when computing evalues.
  *
  * The length adjustment is an integer-valued approximation to the fixed
  * point of the function
  *
- *    f(ell) = beta + 
+ *    f(ell) = beta +
  *               (alpha/lambda) * (log K + log((m - ell)*(n - N ell)))
  *
  * where m is the query length n is the length of the database and N is the
  * number of sequences in the database. The values beta, alpha, lambda and
  * K are statistical, Karlin-Altschul parameters.
- * 
- * The value of the length adjustment computed by this routine, A, 
+ *
+ * The value of the length adjustment computed by this routine, A,
  * will always be an integer smaller than the fixed point of
  * f(ell). Usually, it will be the largest such integer.  However, the
- * computed length adjustment, A, will also be so small that 
+ * computed length adjustment, A, will also be so small that
  *
  *    K * (m - A) * (n - N * A) > min(m,n).
  *
  * Moreover, an iterative method is used to compute A, and under
- * unusual circumstances the iterative method may not converge. 
+ * unusual circumstances the iterative method may not converge.
  *
  * @param K      the statistical parameter K
  * @param logK   the natural logarithm of K
- * @param alpha_d_lambda    the ratio of the statistical parameters 
+ * @param alpha_d_lambda    the ratio of the statistical parameters
  *                          alpha and lambda (for ungapped alignments, the
  *                          value 1/H should be used)
  * @param beta              the statistical parameter beta (for ungapped
@@ -667,17 +671,17 @@ int32_t BlastComputeLengthAdjustment(
 	double ell;                  /* A float value of the length adjustment */
 	double ss;                   /* effective size of the search space */
 	double ell_min = 0, ell_max; /* At each iteration i,
-                                         * ell_min <= ell <= ell_max. */
+	                              * ell_min <= ell <= ell_max. */
 	bool converged = false;      /* True if the iteration converged */
 	double ell_next = 0;         /* Value the variable ell takes at iteration
-                                 * i + 1 */
+	                              * i + 1 */
 	/* Choose ell_max to be the largest nonnegative value that satisfies
-     *
-     *    K * (m - ell) * (n - N * ell) > max(m,n)
-     *
-     * Use quadratic formula: 2 c /( - b + sqrt( b*b - 4 * a * c )) */
+	 *
+	 *    K * (m - ell) * (n - N * ell) > max(m,n)
+	 *
+	 * Use quadratic formula: 2 c /( - b + sqrt( b*b - 4 * a * c )) */
 	{ /* scope of a, mb, and c, the coefficients in the quadratic formula
-       * (the variable mb is -b) */
+	   * (the variable mb is -b) */
 		double a = N;
 		double mb = m * N + n;
 		double c = n * m - std::max(m, n) / K;
@@ -729,9 +733,9 @@ int32_t BlastComputeLengthAdjustment(
 	if (converged)
 	{ /* the iteration converged */
 		/* If ell_fixed is the (unknown) true fixed point, then we
-         * wish to set length_adjustment to floor(ell_fixed).  We
-         * assume that floor(ell_min) = floor(ell_fixed) */
-		length_adjustment = (int32_t)ell_min;
+		 * wish to set length_adjustment to floor(ell_fixed).  We
+		 * assume that floor(ell_min) = floor(ell_fixed) */
+		length_adjustment = static_cast<int32_t>(ell_min);
 		/* But verify that ceil(ell_min) != floor(ell_fixed) */
 		ell = std::ceil(ell_min);
 		if (ell <= ell_max)
@@ -740,14 +744,14 @@ int32_t BlastComputeLengthAdjustment(
 			if (alpha_d_lambda * (logK + log(ss)) + beta >= ell)
 			{
 				/* ceil(ell_min) == floor(ell_fixed) */
-				length_adjustment = (int32_t)ell;
+				length_adjustment = static_cast<int32_t>(ell);
 			}
 		}
 	}
 	else
 	{ /* else the iteration did not converge. */
 		/* Use the best value seen so far */
-		length_adjustment = (int32_t)ell_min;
+		length_adjustment = static_cast<int32_t>(ell_min);
 	}
 
 	return converged ? 0 : 1;
@@ -772,27 +776,26 @@ struct Word
 
 	Word()
 	{
-		for (uint32_t i = 0; i <= WORDSIZE; ++i)
+		for (uint32_t i = 0; std::cmp_less_equal(i, WORDSIZE); ++i)
 			aa[i] = 0;
 	}
 
 	Word(const uint8_t *inSequence)
 	{
-		for (uint32_t i = 0; i < WORDSIZE; ++i)
+		for (uint32_t i = 0; std::cmp_less(i, WORDSIZE); ++i)
 			aa[i] = inSequence[i];
 		aa[WORDSIZE] = 0;
 	}
 
 	uint8_t &operator[](uint32_t ix) { return aa[ix]; }
-	const uint8_t *c_str() const { return aa; }
-	size_t length() const { return WORDSIZE; }
+	[[nodiscard]] const uint8_t *c_str() const { return aa; }
+	[[nodiscard]] size_t length() const { return WORDSIZE; }
 
 	class PermutationIterator
 	{
 	  public:
 		PermutationIterator(Word inWord, const Matrix &inMatrix, int32_t inThreshold)
 			: mWord(inWord)
-			, mIndex(0)
 			, mMatrix(inMatrix)
 			, mThreshold(inThreshold)
 		{
@@ -802,26 +805,26 @@ struct Word
 
 	  private:
 		Word mWord;
-		uint32_t mIndex;
+		uint32_t mIndex{ 0 };
 		const Matrix &mMatrix;
 		int32_t mThreshold;
 	};
 
-	uint8_t aa[WORDSIZE + 1];
+	uint8_t aa[WORDSIZE + 1]{};
 };
 
 template <>
 const uint32_t Word<2>::kMaxWordIndex = 0x0003FF;
 template <>
-const uint32_t Word<2>::kMaxIndex = kAACount *kAACount;
+const uint32_t Word<2>::kMaxIndex = kAACount * kAACount;
 template <>
 const uint32_t Word<3>::kMaxWordIndex = 0x007FFF;
 template <>
-const uint32_t Word<3>::kMaxIndex = kAACount *kAACount *kAACount;
+const uint32_t Word<3>::kMaxIndex = kAACount * kAACount * kAACount;
 template <>
 const uint32_t Word<4>::kMaxWordIndex = 0x0FFFFF;
 template <>
-const uint32_t Word<4>::kMaxIndex = kAACount *kAACount *kAACount *kAACount;
+const uint32_t Word<4>::kMaxIndex = kAACount * kAACount * kAACount * kAACount;
 
 template <int WORDSIZE>
 bool Word<WORDSIZE>::PermutationIterator::Next(uint32_t &outIndex)
@@ -837,7 +840,7 @@ bool Word<WORDSIZE>::PermutationIterator::Next(uint32_t &outIndex)
 		int32_t score = 0;
 		outIndex = 0;
 
-		for (uint32_t i = 0; i < WORDSIZE; ++i)
+		for (uint32_t i = 0; std::cmp_less(i, WORDSIZE); ++i)
 		{
 			uint32_t resNr = ix % kAACount;
 			w[i] = resNr;
@@ -868,8 +871,8 @@ class WordHitIterator
 	};
 
   public:
-	typedef Word<WORDSIZE> IWord;
-	typedef typename IWord::PermutationIterator WordPermutationIterator;
+	using IWord = Word<WORDSIZE>;
+	using WordPermutationIterator = typename IWord::PermutationIterator;
 
 	struct WordHitIteratorStaticData
 	{
@@ -887,17 +890,17 @@ class WordHitIterator
 
 	void Reset(const sequence &inTarget);
 	bool Next(uint16_t &outQueryOffset, uint16_t &outTargetOffset);
-	uint32_t Index() const { return mIndex; }
+	[[nodiscard]] uint32_t Index() const { return mIndex; }
 
   private:
-	const uint8_t *mTargetCurrent;
-	const uint8_t *mTargetEnd;
-	uint16_t mTargetOffset;
+	const uint8_t *mTargetCurrent{};
+	const uint8_t *mTargetEnd{};
+	uint16_t mTargetOffset{};
 	const std::vector<Entry> &mLookup;
 	const std::vector<uint16_t> &mOffsets;
-	uint32_t mIndex;
-	const uint16_t *mOffset;
-	uint16_t mCount;
+	uint32_t mIndex{};
+	const uint16_t *mOffset{};
+	uint16_t mCount{};
 };
 
 template <>
@@ -916,7 +919,7 @@ void WordHitIterator<WORDSIZE>::Init(const sequence &inQuery,
 
 	std::vector<std::vector<uint16_t>> test(N);
 
-	for (uint16_t i = 0; i < inQuery.length() - WORDSIZE + 1; ++i)
+	for (uint16_t i = 0; std::cmp_less(i, inQuery.length() - WORDSIZE + 1); ++i)
 	{
 		IWord w(inQuery.c_str() + i);
 
@@ -958,7 +961,7 @@ void WordHitIterator<WORDSIZE>::Reset(const sequence &inTarget)
 	mTargetOffset = 0;
 	mIndex = 0;
 
-	for (uint32_t i = 0; i < WORDSIZE and mTargetCurrent != mTargetEnd; ++i)
+	for (uint32_t i = 0; std::cmp_less(i, WORDSIZE) and mTargetCurrent != mTargetEnd; ++i)
 		mIndex = mIndex << kBits | *mTargetCurrent++;
 
 	Entry current = mLookup[mIndex];
@@ -999,11 +1002,10 @@ bool WordHitIterator<WORDSIZE>::Next(uint16_t &outQueryOffset, uint16_t &outTarg
 
 struct DiagonalStartTable
 {
-	DiagonalStartTable()
-		: mTable(nullptr)
-		, mTableLength(0)
-	{
-	}
+	DiagonalStartTable(const DiagonalStartTable &) = delete;
+	DiagonalStartTable &operator=(const DiagonalStartTable &) = delete;
+	DiagonalStartTable() = default;
+
 	~DiagonalStartTable() { delete[] mTable; }
 
 	void Reset(int32_t inQueryLength, int32_t inTargetLength)
@@ -1014,7 +1016,7 @@ struct DiagonalStartTable
 		if (mTable == nullptr or n >= mTableLength)
 		{
 			uint32_t k = ((n / 10240) + 1) * 10240;
-			int32_t *t = new int32_t[k];
+			auto *t = new int32_t[k];
 			delete[] mTable;
 			mTable = t;
 			mTableLength = k;
@@ -1029,11 +1031,8 @@ struct DiagonalStartTable
 	}
 
   private:
-	DiagonalStartTable(const DiagonalStartTable &);
-	DiagonalStartTable &operator=(const DiagonalStartTable &);
-
-	int32_t *mTable;
-	int32_t mTableLength, mTargetLength;
+	int32_t *mTable{ nullptr };
+	int32_t mTableLength{ 0 }, mTargetLength{};
 };
 
 // --------------------------------------------------------------------
@@ -1062,7 +1061,7 @@ struct DiscardTraceBack
 {
 	int16_t operator()(int16_t inB, int16_t inIx, int16_t inIy, uint32_t /*inI*/, uint32_t /*inJ*/) const
 	{
-		return std::max(std::max(inB, inIx), inIy);
+		return std::max({ inB, inIx, inIy });
 	}
 	void Set(uint32_t inI, uint32_t inJ, int16_t inD) {}
 };
@@ -1146,7 +1145,7 @@ void BlastHsp::CalculateExpect(int64_t inSearchSpace, double inLambda, double in
 // --------------------------------------------------------------------
 
 struct Hit;
-typedef std::shared_ptr<Hit> HitPtr;
+using HitPtr = std::shared_ptr<Hit>;
 
 struct Hit : public BlastHit
 {
@@ -1157,7 +1156,7 @@ struct Hit : public BlastHit
 };
 
 Hit::Hit(const char *inEntry, const sequence &inTarget)
-	: BlastHit({ inEntry, const_cast<const char *>(strchr(inEntry, '\n'))}, inTarget)
+	: BlastHit({ inEntry, const_cast<const char *>(strchr(inEntry, '\n')) }, inTarget)
 {
 }
 
@@ -1182,12 +1181,12 @@ void Hit::AddHsp(const BlastHsp &inHsp)
 
 void Hit::Cleanup(int64_t inSearchSpace, double inLambda, double inLogKappa, double inExpect)
 {
-	std::sort(mHsps.begin(), mHsps.end(), std::greater<BlastHsp>());
+	std::ranges::sort(mHsps, std::greater<>());
 
-	std::vector<BlastHsp>::iterator a = mHsps.begin();
+	auto a = mHsps.begin();
 	while (a != mHsps.end() and a + 1 != mHsps.end())
 	{
-		std::vector<BlastHsp>::iterator b = a + 1;
+		auto b = a + 1;
 		while (b != mHsps.end())
 		{
 			if (a->Overlaps(*b))
@@ -1198,15 +1197,13 @@ void Hit::Cleanup(int64_t inSearchSpace, double inLambda, double inLogKappa, dou
 		++a;
 	}
 
-	for_each(mHsps.begin(), mHsps.end(), [=](BlastHsp &hsp)
+	std::ranges::for_each(mHsps, [=](BlastHsp &hsp)
 		{ hsp.CalculateExpect(inSearchSpace, inLambda, inLogKappa); });
 
-	std::sort(mHsps.begin(), mHsps.end(), std::greater<BlastHsp>());
+	std::ranges::sort(mHsps, std::greater<>());
 
-	mHsps.erase(
-		remove_if(mHsps.begin(), mHsps.end(), [=](const BlastHsp &hsp) -> bool
-			{ return hsp.mExpect > inExpect; }),
-		mHsps.end());
+	std::erase_if(mHsps, [=](const BlastHsp &hsp)
+		{ return hsp.mExpect > inExpect; });
 
 	// support for Windows OS...
 	if (mDefLine.back() == '\r')
@@ -1219,16 +1216,16 @@ template <int WORDSIZE>
 class BlastQuery
 {
   public:
-	BlastQuery(const std::string &inQuery, bool inFilter, double inExpect,
+	BlastQuery(std::string inQuery, bool inFilter, double inExpect,
 		const std::string &inMatrix, bool inGapped, int32_t inGapOpen, int32_t inGapExtend,
 		uint32_t inReportLimit);
 	~BlastQuery();
 
 	void Search(const std::vector<fs::path> &inDatabanks, cif::progress_bar &inProgress, uint32_t inNrOfThreads);
-	//void			Report(Result& outResult);
+	// void			Report(Result& outResult);
 	void WriteAsFasta(std::ostream &inStream);
 
-	std::vector<BlastHit> BlastHits() const;
+	[[nodiscard]] std::vector<BlastHit> BlastHits() const;
 
   private:
 	void SearchPart(const char *inFasta, size_t inLength, cif::progress_bar &inProgress,
@@ -1236,28 +1233,28 @@ class BlastQuery
 
 	int32_t Extend(int32_t &ioQueryStart, const sequence &inTarget, int32_t &ioTargetStart, int32_t &ioDistance) const;
 	template <class Iterator1, class Iterator2, class TraceBack>
-	int32_t AlignGapped(Iterator1 inQueryBegin, Iterator1 inQueryEnd,
-		Iterator2 inTargetBegin, Iterator2 inTargetEnd,
+	int32_t AlignGapped(const Iterator1 &inQueryBegin, const Iterator1 &inQueryEnd,
+		const Iterator2 &inTargetBegin, const Iterator2 &inTargetEnd,
 		TraceBack &inTraceBack, int32_t inDropOff, uint32_t &outBestX, uint32_t &outBestY) const;
 
 	int32_t AlignGappedFirst(const sequence &inTarget, BlastHsp &ioHsp) const;
 	int32_t AlignGappedSecond(const sequence &inTarget, BlastHsp &ioHsp) const;
 
-	void AddHit(HitPtr inHit, std::vector<HitPtr> &inHitList) const;
+	void AddHit(const HitPtr &inHit, std::vector<HitPtr> &inHitList) const;
 
-	typedef WordHitIterator<WORDSIZE> IWordHitIterator;
-	typedef typename IWordHitIterator::WordHitIteratorStaticData StaticData;
+	using IWordHitIterator = WordHitIterator<WORDSIZE>;
+	using StaticData = typename IWordHitIterator::WordHitIteratorStaticData;
 
 	std::string mUnfiltered;
 	sequence mQuery;
 	Matrix mMatrix;
-	double mExpect, mCutOff;
+	double mExpect, mCutOff{};
 	bool mGapped;
 	int32_t mS1, mS2, mXu, mXg, mXgFinal;
 	uint32_t mReportLimit;
 
-	uint32_t mDbCount;
-	int64_t mDbLength, mSearchSpace;
+	uint32_t mDbCount{ 0 };
+	int64_t mDbLength{ 0 }, mSearchSpace{ 0 };
 
 	std::vector<HitPtr> mHits;
 
@@ -1265,16 +1262,14 @@ class BlastQuery
 };
 
 template <int WORDSIZE>
-BlastQuery<WORDSIZE>::BlastQuery(const std::string &inQuery, bool inFilter, double inExpect,
+BlastQuery<WORDSIZE>::BlastQuery(std::string inQuery, bool inFilter, double inExpect,
 	const std::string &inMatrix, bool inGapped, int32_t inGapOpen, int32_t inGapExtend, uint32_t inReportLimit)
-	: mUnfiltered(inQuery)
+	: mUnfiltered(std::move(inQuery))
 	, mMatrix(inMatrix, inGapOpen, inGapExtend)
 	, mExpect(inExpect)
 	, mGapped(inGapped)
 	, mReportLimit(inReportLimit)
-	, mDbCount(0)
-	, mDbLength(0)
-	, mSearchSpace(0)
+
 {
 	mUnfiltered.erase(remove_if(mUnfiltered.begin(), mUnfiltered.end(), [](char aa) -> bool
 						  { return ResidueNr(aa) >= kResCount; }),
@@ -1303,9 +1298,7 @@ BlastQuery<WORDSIZE>::BlastQuery(const std::string &inQuery, bool inFilter, doub
 }
 
 template <int WORDSIZE>
-BlastQuery<WORDSIZE>::~BlastQuery()
-{
-}
+BlastQuery<WORDSIZE>::~BlastQuery() = default;
 
 template <int WORDSIZE>
 void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif::progress_bar &inProgress, uint32_t inNrOfThreads)
@@ -1316,19 +1309,18 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 
 		using namespace boost::interprocess;
 
-		//Create a file mapping
+		// Create a file mapping
 		file_mapping m_file(p.string().c_str(), read_only);
 
 		// if (not m_file.is_open())
 		// 	throw blast_exception("FastA file " + p.string() + " not open");
 
-		//Map the whole file with read-write permissions in this process
+		// Map the whole file with read-write permissions in this process
 		mapped_region region(m_file, read_only);
 
-		//Get the address of the mapped region
-		const char *data = reinterpret_cast<const char*>(region.get_address());
+		// Get the address of the mapped region
+		const char *data = reinterpret_cast<const char *>(region.get_address());
 		size_t length = region.get_size();
-
 
 		// const char *data = file.const_data();
 		// size_t length = file.size();
@@ -1361,8 +1353,7 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 						std::scoped_lock lock(m);
 						mDbCount += dbCount;
 						mDbLength += dbLength;
-						this->mHits.insert(mHits.end(), hits.begin(), hits.end());
-					});
+						this->mHits.insert(mHits.end(), hits.begin(), hits.end()); });
 
 				data += n;
 				length -= n;
@@ -1376,7 +1367,7 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 	int32_t lengthAdjustment = ncbi::BlastComputeLengthAdjustment(mMatrix, static_cast<uint32_t>(mQuery.length()), mDbLength, mDbCount);
 
 	int64_t effectiveQueryLength = mQuery.length() - lengthAdjustment;
-	int64_t effectiveDbLength = mDbLength - mDbCount * lengthAdjustment;
+	int64_t effectiveDbLength = mDbLength - static_cast<int64_t>(mDbCount * lengthAdjustment);
 
 	mSearchSpace = effectiveDbLength * effectiveQueryLength;
 
@@ -1385,6 +1376,7 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 		std::vector<std::thread> t;
 		std::atomic<int> ix(-1);
 
+		t.reserve(inNrOfThreads);
 		for (uint32_t i = 0; i < inNrOfThreads; ++i)
 		{
 			t.emplace_back([this, &ix]()
@@ -1403,20 +1395,17 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 							hsp.mScore = this->AlignGappedSecond(hit->mTarget, hsp);
 
 						hit->Cleanup(mSearchSpace, lambda, logK, mExpect);
-					}
-				});
+					} });
 		}
 
 		for (auto &tt : t)
 			tt.join();
 	}
 
-	mHits.erase(
-		remove_if(mHits.begin(), mHits.end(), [](const HitPtr hit) -> bool
-			{ return hit->mHsps.empty(); }),
-		mHits.end());
+	std::erase_if(mHits, [](const HitPtr &hit)
+		{ return hit->mHsps.empty(); });
 
-	std::sort(mHits.begin(), mHits.end(), [](const HitPtr a, const HitPtr b) -> bool
+	std::ranges::sort(mHits, [](const HitPtr &a, const HitPtr &b)
 		{ return a->mHsps.front().mScore > b->mHsps.front().mScore or
 		         (a->mHsps.front().mScore == b->mHsps.front().mScore and a->mDefLine < b->mDefLine); });
 
@@ -1424,8 +1413,8 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 		mHits.erase(mHits.begin() + mReportLimit, mHits.end());
 }
 
-//template<int WORDSIZE>
-//void BlastQuery<WORDSIZE>::Report(Result& outResult)
+// template<int WORDSIZE>
+// void BlastQuery<WORDSIZE>::Report(Result& outResult)
 //{
 //	outResult.mDbCount = mDbCount;
 //	outResult.mDbLength = mDbLength;
@@ -1506,7 +1495,7 @@ void BlastQuery<WORDSIZE>::Search(const std::vector<fs::path> &inDatabanks, cif:
 template <int WORDSIZE>
 void BlastQuery<WORDSIZE>::WriteAsFasta(std::ostream &inStream)
 {
-	for (HitPtr hit : mHits)
+	for (const HitPtr &hit : mHits)
 	{
 		std::string seq;
 		for (uint8_t r : hit->mTarget)
@@ -1526,7 +1515,8 @@ std::vector<BlastHit> BlastQuery<WORDSIZE>::BlastHits() const
 {
 	std::vector<BlastHit> result;
 
-	for (HitPtr hit : mHits)
+	result.reserve(mHits.size());
+	for (const HitPtr &hit : mHits)
 		result.push_back(*hit);
 
 	return result;
@@ -1537,14 +1527,13 @@ void BlastQuery<WORDSIZE>::SearchPart(const char *inFasta, size_t inLength, cif:
 	uint32_t &outDbCount, int64_t &outDbLength, std::vector<HitPtr> &outHits) const
 {
 	const char *end = inFasta + inLength;
-	int32_t queryLength = static_cast<int32_t>(mQuery.length());
+	auto queryLength = static_cast<int32_t>(mQuery.length());
 
 	IWordHitIterator iter(mWordHitData);
 	DiagonalStartTable diagonals;
 	sequence target;
 	target.reserve(kMaxSequenceLength);
 
-	int64_t hitsToDb = 0, extensions = 0, successfulExtensions = 0;
 	HitPtr hit;
 
 	while (inFasta != end)
@@ -1572,8 +1561,6 @@ void BlastQuery<WORDSIZE>::SearchPart(const char *inFasta, size_t inLength, cif:
 		uint16_t queryOffset, targetOffset;
 		while (iter.Next(queryOffset, targetOffset))
 		{
-			++hitsToDb;
-
 			int32_t &ds = diagonals(queryOffset, targetOffset);
 			int32_t distance = queryOffset - ds;
 
@@ -1588,14 +1575,10 @@ void BlastQuery<WORDSIZE>::SearchPart(const char *inFasta, size_t inLength, cif:
 				if (targetStart < 0 or queryStart < 0)
 					continue;
 
-				++extensions;
-
 				int32_t score = Extend(queryStart, target, targetStart, alignmentDistance);
 
 				if (score >= mS1)
 				{
-					++successfulExtensions;
-
 					BlastHsp hsp;
 
 					// extension results, to be updated later
@@ -1605,7 +1588,7 @@ void BlastQuery<WORDSIZE>::SearchPart(const char *inFasta, size_t inLength, cif:
 					hsp.mTargetEnd = targetStart + alignmentDistance;
 
 					if (not hit)
-						hit.reset(new Hit(entry, target));
+						hit = std::make_shared<Hit>(entry, target);
 
 					if (mGapped)
 						hsp.mScore = AlignGappedFirst(target, hsp);
@@ -1643,8 +1626,8 @@ int32_t BlastQuery<WORDSIZE>::Extend(int32_t &ioQueryStart, const sequence &inTa
 	sequence::const_iterator qe = ai;
 
 	for (int32_t test = score, n = static_cast<int32_t>(std::min(mQuery.end() - ai, inTarget.end() - bi));
-		 test >= score - mXu and n > 0;
-		 --n, ++ai, ++bi)
+		test >= score - mXu and n > 0;
+		--n, ++ai, ++bi)
 	{
 		test += mMatrix(*ai, *bi);
 
@@ -1660,8 +1643,8 @@ int32_t BlastQuery<WORDSIZE>::Extend(int32_t &ioQueryStart, const sequence &inTa
 	sequence::const_iterator qs = ai + 1;
 
 	for (int32_t test = score, n = std::min(ioQueryStart, ioTargetStart);
-		 test >= score - mXu and n > 0;
-		 --n)
+		test >= score - mXu and n > 0;
+		--n)
 	{
 		test += mMatrix(*--ai, *--bi);
 
@@ -1683,7 +1666,7 @@ int32_t BlastQuery<WORDSIZE>::Extend(int32_t &ioQueryStart, const sequence &inTa
 template <int WORDSIZE>
 template <class Iterator1, class Iterator2, class TraceBack>
 int32_t BlastQuery<WORDSIZE>::AlignGapped(
-	Iterator1 inQueryBegin, Iterator1 inQueryEnd, Iterator2 inTargetBegin, Iterator2 inTargetEnd,
+	const Iterator1 &inQueryBegin, const Iterator1 &inQueryEnd, const Iterator2 &inTargetBegin, const Iterator2 &inTargetEnd,
 	TraceBack &inTraceBack, int32_t inDropOff, uint32_t &outBestX, uint32_t &outBestY) const
 {
 	const Matrix &s = mMatrix; // for readability
@@ -1691,8 +1674,8 @@ int32_t BlastQuery<WORDSIZE>::AlignGapped(
 	int32_t d = s.OpenCost();
 	int32_t e = s.ExtendCost();
 
-	uint32_t dimX = static_cast<uint32_t>(inQueryEnd - inQueryBegin);
-	uint32_t dimY = static_cast<uint32_t>(inTargetEnd - inTargetBegin);
+	auto dimX = static_cast<uint32_t>(inQueryEnd - inQueryBegin);
+	auto dimY = static_cast<uint32_t>(inTargetEnd - inTargetBegin);
 
 	DPData B(dimX, dimY);
 	DPData Ix(dimX, dimY);
@@ -1959,8 +1942,8 @@ int32_t BlastQuery<WORDSIZE>::AlignGappedSecond(const sequence &inTarget, BlastH
 		}
 	}
 
-	reverse(q.begin(), q.end());
-	reverse(s.begin(), s.end());
+	std::ranges::reverse(q);
+	std::ranges::reverse(s);
 
 	alignedQuery += q;
 	alignedTarget += s;
@@ -1977,13 +1960,13 @@ int32_t BlastQuery<WORDSIZE>::AlignGappedSecond(const sequence &inTarget, BlastH
 }
 
 template <int WORDSIZE>
-void BlastQuery<WORDSIZE>::AddHit(HitPtr inHit, std::vector<HitPtr> &inHitList) const
+void BlastQuery<WORDSIZE>::AddHit(const HitPtr &inHit, std::vector<HitPtr> &inHitList) const
 {
 	std::sort(inHit->mHsps.begin(), inHit->mHsps.end(), std::greater<BlastHsp>());
 
 	inHitList.push_back(inHit);
 
-	auto cmp = [](const HitPtr a, const HitPtr b) -> bool
+	auto cmp = [](const HitPtr &a, const HitPtr &b) -> bool
 	{
 		return a->mHsps.front().mScore > b->mHsps.front().mScore;
 	};
@@ -1998,7 +1981,7 @@ void BlastQuery<WORDSIZE>::AddHit(HitPtr inHit, std::vector<HitPtr> &inHitList) 
 
 // --------------------------------------------------------------------
 //
-//Result* Search(const std::vector<fs::path>& inDatabanks,
+// Result* Search(const std::vector<fs::path>& inDatabanks,
 //	const std::string& inQuery, const std::string& inProgram,
 //	const std::string& inMatrix, uint32_t inWordSize, double inExpect,
 //	bool inFilter, bool inGapped, int32_t inGapOpen, int32_t inGapExtend,
@@ -2172,18 +2155,18 @@ std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, const std:
 	return {};
 }
 
-//void Blast(const std::string& seq, const std::vector<fs::path>& db, uint32_t inReportLimit, std::vector<BlastHit>& outHits)
+// void Blast(const std::string& seq, const std::vector<fs::path>& db, uint32_t inReportLimit, std::vector<BlastHit>& outHits)
 //{
 //	int32_t gapOpen = 11, gapExtend = 1, wordSize = 3;
 //
 //	BlastQuery<3> q(seq, true, 10.f, "BLOSUM62", true, 11, 1, inReportLimit);
 //	q.Search(db, boost::thread::hardware_concurrency());
 //	q.Report(outHits);
-//}
+// }
 
 //// --------------------------------------------------------------------
 //
-//void operator&(xml::writer& w, const Blast::Hsp& inHsp)
+// void operator&(xml::writer& w, const Blast::Hsp& inHsp)
 //{
 //	w.start_element("Hsp");
 //	w.element("Hsp_num", boost::lexical_cast<std::string>(inHsp.mHspNr));
@@ -2203,7 +2186,7 @@ std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, const std:
 //	w.end_element();
 //}
 //
-//void operator&(xml::writer& w, const Blast::Hit& inHit)
+// void operator&(xml::writer& w, const Blast::Hit& inHit)
 //{
 //	w.start_element("Hit");
 //	w.element("Hit_num", boost::lexical_cast<std::string>(inHit.mHitNr));
@@ -2221,7 +2204,7 @@ std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, const std:
 //	w.end_element();
 //}
 //
-//ostream& operator<<(ostream& os, const Blast::Result& inResult)
+// ostream& operator<<(ostream& os, const Blast::Result& inResult)
 //{
 //	xml::writer w(os, true);
 //	w.doctype("BlastOutput", "-//NCBI//NCBI BlastOutput/EN", "http://www.ncbi.nlm.nih.gov/dtd/NCBI_BlastOutput.dtd");
@@ -2272,7 +2255,7 @@ std::vector<BlastHit> BlastP(const std::filesystem::path &inDatabank, const std:
 //
 // --------------------------------------------------------------------
 //
-//int main(int argc, char* const argv[])
+// int main(int argc, char* const argv[])
 //{
 //	try
 //	{

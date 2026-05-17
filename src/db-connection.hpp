@@ -35,6 +35,9 @@
 class db_connection
 {
   public:
+	db_connection(const db_connection&) = delete;
+	db_connection& operator=(const db_connection&) = delete;
+
 	static void init(const std::string& connection_string);
 	static db_connection& instance();
 
@@ -53,9 +56,6 @@ class db_connection
 	void reset();
 
   private:
-	db_connection(const db_connection&) = delete;
-	db_connection& operator=(const db_connection&) = delete;
-
 	db_connection(const std::string& connectionString);
 
 	std::string m_connection_string;
@@ -70,7 +70,7 @@ class db_error_handler : public zeep::http::error_handler
 {
   public:
 
-	virtual bool create_error_reply(const zeep::http::request& req, std::exception_ptr eptr, zeep::http::reply& reply);
+	[[nodiscard]] bool create_error_reply(const zeep::http::request& req, const std::exception_ptr &eptr, zeep::http::reply& reply) override;
 };
 
 
