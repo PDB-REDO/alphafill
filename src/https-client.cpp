@@ -26,21 +26,17 @@
 
 // This code is originally written for mini-ibs, a content management system
 
-#include <iostream>
+#include "https-client.hpp"
+#include "revision.hpp"
 
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/version.hpp>
-
+#include <iostream>
+#include <mcfp/mcfp.hpp>
 #include <zeep/http/message-parser.hpp>
 #include <zeep/streambuf.hpp>
-
-#include <cif++/text.hpp>
-#include <mcfp/mcfp.hpp>
-
-#include "https-client.hpp"
-
-namespace zh = zeep::http;
+#include <zeep/unicode-support.hpp>
 
 // --------------------------------------------------------------------
 // Sometimes we need to fetch media that is not available yet
@@ -56,12 +52,12 @@ class client_base
 	virtual ~client_base() = default;
 
 	[[nodiscard]] bool done() const { return m_done; }
-	zh::reply get_reply() { return m_reply_parser.get_reply(); }
+	zeep::http::reply get_reply() { return m_reply_parser.get_reply(); }
 
   protected:
 	virtual socket_type &get_socket() = 0;
 
-	explicit client_base(const std::string &url)
+	explicit client_base(const zeep::uri &url)
 		: m_req({ "GET", url })
 		, m_verbose(mcfp::config::instance().has("m_verbose"))
 	{
@@ -75,7 +71,7 @@ class client_base
 
 		boost::asio::async_write(get_socket(),
 			buffers,
-			[this](const boost::system::error_code &error, std::size_t  /*length*/)
+			[this](const boost::system::error_code &error, std::size_t /*length*/)
 			{
 				if (not error)
 					receive_response();
@@ -108,9 +104,9 @@ class client_base
 	}
 
 	std::array<char, 4096> m_buffer{};
-	const zh::request m_req;
+	const zeep::http::request m_req;
 	bool m_done = false, m_verbose = false;
-	zh::reply_parser m_reply_parser;
+	zeep::http::reply_parser m_reply_parser;
 };
 
 class client : public client_base<tcp::socket>
@@ -125,9 +121,10 @@ class client : public client_base<tcp::socket>
 		connect(endpoints);
 	}
 
-  private:
+  protected:
 	socket_type &get_socket() override { return m_socket; }
 
+  private:
 	void connect(const tcp::resolver::results_type &endpoints)
 	{
 		boost::asio::async_connect(m_socket, endpoints,
@@ -164,11 +161,12 @@ class ssl_client : public client_base<boost::asio::ssl::stream<tcp::socket>>
 		connect(endpoints);
 	}
 
-  private:
+  protected:
 	socket_type &get_socket() override { return m_socket; }
 
+  private:
 	bool verify_certificate(bool preverified,
-		boost::asio::ssl::verify_context &ctx)
+		boost::asio::ssl::verify_context & /*ctx*/)
 	{
 		// // The verify callback can be used to check whether the certificate that is
 		// // being presented is valid for the peer. For example, RFC 2818 describes
@@ -214,27 +212,40 @@ class ssl_client : public client_base<boost::asio::ssl::stream<tcp::socket>>
 	boost::asio::ssl::stream<tcp::socket> m_socket;
 };
 
-zh::reply send_request(zh::request &req, const std::string &host, const std::string &port)
+zeep::http::reply send_request(zeep::http::request &req, const zeep::uri &url)
 {
 	namespace ssl = boost::asio::ssl;
 	using ssl_socket = ssl::stream<tcp::socket>;
 
+	auto host = url.get_host();
+	auto port = url.get_port();
+	if (port == 0)
+		port = url.get_scheme() == "http" ? 80 : 443;
+
 	boost::asio::io_context io_context;
 	tcp::resolver resolver(io_context);
-	tcp::resolver::results_type endpoints = resolver.resolve(host, port);
+	tcp::resolver::results_type endpoints = resolver.resolve(host, std::to_string(port));
 
 	// prepare a request
 
-	req.get_headers().emplace_back("Host", host);
+	req.set_header("Host", std::format("{}:{}", host, port));
+	// req.set_header("Host",
+	// 	port and port != 80 and port != 443 ? host + ':' + std::to_string(port) : host);
+
+	if (req.get_header("accept").empty())
+		req.set_header("Accept", "*/*");
+
+	if (req.get_header("user-agent").empty())
+		req.set_header("User-Agent", std::format("{}/{}", kProjectName, kVersionNumber));
 
 	std::vector<boost::asio::const_buffer> req_buffer;
 	for (auto &buffer : req.to_buffers())
 		req_buffer.emplace_back(buffer.data(), buffer.size());
 
-	auto reader = [&, is_head = cif::iequals(req.get_method(), "HEAD")](auto &socket)
+	auto reader = [&, is_head = zeep::iequals(req.get_method(), "HEAD")](auto &socket)
 	{
-		zh::reply result;
-		zh::reply_parser p;
+		zeep::http::reply result;
+		zeep::http::reply_parser p;
 
 		for (;;)
 		{
@@ -263,7 +274,7 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 		return result;
 	};
 
-	if (port == "443" or port == "https")
+	if (url.get_scheme() == "https")
 	{
 		boost::asio::ssl::context ctx(ssl::context::tls);
 
@@ -301,79 +312,41 @@ zh::reply send_request(zh::request &req, const std::string &host, const std::str
 	}
 }
 
-zh::reply head_request(std::string url, std::vector<zeep::http::header> headers)
+zeep::http::reply head_request(const zeep::uri &url, std::vector<zeep::http::header> headers)
 {
-	const std::regex rx(R"((https?)://([^:/]+)(?::(\d+))?/.+)");
-	std::smatch m;
-
-	zh::reply result;
-
-	if (not std::regex_match(url, m, rx))
+	if (auto scheme = url.get_scheme(); scheme != "http" and scheme != "https")
 		return {};
 
-	// connect
-
-	std::string host = m[2];
-	std::string port = m[1];
-
 	// prepare a request
+	zeep::http::request req{ "HEAD", url, { 1, 0 }, std::move(headers) };
 
-	headers.emplace_back("Host", host);
-
-	zh::request req{ "HEAD", url, { 1, 0 }, std::move(headers) };
-
-	return send_request(req, host, port);
+	return send_request(req, url);
 }
 
-zh::reply simple_request(std::string url, std::vector<zeep::http::header> headers)
+zeep::http::reply simple_request(const zeep::uri &url, std::vector<zeep::http::header> headers)
 {
-	const std::regex rx(R"((https?)://([^:/]+)(?::(\d+))?/.+)");
-	std::smatch m;
-
-	zh::reply result;
-
-	if (not std::regex_match(url, m, rx))
+	if (auto scheme = url.get_scheme(); scheme != "http" and scheme != "https")
 		return {};
 
-	// connect
-
-	std::string host = m[2];
-	std::string port = m[1];
-
 	// prepare a request
+	zeep::http::request req{ "GET", url, { 1, 0 }, std::move(headers) };
 
-	headers.emplace_back("Host", host);
-
-	zh::request req{ "GET", url, { 1, 0 }, std::move(headers) };
-
-	return send_request(req, host, port);
+	return send_request(req, url);
 }
 
-zeep::http::reply post_request(std::string url, std::vector<zeep::http::header> headers, zeep::el::object &&payload)
+zeep::http::reply post_request(const zeep::uri &url, std::vector<zeep::http::header> headers, const std::string &payload)
 {
-	const std::regex rx(R"((https?)://([^:/]+)(?::(\d+))?/.+)");
-	std::smatch m;
-
-	zh::reply result;
-
-	if (not std::regex_match(url, m, rx))
+	if (auto scheme = url.get_scheme(); scheme != "http" and scheme != "https")
 		return {};
-
-	// connect
-
-	std::string host = m[2];
-	std::string port = m[1];
 
 	// prepare a request
 
-	headers.emplace_back("Host", host);
+	zeep::http::request req{ "POST", url, { 1, 0 }, std::move(headers) };
 
-	zh::request req{ "POST", url, { 1, 0 }, std::move(headers) };
+	if (auto ct = req.get_header("Content-Type"); ct.empty())
+		req.set_content(payload, "application/plain");
+	else
+	 	req.set_content(payload, ct);
 
-	std::ostringstream ss;
-	ss << payload;
-
-	req.set_content(ss.str(), "application/json");
-
-	return send_request(req, host, port);
+	return send_request(req, url);
 }

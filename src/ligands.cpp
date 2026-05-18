@@ -35,7 +35,7 @@ std::unique_ptr<LigandsTable> LigandsTable::sInstance;
 void Ligand::modify(cif::mm::structure &structure, const std::string &asymID) const
 {
 	assert(mLigand);
-	auto analogue = mLigand->front()["analogue_id"].as<std::string>();
+	auto analogue = mLigand->front()["analogue_id"].get<std::string>();
 	if (not analogue.empty())
 	{
 		auto &res = structure.get_residue(asymID);
