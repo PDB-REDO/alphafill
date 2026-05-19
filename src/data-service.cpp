@@ -32,6 +32,7 @@
 #include "utilities.hpp"
 
 #include <cif++/cif++.hpp>
+#include <exception>
 #include <mcfp/mcfp.hpp>
 #include <stdexcept>
 #include <zeep/el/object.hpp>
@@ -502,7 +503,7 @@ std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_
 
 	zeep::el::object rep_j = zeep::el::object::parse_JSON(rep.get_content());
 
-std::clog << url << " -> " << rep_j << '\n';
+	std::clog << url << " -> " << rep_j << '\n';
 
 	url = rep_j["structures"][0]["summary"]["model_url"].get<std::string>();
 
@@ -531,9 +532,9 @@ std::clog << url << " -> " << rep_j << '\n';
 				this->setg(text, text, text + length);
 			}
 		} buffer(const_cast<char *>(content.data()), content.length());
-	
+
 		cif::gzio::istream in(&buffer);
-	
+
 		result << in.rdbuf();
 	}
 	else if (enc.empty())
@@ -574,7 +575,6 @@ std::clog << url << " -> " << rep_j << '\n';
 
 				cif::gzio::istream in(&buffer);
 				pae_data << in.rdbuf();
-
 			}
 			else if (enc.empty())
 				pae_data << content;
@@ -649,16 +649,16 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 {
 	std::error_code ec;
 
-	if (not fs::exists(xyzin, ec))
-		throw std::runtime_error("Input file '" + xyzin.string() + "' does not exist");
-
-	cif::file f(xyzin);
-
-	if (f.empty())
-		std::clog << "mmCIF file seems to be empty\n";
-	else
+	try
 	{
-		try
+		if (not fs::exists(xyzin, ec))
+			throw std::runtime_error("Input file '" + xyzin.string() + "' does not exist");
+
+		cif::file f(xyzin);
+
+		if (f.empty())
+			throw std::runtime_error("mmCIF file seems to be empty\n");
+		else
 		{
 			f.front().load_dictionary();
 			if (f.front().get_validator() == nullptr)
@@ -688,9 +688,27 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 			std::ofstream metadataFile(jsonout);
 			metadataFile << metadata;
 		}
-		catch (const std::exception &ex)
+	}
+	catch (const std::exception &ex)
+	{
+		std::clog << std::chrono::system_clock::now() << '\n';
+		print_what(std::clog, ex);
+
+		std::ofstream errorFile(std::filesystem::path(xyzout).replace_extension(".error"));
+		print_what(errorFile, ex);
+
+		auto filename = xyzout.filename();
+		if (filename.extension() == ".gz")
+			filename.replace_extension();
+		
+		if (filename.string().starts_with("AF-"))
 		{
-			std::clog << "Error processing file " << std::quoted(xyzin.string()) << ": " << ex.what() << '\n';
+			auto name = filename.replace_extension(".error").string();
+			if (auto p = name.find("-filled_"); p != std::string::npos)
+				name.replace(p + 1, 6, "model");
+
+			std::ofstream errorFile2(m_out_dir / name);
+			print_what(errorFile2, ex);
 		}
 	}
 
