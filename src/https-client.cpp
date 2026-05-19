@@ -227,10 +227,7 @@ zeep::http::reply send_request(zeep::http::request &req, const zeep::uri &url)
 	tcp::resolver::results_type endpoints = resolver.resolve(host, std::to_string(port));
 
 	// prepare a request
-
 	req.set_header("Host", std::format("{}:{}", host, port));
-	// req.set_header("Host",
-	// 	port and port != 80 and port != 443 ? host + ':' + std::to_string(port) : host);
 
 	if (req.get_header("accept").empty())
 		req.set_header("Accept", "*/*");
@@ -314,7 +311,7 @@ zeep::http::reply send_request(zeep::http::request &req, const zeep::uri &url)
 
 zeep::http::reply head_request(const zeep::uri &url, std::vector<zeep::http::header> headers)
 {
-	if (auto scheme = url.get_scheme(); scheme != "http" and scheme != "https")
+	if (auto &scheme = url.get_scheme(); scheme != "http" and scheme != "https")
 		return {};
 
 	// prepare a request
@@ -325,7 +322,7 @@ zeep::http::reply head_request(const zeep::uri &url, std::vector<zeep::http::hea
 
 zeep::http::reply simple_request(const zeep::uri &url, std::vector<zeep::http::header> headers)
 {
-	if (auto scheme = url.get_scheme(); scheme != "http" and scheme != "https")
+	if (auto &scheme = url.get_scheme(); scheme != "http" and scheme != "https")
 		return {};
 
 	// prepare a request
@@ -336,7 +333,7 @@ zeep::http::reply simple_request(const zeep::uri &url, std::vector<zeep::http::h
 
 zeep::http::reply post_request(const zeep::uri &url, std::vector<zeep::http::header> headers, const std::string &payload)
 {
-	if (auto scheme = url.get_scheme(); scheme != "http" and scheme != "https")
+	if (auto &scheme = url.get_scheme(); scheme != "http" and scheme != "https")
 		return {};
 
 	// prepare a request

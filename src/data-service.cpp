@@ -33,6 +33,7 @@
 
 #include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
+#include <stdexcept>
 #include <zeep/el/object.hpp>
 #include <zeep/uri.hpp>
 
@@ -478,7 +479,7 @@ bool data_service::exists_in_afdb(const std::string &id) const
 
 		rep = head_request(url, { { "Accept-Encoding", "gzip" } });
 
-		result = rep.get_status() == zeep::http::ok;
+		result = rep.get_status() == zeep::http::ok or rep.get_status() == zeep::http::found;
 	}
 
 	return result;
@@ -501,6 +502,8 @@ std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_
 
 	zeep::el::object rep_j = zeep::el::object::parse_JSON(rep.get_content());
 
+std::clog << url << " -> " << rep_j << '\n';
+
 	url = rep_j["structures"][0]["summary"]["model_url"].get<std::string>();
 
 	zeep::uri uri(url);
@@ -513,25 +516,30 @@ std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_
 	if (rep.get_status() != zeep::http::ok)
 		throw std::runtime_error("Error requesting alphafold structure file: " + zeep::http::get_status_description(rep.get_status()));
 
-	std::string enc = rep.get_header("Content-Encoding");
-
-	if (enc != "gzip")
-		throw std::runtime_error("Unexpected content encoding from server: " + enc);
-
 	const std::string &content = rep.get_content();
-
-	struct membuf : public std::streambuf
-	{
-		membuf(char *text, size_t length)
-		{
-			this->setg(text, text, text + length);
-		}
-	} buffer(const_cast<char *>(content.data()), content.length());
-
-	cif::gzio::istream in(&buffer);
+	if (content.empty())
+		throw std::runtime_error(std::format("Server replied with empty file for URL {}", uri.string()));
 
 	std::ostringstream result;
-	result << in.rdbuf();
+
+	if (std::string enc = rep.get_header("Content-Encoding"); enc == "gzip")
+	{
+		struct membuf : public std::streambuf
+		{
+			membuf(char *text, size_t length)
+			{
+				this->setg(text, text, text + length);
+			}
+		} buffer(const_cast<char *>(content.data()), content.length());
+	
+		cif::gzio::istream in(&buffer);
+	
+		result << in.rdbuf();
+	}
+	else if (enc.empty())
+		result << content;
+	else
+		throw std::runtime_error(std::format("Unexpected content encoding {}", enc));
 
 	std::ostringstream pae_data;
 
@@ -552,22 +560,26 @@ std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_
 			if (rep.get_status() != zeep::http::ok)
 				throw std::runtime_error("Could not download PAE data");
 
-			std::string enc = rep.get_header("Content-Encoding");
-			if (enc != "gzip")
-				throw std::runtime_error("Unexpected content encoding from server");
-
 			const std::string &content = rep.get_content();
 
-			struct membuf : public std::streambuf
+			if (std::string enc = rep.get_header("Content-Encoding"); enc == "gzip")
 			{
-				membuf(char *text, size_t length)
+				struct membuf : public std::streambuf
 				{
-					this->setg(text, text, text + length);
-				}
-			} buffer(const_cast<char *>(content.data()), content.length());
+					membuf(char *text, size_t length)
+					{
+						this->setg(text, text, text + length);
+					}
+				} buffer(const_cast<char *>(content.data()), content.length());
 
-			cif::gzio::istream in(&buffer);
-			pae_data << in.rdbuf();
+				cif::gzio::istream in(&buffer);
+				pae_data << in.rdbuf();
+
+			}
+			else if (enc.empty())
+				pae_data << content;
+			else
+				throw std::runtime_error(std::format("Unexpected content encoding {}", enc));
 		}
 		catch (const std::exception &ex)
 		{
@@ -599,7 +611,7 @@ struct data_service_progress : public alphafill_progress_cb
 		m_cur_1 = 0;
 	}
 
-	void consumed(size_t n = 1) override
+	void consumed(size_t n) override
 	{
 		++m_cur_1;
 
@@ -641,40 +653,46 @@ void data_service::process_queued(const std::filesystem::path &xyzin, const std:
 		throw std::runtime_error("Input file '" + xyzin.string() + "' does not exist");
 
 	cif::file f(xyzin);
+
 	if (f.empty())
-		throw std::runtime_error("mmCIF file seems to be empty or invalid");
-
-	m_progress = 0;
-
-	if (cif::VERBOSE > 0)
-		std::cerr << "Running ID " << m_running << '\n';
-
-	fs::rename(xyzin, m_work_dir / xyzin.filename(), ec);
-	if (ec)
-		std::cerr << "Error moving input file to work dir: " << ec.message() << '\n';
-
-	std::vector<PAE_matrix> pae_data;
-
-	if (not paein.empty() and fs::exists(paein))
+		std::clog << "mmCIF file seems to be empty\n";
+	else
 	{
-		pae_data = load_pae_from_file(paein);
-		fs::rename(paein, m_work_dir / paein.filename(), ec);
-	}
+		try
+		{
+			f.front().load_dictionary();
+			if (f.front().get_validator() == nullptr)
+				f.front().load_dictionary("mmcif_pdbx.dic");
 
-	auto metadata = alphafill(f.front(), "user", pae_data, data_service_progress{ m_progress });
+			m_progress = 0;
 
-	try
-	{
-		f.save(xyzout);
-	}
-	catch (const std::exception &ex)
-	{
-		std::cerr << "Error writing output file " << std::quoted(xyzout.string()) << ": " << ex.what() << '\n';
-		throw;
-	}
+			if (cif::VERBOSE > 0)
+				std::cerr << "Running ID " << m_running << '\n';
 
-	std::ofstream metadataFile(jsonout);
-	metadataFile << metadata;
+			fs::rename(xyzin, m_work_dir / xyzin.filename(), ec);
+			if (ec)
+				std::cerr << "Error moving input file to work dir: " << ec.message() << '\n';
+
+			std::vector<PAE_matrix> pae_data;
+
+			if (not paein.empty() and fs::exists(paein))
+			{
+				pae_data = load_pae_from_file(paein);
+				fs::rename(paein, m_work_dir / paein.filename(), ec);
+			}
+
+			auto metadata = alphafill(f.front(), "user", pae_data, data_service_progress{ m_progress });
+
+			f.save(xyzout);
+
+			std::ofstream metadataFile(jsonout);
+			metadataFile << metadata;
+		}
+		catch (const std::exception &ex)
+		{
+			std::clog << "Error processing file " << std::quoted(xyzin.string()) << ": " << ex.what() << '\n';
+		}
+	}
 
 	// Clean up work files
 	if (fs::exists(m_work_dir / xyzin.filename(), ec))

@@ -38,5 +38,5 @@ src/config.hpp
 **/*.tsv
 docs/man/alphafill.conf.rst
 .cache/
-
 docroot/.buildinfo.bak
+docroot/dist/
