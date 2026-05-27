@@ -135,7 +135,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 		auto &pdbx_struct_assembly_gen = db["pdbx_struct_assembly_gen"];
 		for (auto r : pdbx_struct_assembly_gen)
 		{
-			auto asym_id_list = cif::split<std::string>(r["asym_id_list"].as<std::string>(), ",", true);
+			auto asym_id_list = cif::split<std::string>(r["asym_id_list"].get<std::string>(), ",", true);
 
 			std::vector<std::string> new_asym_id_list;
 			std::ranges::set_intersection(asym_id_list, requestedAsyms, std::back_insert_iterator(new_asym_id_list));
