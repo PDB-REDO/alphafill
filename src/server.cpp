@@ -868,6 +868,9 @@ zeep::el::object affd_rest_controller::get_aff_3d_beacon(std::string af_id, std:
 	auto &struct_ref = db["struct_ref"];
 	auto &struct_ref_seq = db["struct_ref_seq"];
 
+	if (db.empty() or struct_ref.empty() or struct_ref_seq.empty())
+		throw std::runtime_error(std::format("Missing data in {}", af_id));
+
 	int uniprot_start, uniprot_end;
 	cif::tie(uniprot_start, uniprot_end) = struct_ref_seq.front().get("db_align_beg", "db_align_end");
 
@@ -1144,7 +1147,7 @@ int server_main(int argc, char *const argv[])
 		if (config.has("no-daemon"))
 			result = server.run_foreground(address, port);
 		else
-			result = server.start(address, port, 16, user);
+			result = server.start(address, port, 128, user);
 	}
 	else if (command == "stop")
 		result = server.stop();
