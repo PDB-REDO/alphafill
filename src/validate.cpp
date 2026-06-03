@@ -405,106 +405,106 @@ float ClashScore(cif::datablock &db, float maxDistance)
 
 // --------------------------------------------------------------------
 
-zeep::el::object calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae)
-{
-	auto maxDistanceSq = maxDistance * maxDistance;
+// zeep::el::object calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae)
+// {
+// 	auto maxDistanceSq = maxDistance * maxDistance;
 
-	std::vector<size_t> index;
+// 	std::vector<size_t> index;
 
-	for (size_t i = 0; i < af_res.size(); ++i)
-	{
-		for (auto &a : af_res[i]->atoms())
-		{
-			auto l = a.get_location();
-			bool near = false;
+// 	for (size_t i = 0; i < af_res.size(); ++i)
+// 	{
+// 		for (auto &a : af_res[i]->atoms())
+// 		{
+// 			auto l = a.get_location();
+// 			bool near = false;
 
-			for (auto &b : atoms)
-			{
-				if (distance_squared(l, b.pt) < maxDistanceSq)
-				{
-					near = true;
-					break;
-				}
-			}
+// 			for (auto &b : atoms)
+// 			{
+// 				if (distance_squared(l, b.pt) < maxDistanceSq)
+// 				{
+// 					near = true;
+// 					break;
+// 				}
+// 			}
 
-			if (near)
-			{
-				index.push_back(i);
-				break;
-			}
-		}
-	}
+// 			if (near)
+// 			{
+// 				index.push_back(i);
+// 				break;
+// 			}
+// 		}
+// 	}
 
-	zeep::el::object result;
-	auto &pae_s = result["matrix"];
+// 	zeep::el::object result;
+// 	auto &pae_s = result["matrix"];
 
-	std::vector<float> vt;
+// 	std::vector<float> vt;
 
-	for (size_t i = 0; i < index.size(); ++i)
-	{
-		std::vector<uint8_t> v(index.size());
-		std::vector<float> vs(index.size());
+// 	for (size_t i = 0; i < index.size(); ++i)
+// 	{
+// 		std::vector<uint8_t> v(index.size());
+// 		std::vector<float> vs(index.size());
 
-		for (size_t j = 0; j < index.size(); ++j)
-		{
-			auto pae_v = pae(index[i], index[j]);
+// 		for (size_t j = 0; j < index.size(); ++j)
+// 		{
+// 			auto pae_v = pae(index[i], index[j]);
 
-			v[j] = pae_v;
+// 			v[j] = pae_v;
 
-			if (i != j)
-				vt.emplace_back(pae_v);
-		}
+// 			if (i != j)
+// 				vt.emplace_back(pae_v);
+// 		}
 
-		pae_s.emplace_back(v);
-	}
+// 		pae_s.emplace_back(v);
+// 	}
 
-	size_t N = (index.size() * (index.size() - 1));
+// 	size_t N = (index.size() * (index.size() - 1));
 
-	if (N > 1)
-	{
-		double sum = 0;
+// 	if (N > 1)
+// 	{
+// 		double sum = 0;
 
-		for (size_t i = 0; i < index.size(); ++i)
-		{
-			for (size_t j = 0; j < index.size(); ++j)
-			{
-				if (i == j)
-					continue;
+// 		for (size_t i = 0; i < index.size(); ++i)
+// 		{
+// 			for (size_t j = 0; j < index.size(); ++j)
+// 			{
+// 				if (i == j)
+// 					continue;
 
-				auto v = pae(index[i], index[j]);
-				sum += v;
-			}
-		}
+// 				auto v = pae(index[i], index[j]);
+// 				sum += v;
+// 			}
+// 		}
 
-		double avg = sum / N;
-		double sumsq = 0;
+// 		double avg = sum / N;
+// 		double sumsq = 0;
 
-		for (size_t i = 0; i < index.size(); ++i)
-		{
-			for (size_t j = 0; j < index.size(); ++j)
-			{
-				if (i == j)
-					continue;
+// 		for (size_t i = 0; i < index.size(); ++i)
+// 		{
+// 			for (size_t j = 0; j < index.size(); ++j)
+// 			{
+// 				if (i == j)
+// 					continue;
 
-				auto v = pae(index[i], index[j]);
-				sumsq = (v - avg) * (v - avg);
-			}
-		}
+// 				auto v = pae(index[i], index[j]);
+// 				sumsq = (v - avg) * (v - avg);
+// 			}
+// 		}
 
-		double stddev = std::sqrt(sumsq / N);
+// 		double stddev = std::sqrt(sumsq / N);
 
-		result["mean"] = avg;
-		result["stddev"] = stddev;
+// 		result["mean"] = avg;
+// 		result["stddev"] = stddev;
 
-		std::ranges::sort(vt);
+// 		std::ranges::sort(vt);
 
-		result["median"] = vt.size() % 1 == 0
-		                       ? (vt[vt.size() / 2 - 1] + vt[vt.size() / 2]) / 2.0f
-		                       : vt[vt.size() / 2];
-	}
+// 		result["median"] = vt.size() % 1 == 0
+// 		                       ? (vt[vt.size() / 2 - 1] + vt[vt.size() / 2]) / 2.0f
+// 		                       : vt[vt.size() / 2];
+// 	}
 
-	return result;
-}
+// 	return result;
+// }
 
 // --------------------------------------------------------------------
 

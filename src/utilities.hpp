@@ -56,7 +56,7 @@ sequence getSequenceForStrand(cif::datablock &db, const std::string &strand);
 
 extern std::regex kAF_ID_Rx;
 
-std::vector<cif::matrix<uint8_t>> load_pae_from_file(const std::filesystem::path &file);
+// std::vector<cif::matrix<uint8_t>> load_pae_from_file(const std::filesystem::path &file);
 
 // --------------------------------------------------------------------
 
