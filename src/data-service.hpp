@@ -130,7 +130,7 @@ class data_service
 
 	status_reply get_status(const std::string &id) const;
 
-	bool queue(const std::string &data/* , const std::optional<std::string> pae */, const std::string &id);
+	bool queue(const std::string &data, const std::string &id);
 	std::string queue_af_id(const std::string &id);
 
   private:
@@ -138,8 +138,8 @@ class data_service
 
 	void run();
 
-	void process_queued(const std::filesystem::path &xyzin/* , const std::filesystem::path &paein */,
-		const std::filesystem::path &xyzout, const std::filesystem::path &jsonout);
+	void process_queued(const std::filesystem::path &xyzin, const std::filesystem::path &xyzout,
+		const std::filesystem::path &jsonout);
 
 	std::filesystem::path m_in_dir;
 	std::filesystem::path m_out_dir;
