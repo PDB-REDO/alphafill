@@ -15,7 +15,7 @@
 		"build-production": "webpack --config webpack.config.js --env PRODUCTION"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.16.0",
+		"@babel/core": "^7.29.6",
 		"@babel/preset-env": "^7.16.0",
 		"@babel/preset-typescript": "^7.16.0",
 		"@popperjs/core": "^2.10.2",
