@@ -269,9 +269,6 @@ struct transplant_info
 	std::string asym_id;
 	double clashScore;
 	double lRMSd;
-	std::vector<uint8_t> pae;
-	double paeMean;
-	double paeSD;
 	bool firstHit = false;
 	bool firstTransplant = false;
 	int hitCount = 1;
@@ -288,9 +285,6 @@ struct transplant_info
 		   & zeem::name_value_pair("global-rmsd", gRMSd)
 		   & zeem::name_value_pair("asym_id", asym_id)
 		   & zeem::name_value_pair("local-rmsd", lRMSd)
-		   & zeem::name_value_pair("pae", pae)
-		   & zeem::name_value_pair("pae-mean", paeMean)
-		   & zeem::name_value_pair("pae-sd", paeSD)
 		   & zeem::name_value_pair("clash-score", clashScore)
 		   & zeem::name_value_pair("first-hit", firstHit)
 		   & zeem::name_value_pair("first-transplant", firstTransplant)
@@ -439,16 +433,6 @@ zh::reply affd_html_controller::model(const zh::scope &scope, std::string af_id,
 		++hit_nr;
 		for (auto &transplant : hit["transplants"])
 		{
-			std::vector<uint8_t> pae;
-			if (transplant["pae"].is_object() and transplant["pae"]["matrix"].is_array())
-			{
-				for (auto &row : transplant["pae"]["matrix"])
-				{
-					for (auto &f : row)
-						pae.push_back(f.get<uint8_t>());
-				}
-			}
-
 			transplants.emplace_back(transplant_info{
 				transplant["compound_id"].get<std::string>(),
 				transplant["analogue_id"].get<std::string>(),
@@ -458,10 +442,8 @@ zh::reply affd_html_controller::model(const zh::scope &scope, std::string af_id,
 				hit["global_rmsd"].get<double>(),
 				transplant["asym_id"].get<std::string>(),
 				transplant["clash"]["score"].get<double>(),
-				transplant["local_rmsd"].get<double>(),
-				std::move(pae),
-				transplant["pae"]["mean"].get<double>(),
-				transplant["pae"]["stddev"].get<double>() });
+				transplant["local_rmsd"].get<double>()
+			});
 		}
 	}
 
@@ -949,7 +931,7 @@ zeep::el::object affd_rest_controller::get_aff_3d_beacon(std::string af_id, std:
 
 // --------------------------------------------------------------------
 
-zeep::http::reply affd_rest_controller::post_custom_structure(const std::string &data, const std::optional<std::string> pae)
+zeep::http::reply affd_rest_controller::post_custom_structure(const std::string &data, const std::optional<std::string> /* pae */)
 {
 	auto &ds = data_service::instance();
 
@@ -957,7 +939,7 @@ zeep::http::reply affd_rest_controller::post_custom_structure(const std::string 
 	auto status = ds.get_status(id);
 
 	if (status.status == CustomStatus::Unknown)
-		status.status = ds.queue(data, pae, id) ? CustomStatus::Queued : CustomStatus::TooManyRequests;
+		status.status = ds.queue(data, id) ? CustomStatus::Queued : CustomStatus::TooManyRequests;
 
 	zeep::http::reply r(status.status == CustomStatus::TooManyRequests ? //
 							static_cast<zeep::http::status_type>(429)

@@ -40,10 +40,8 @@ struct alphafill_progress_cb
 	virtual void message(const std::string &msg) = 0;
 };
 
-using PAE_matrix = cif::matrix<uint8_t>;
-
 zeep::el::object alphafill(cif::datablock &db, const std::string &source,
-	const std::vector<PAE_matrix> &pae, alphafill_progress_cb &&progress);
+	alphafill_progress_cb &&progress);
 int alphafill_main(int argc, char *const argv[]);
 
 int create_index(int argc, char *const argv[]);

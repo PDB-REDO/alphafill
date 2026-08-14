@@ -73,7 +73,3 @@ zeep::el::object calculateValidationScores(
 	const std::vector<size_t> &af_ix, const std::vector<size_t> &pdb_ix,
 	const cif::mm::residue &af_ligand, const cif::mm::residue &pdb_ligand,
 	float maxDistance, const Ligand &ligand);
-
-// --------------------------------------------------------------------
-
-zeep::el::object calculatePAEScore(const std::vector<cif::mm::residue *> &af_res, std::vector<CAtom> &atoms, float maxDistance, const PAE_matrix &pae);

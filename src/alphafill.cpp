@@ -497,8 +497,7 @@ void check_blast_index()
 
 // --------------------------------------------------------------------
 
-zeep::el::object alphafill(cif::datablock &db, const std::string &source,
-	const std::vector<PAE_matrix> &v_pae, alphafill_progress_cb &&progress)
+zeep::el::object alphafill(cif::datablock &db, const std::string &source, alphafill_progress_cb &&progress)
 {
 	using namespace std::literals;
 	using namespace cif::literals;
@@ -560,13 +559,8 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 
 	progress.set_max_0(db["entity_poly"].size());
 
-	auto pae_i = v_pae.begin();
-	PAE_matrix empty_pae;
-
 	for (auto r : db["entity_poly"])
 	{
-		const PAE_matrix &pae = (pae_i == v_pae.end()) ? empty_pae : *pae_i++;
-
 		std::string seq;
 
 		auto &&[id, s1, s2] = r.get<std::string, std::optional<std::string>, std::optional<std::string>>("entity_id", "pdbx_seq_one_letter_code", "pdbx_seq_one_letter_code_can");
@@ -795,9 +789,6 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 							if (af_res.size() != seq.length())
 								throw std::runtime_error("Something is wrong with the input file, the number of residues for chain A is not equal to the number in pdbx_seq_one_letter_code_can");
 
-							if (not v_pae.empty() and pae.dim_m() != af_res.size())
-								throw std::runtime_error("The supplied PAE data is inconsistent with the residues in the AlphaFold structure for asym ID " + af_asym_id);
-
 							std::vector<point> af_ca_trimmed, pdb_ca_trimmed;
 							for (size_t i = 0; i < af_ix_trimmed.size(); ++i)
 							{
@@ -1021,11 +1012,6 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source,
 								else
 									hsp_t.emplace("pdb_auth_ins_code", nullptr);
 
-								// Calculate PAE matrix and score for the 'nearby' residues
-
-								if (not pae.empty())
-									hsp_t["pae"] = calculatePAEScore(af_res, resAtoms, clashDistance, pae);
-
 								// copy any struct_conn record that might be needed
 
 								auto &pdb_struct_conn = pdb_structure.get_category("struct_conn");
@@ -1191,8 +1177,6 @@ int alphafill_main(int argc, char *const argv[])
 {
 	auto &config = load_and_init_config("usage: alphafill process [options] <inputfile> [<outputfile>]",
 
-		mcfp::make_option<std::string>("pae-file", "Specify a specific file containing PAE information, default is to use a filename based on inputfile"),
-
 		mcfp::make_option<std::string>("pdb-dir", "Directory containing the mmCIF files for the PDB"),
 		mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
 
@@ -1267,30 +1251,7 @@ int alphafill_main(int argc, char *const argv[])
 		return 1;
 	}
 
-	fs::path paein;
-
-	if (config.has("pae-file"))
-		paein = config.get("pae-file");
-	else
-	{
-		auto filename = xyzin.filename();
-
-		if (filename.extension() == ".gz")
-			filename.replace_extension();
-
-		if (filename.extension() == ".cif")
-			filename.replace_extension();
-
-		const auto &[type, af_id, chunk, version] = parse_af_id(filename.string());
-
-		paein = xyzin.parent_path() / std::format("AF-{}-F{}-predicted_aligned_error_v{}.json", af_id, chunk, version);
-	}
-
-	std::vector<PAE_matrix> v_pae;
-	if (fs::exists(paein))
-		v_pae = load_pae_from_file(paein);
-
-	json metadata = alphafill(f.front(), config.get("data-source"), v_pae, my_progress{});
+	json metadata = alphafill(f.front(), config.get("data-source"), my_progress{});
 
 	if (config.operands().size() == 2)
 	{
