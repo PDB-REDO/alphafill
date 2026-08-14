@@ -27,7 +27,7 @@
 #include "blast.hpp"
 #include "ligands.hpp"
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
 #include <filesystem>
@@ -55,8 +55,6 @@ std::tuple<std::vector<cif::point>, std::vector<cif::point>> selectAtomsNearResi
 sequence getSequenceForStrand(cif::datablock &db, const std::string &strand);
 
 extern std::regex kAF_ID_Rx;
-
-std::vector<cif::matrix<uint8_t>> load_pae_from_file(const std::filesystem::path &file);
 
 // --------------------------------------------------------------------
 

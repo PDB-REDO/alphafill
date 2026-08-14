@@ -1,7 +1,7 @@
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const path = require('path');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const glob = require('glob-all');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const { PurgeCSSPlugin } = require("purgecss-webpack-plugin");
 var TerserPlugin = require("terser-webpack-plugin");
 
@@ -28,13 +28,19 @@ module.exports = (env) => {
 		output: {
 			path: DEST,
 			crossOriginLoading: 'anonymous',
-			filename: "scripts/[name].js"
+			filename: "scripts/[name].js",
+			// clean: {
+			// 	// dry: true,
+			// 	keep(asset) {
+			// 		return asset.includes(".html")
+			// 	}
+			// }
 		},
 
 		module: {
 			rules: [
 				{
-					test: /\.js/,
+					test: /\.js$/,
 					exclude: /node_modules/,
 					use: {
 						loader: "babel-loader",
@@ -49,13 +55,28 @@ module.exports = (env) => {
 					use: [
 						MiniCssExtractPlugin.loader,
 						"css-loader",
-						"sass-loader"
+						{
+							loader: "sass-loader",
+							options: {
+								sassOptions: {
+									silenceDeprecations: [
+										"color-functions",
+										"global-builtin",
+										"import",
+										"if-function"
+									]
+								}
+							}
+						}
 					]
 				},
 
 				{
-					test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-					include: path.resolve(__dirname, './node_modules/bootstrap-icons/font/fonts'),
+					test: /\.(woff(2)?|ttf)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+					include: [
+						path.resolve(__dirname, './node_modules/bootstrap-icons/font/fonts'),
+						path.resolve(__dirname, 'fonts')
+					],
 					type: 'asset/resource',
 					generator: {
 						filename: 'fonts/[name][ext]'
@@ -68,27 +89,16 @@ module.exports = (env) => {
 			extensions: ['.js', '.css', '.scss'],
 		},
 
+		optimization: {
+			minimize: true,
+			minimizer: [new TerserPlugin()]
+		},
+
 		target: 'web',
 
 		plugins: [
 			new MiniCssExtractPlugin({
 				filename: "css/[name].css"
-			})
-		]
-	};
-
-	if (PRODUCTION) {
-		webpackConf.mode = "production";
-
-		webpackConf.plugins.push(
-			new CleanWebpackPlugin({
-				verbose: true,
-				cleanOnceBeforeBuildPatterns: [
-					'css/*',
-					'fonts/*',
-					'scripts/*',
-				]
-				
 			}),
 			new PurgeCSSPlugin({
 				paths: glob.sync([
@@ -96,13 +106,11 @@ module.exports = (env) => {
 					`${DEST}/**/*`
 				], { nodir: true })
 			})
-		);
+		]
+	};
 
-		webpackConf.optimization = {
-			minimize: true,
-			minimizer: [new TerserPlugin()]
-		};
-
+	if (PRODUCTION) {
+		webpackConf.mode = "production";
 	} else {
 		webpackConf.mode = "development";
 		webpackConf.devtool = 'source-map';

@@ -9,16 +9,16 @@ models can be more easily appreciated in terms of function and structure integri
 
 ## Building
 
-In order to build alphafill, you need to have a modern C++ compiler (c++17), a recent version of [cmake](https://cmake.org/) and the following libraries installed:
+In order to build alphafill, you need to have a modern C++ compiler (c++20), a recent version of [cmake](https://cmake.org/) and the following libraries installed:
 
-- [Libzeep](https://github.com/mhekkel/libzeep) version 6.0.11 or higher
-- [libcif++](https://github.com/PDB-REDO/libcifpp) version 6.0.0 or higher
-- [libmcfp](https://github.com/mhekkel/libmcfp) version 1.2.4 or higher
+- [Libzeep](https://github.com/mhekkel/libzeep) version 7.2 or higher
+- [libcif++](https://github.com/PDB-REDO/libcifpp) version 9.0.4 or higher
+- [libmcfp](https://github.com/mhekkel/libmcfp) version 1.3.4 or higher
 
 The default assumes you only want to process predicted models locally. If you want to build the web application environment you will have to install the following as well:
 
 - libpq, the PostgreSQL library
-- [libpqxx](http://www.pqxx.org/) version 7.2 or higher
+- [libpqxx](http://www.pqxx.org/) version 7.8 or higher
 - [yarn](https://yarnpkg.com/) to package the data for the web interface.
 - [mrc](https://github.com/mhekkel/mrc) to package all the runtime data into resources in the final excutable. This is optional and will not work on *macOS*.
 
@@ -27,7 +27,7 @@ Once all the requirements are met, building is as simple as:
 ```console
 git clone https://github.com/PDB-REDO/alphafill
 cd alphafill
-cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake -DCMAKE_BUILD_TYPE=Release -B build
 cmake --build build
 ctest --test-dir build
 cmake --install build

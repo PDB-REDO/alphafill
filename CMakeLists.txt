@@ -106,19 +106,26 @@ endif()
 set(SAVE_BUILD_TESTING ${BUILD_TESTING})
 set(BUILD_TESTING OFF)
 
-find_package(cifpp 9.0.6 REQUIRED)
+find_package(cifpp 9.0.4 REQUIRED)
+find_package(mcfp 1.3.4 QUIET)
 
-CPMFindPackage(
-    NAME mcfp
-    GIT_REPOSITORY https://github.com/mhekkel/libmcfp.git
-    GIT_TAG v1.4.2
-    EXCLUDE_FROM_ALL YES)
+if(NOT mcfp_FOUND)
+	FetchContent_Declare(
+		mcfp
+		GIT_REPOSITORY https://github.com/mhekkel/libmcfp.git
+		GIT_TAG v1.3.4)
+	FetchContent_MakeAvailable(mcfp)
+endif()
 
-CPMFindPackage(
-    NAME zeep
-    GIT_REPOSITORY https://github.com/mhekkel/libzeep.git
-    GIT_TAG v7.3.0
-    EXCLUDE_FROM_ALL YES)
+find_package(zeep 7.2.0 QUIET)
+
+if(NOT zeep_FOUND)
+	FetchContent_Declare(
+		zeep
+		GIT_REPOSITORY https://github.com/mhekkel/libzeep.git
+		GIT_TAG v7.2.0)
+	FetchContent_MakeAvailable(zeep)
+endif()
 
 if(BUILD_WEB_APPLICATION)
 
@@ -247,8 +254,8 @@ target_compile_definitions(alphafill
     PUBLIC ALPHAFILL_DATA_DIR="${ALPHAFILL_DATA_DIR}")
 
 if(USE_RSRC)
-    message("Using resources compiled with ${MRC_EXECUTABLE}")
-    add_compile_definitions(USE_RSRC WEBAPP_USES_RESOURCES)
+	message("Using resources compiled with ${MRC_EXECUTABLE}")
+	add_compile_definitions(WEBAPP_USES_RESOURCES USE_RSRC)
 
     list(APPEND RESOURCES ${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic
         ${PROJECT_SOURCE_DIR}/rsrc/mmcif_ma.dic)

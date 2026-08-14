@@ -30,7 +30,7 @@
 #include "revision.hpp"
 #include "validate.hpp"
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
 #include <filesystem>

@@ -28,7 +28,7 @@
 #include <fstream>
 #include <iostream>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
 #include <zeep/el/object.hpp>
@@ -287,47 +287,10 @@ sequence getSequenceForStrand(cif::datablock &db, const std::string &strand)
 	if (r.empty())
 		throw std::runtime_error("Could not locate sequence in PDB for strand id " + strand);
 
-	auto entity_id = r.front()["entity_id"].as<std::string>();
+	auto entity_id = r.front()["entity_id"].get<std::string>();
 
 	auto &entity_poly = db["entity_poly"];
 	auto pdb_seq = entity_poly.find1<std::string>("entity_id"_key == entity_id, "pdbx_seq_one_letter_code_can");
 
 	return encode(pdb_seq);
-}
-
-std::vector<cif::matrix<uint8_t>> load_pae_from_file(const std::filesystem::path &file)
-{
-	cif::gzio::ifstream in(file);
-
-	if (not in.is_open())
-		throw std::runtime_error("Could not open PAE file " + file.string());
-
-	auto data = zeep::el::object::parse_JSON(in);
-
-	if (not data.is_array())
-		throw std::runtime_error("Unexpected JSON result for PAE");
-
-	std::vector<cif::matrix<uint8_t>> result;
-
-	for (auto e : data)
-	{
-		if (not e.is_object())
-			throw std::runtime_error("Unexpected JSON result for PAE");
-		
-		auto &pae = e["predicted_aligned_error"];
-		if (not pae.is_array())
-			throw std::runtime_error("Unexpected JSON result for PAE");
-
-		size_t len = pae.size();
-
-		cif::matrix<uint8_t> &m = result.emplace_back(len, len);
-
-		for (size_t i = 0; i < len; ++i)
-		{
-			for (size_t j = 0; j < len; ++j)
-				m(i, j) = pae[i][j].get<int>();
-		}
-	}
-
-	return result;
 }

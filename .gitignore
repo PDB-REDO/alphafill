@@ -1,3 +1,10 @@
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 .vscode
 .vs
 build
@@ -38,5 +45,5 @@ src/config.hpp
 **/*.tsv
 docs/man/alphafill.conf.rst
 .cache/
-
 docroot/.buildinfo.bak
+docroot/dist/

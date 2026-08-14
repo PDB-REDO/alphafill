@@ -33,16 +33,20 @@
 #include "structure.hpp"
 #include "utilities.hpp"
 
+#include <exception>
+#include <semaphore>
 #include <zeem/serialize.hpp>
 #include <zeep/crypto.hpp>
 #include <zeep/el/object.hpp>
 #include <zeep/el/serializer.hpp>
+#include <zeep/exception.hpp>
 #include <zeep/http/daemon.hpp>
 #include <zeep/http/html-controller.hpp>
 #include <zeep/http/reply.hpp>
+#include <zeep/http/status.hpp>
 #include <zeep/uri.hpp>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 #include <mcfp/mcfp.hpp>
 
 #include <filesystem>
@@ -72,8 +76,8 @@ class af_link_template_object : public zh::expression_utility_object<af_link_tem
 		m_template = t;
 	}
 
-	virtual zh::object evaluate(const zh::scope &scope, const std::string &methodName,
-		const std::vector<zh::object> &parameters) const
+	[[nodiscard]] zh::object evaluate(const zh::scope &scope, const std::string &methodName,
+		const std::vector<zh::object> &parameters) const override
 	{
 		zh::object result;
 
@@ -123,10 +127,10 @@ class missing_entry_error : public std::runtime_error
 class missing_entry_error_handler : public zeep::http::error_handler
 {
   public:
-	virtual bool create_error_reply(const zeep::http::request &req, std::exception_ptr eptr, zeep::http::reply &reply);
+	bool create_error_reply(const zeep::http::request &req, const std::exception_ptr &eptr, zeep::http::reply &reply) override;
 };
 
-bool missing_entry_error_handler::create_error_reply(const zeep::http::request &req, std::exception_ptr eptr, zeep::http::reply &reply)
+bool missing_entry_error_handler::create_error_reply(const zeep::http::request &req, const std::exception_ptr &eptr, zeep::http::reply &reply)
 {
 	bool result = false;
 
@@ -154,7 +158,8 @@ bool missing_entry_error_handler::create_error_reply(const zeep::http::request &
 class affd_html_controller : public zh::html_controller
 {
   public:
-	affd_html_controller()
+	affd_html_controller(ptrdiff_t max_yasara_runs = 3)
+		: m_optimizer_semaphore(max_yasara_runs)
 	{
 		map_get("{,index,index.html}", &affd_html_controller::welcome, "id");
 		map_get("{structures,structure-table-page}", &affd_html_controller::structures, "compound", "identity", "page");
@@ -182,6 +187,8 @@ class affd_html_controller : public zh::html_controller
 	zh::reply schema(const zh::scope &scope);
 
 	zh::reply handle_help_file(const zh::scope &scope);
+
+	std::counting_semaphore<4> m_optimizer_semaphore;
 };
 
 zh::reply affd_html_controller::welcome(const zh::scope &scope, std::optional<std::string> id)
@@ -262,9 +269,6 @@ struct transplant_info
 	std::string asym_id;
 	double clashScore;
 	double lRMSd;
-	std::vector<uint8_t> pae;
-	double paeMean;
-	double paeSD;
 	bool firstHit = false;
 	bool firstTransplant = false;
 	int hitCount = 1;
@@ -281,9 +285,6 @@ struct transplant_info
 		   & zeem::name_value_pair("global-rmsd", gRMSd)
 		   & zeem::name_value_pair("asym_id", asym_id)
 		   & zeem::name_value_pair("local-rmsd", lRMSd)
-		   & zeem::name_value_pair("pae", pae)
-		   & zeem::name_value_pair("pae-mean", paeMean)
-		   & zeem::name_value_pair("pae-sd", paeSD)
 		   & zeem::name_value_pair("clash-score", clashScore)
 		   & zeem::name_value_pair("first-hit", firstHit)
 		   & zeem::name_value_pair("first-transplant", firstTransplant)
@@ -432,16 +433,6 @@ zh::reply affd_html_controller::model(const zh::scope &scope, std::string af_id,
 		++hit_nr;
 		for (auto &transplant : hit["transplants"])
 		{
-			std::vector<uint8_t> pae;
-			if (transplant["pae"].is_object() and transplant["pae"]["matrix"].is_array())
-			{
-				for (auto &row : transplant["pae"]["matrix"])
-				{
-					for (auto &f : row)
-						pae.push_back(f.get<uint8_t>());
-				}
-			}
-
 			transplants.emplace_back(transplant_info{
 				transplant["compound_id"].get<std::string>(),
 				transplant["analogue_id"].get<std::string>(),
@@ -451,10 +442,8 @@ zh::reply affd_html_controller::model(const zh::scope &scope, std::string af_id,
 				hit["global_rmsd"].get<double>(),
 				transplant["asym_id"].get<std::string>(),
 				transplant["clash"]["score"].get<double>(),
-				transplant["local_rmsd"].get<double>(),
-				std::move(pae),
-				transplant["pae"]["mean"].get<double>(),
-				transplant["pae"]["stddev"].get<double>() });
+				transplant["local_rmsd"].get<double>()
+			});
 		}
 	}
 
@@ -529,49 +518,58 @@ zh::reply affd_html_controller::optimized(const zh::scope &scope, std::string af
 	if (asymID.empty())
 		throw missing_entry_error("<missing-asym>");
 
-	const auto &[type, afId, chunkNr, version] = parse_af_id(af_id);
-
-	sub.put("af_id", af_id);
-	sub.put("chunk", chunkNr);
-	sub.put("asym_id", asymID);
-	sub.put("version", version);
-
-	try
+	if (m_optimizer_semaphore.try_acquire())
 	{
-		using namespace cif::literals;
+		try
+		{
+			const auto &[type, afId, chunkNr, version] = parse_af_id(af_id);
 
-		auto cif = file_locator::get_structure_file(type, afId, chunkNr, version);
-		cif::file cf(cif);
-		if (cf.empty())
-			throw zeep::http::not_found;
+			sub.put("af_id", af_id);
+			sub.put("chunk", chunkNr);
+			sub.put("asym_id", asymID);
+			sub.put("version", version);
 
-		auto &db = cf.front();
-		auto entity_id = db["struct_asym"].find1<std::string>("id"_key == asymID, "entity_id");
-		const auto &[compound_name, compound_id] = db["pdbx_entity_nonpoly"].find1<std::string, std::string>("entity_id"_key == entity_id, "name", "comp_id");
+			using namespace cif::literals;
 
-		sub.put("compound-name", compound_name);
-		sub.put("compound-id", compound_id);
+			auto cif = file_locator::get_structure_file(type, afId, chunkNr, version);
+			cif::file cf(cif);
+			if (cf.empty())
+				throw zeep::http::not_found;
+
+			auto &db = cf.front();
+			auto entity_id = db["struct_asym"].find1<std::string>("id"_key == asymID, "entity_id");
+			const auto &[compound_name, compound_id] = db["pdbx_entity_nonpoly"].find1<std::string, std::string>("entity_id"_key == entity_id, "name", "comp_id");
+
+			sub.put("compound-name", compound_name);
+			sub.put("compound-id", compound_id);
+
+			bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2, version));
+
+			sub.put("chunked", chunked);
+
+			if (chunked)
+			{
+				auto allChunks = file_locator::get_all_structure_files(afId, version);
+				zeep::el::object chunks;
+
+				for (size_t i = 0; i < allChunks.size(); ++i)
+					chunks.emplace_back(afId + "-F" + std::to_string(i + 1));
+
+				sub.put("chunks", chunks);
+			}
+
+			m_optimizer_semaphore.release();
+
+			return get_template_processor().create_reply_from_template("optimized", sub);
+		}
+		catch (...)
+		{
+			m_optimizer_semaphore.release();
+			throw;
+		}
 	}
-	catch (...)
-	{
-	}
-
-	bool chunked = chunkNr > 1 or fs::exists(file_locator::get_metadata_file(type, afId, 2, version));
-
-	sub.put("chunked", chunked);
-
-	if (chunked)
-	{
-		auto allChunks = file_locator::get_all_structure_files(afId, version);
-		zeep::el::object chunks;
-
-		for (size_t i = 0; i < allChunks.size(); ++i)
-			chunks.emplace_back(afId + "-F" + std::to_string(i + 1));
-
-		sub.put("chunks", chunks);
-	}
-
-	return get_template_processor().create_reply_from_template("optimized", sub);
+	else
+		return zh::reply(static_cast<zh::status_type>(429), { 1, 0 }, {}, "Too many requests, please try again later");
 }
 
 zh::reply affd_html_controller::schema(const zh::scope &scope)
@@ -635,7 +633,7 @@ class affd_rest_controller : public zh::controller
 
 	// --------------------------------------------------------------------
 
-	zeep::el::object post_custom_structure(const std::string &data, const std::optional<std::string> pae);
+	zeep::http::reply post_custom_structure(const std::string &data, const std::optional<std::string> pae);
 };
 
 status_reply affd_rest_controller::get_aff_status(const std::string &af_id)
@@ -852,10 +850,13 @@ zeep::el::object affd_rest_controller::get_aff_3d_beacon(std::string af_id, std:
 	auto &struct_ref = db["struct_ref"];
 	auto &struct_ref_seq = db["struct_ref_seq"];
 
+	if (db.empty() or struct_ref.empty() or struct_ref_seq.empty())
+		throw std::runtime_error(std::format("Missing data in {}", af_id));
+
 	int uniprot_start, uniprot_end;
 	cif::tie(uniprot_start, uniprot_end) = struct_ref_seq.front().get("db_align_beg", "db_align_end");
 
-	std::string db_code = struct_ref.front()["db_code"].as<std::string>();
+	std::string db_code = struct_ref.front()["db_code"].get<std::string>();
 
 	zeep::el::object result{
 		{ "uniprot_entry", { //
@@ -930,22 +931,29 @@ zeep::el::object affd_rest_controller::get_aff_3d_beacon(std::string af_id, std:
 
 // --------------------------------------------------------------------
 
-zeep::el::object affd_rest_controller::post_custom_structure(const std::string &data, const std::optional<std::string> pae)
+zeep::http::reply affd_rest_controller::post_custom_structure(const std::string &data, const std::optional<std::string> /* pae */)
 {
-	auto id = "CS-" + zeep::encode_hex(zeep::sha1(data));
+	auto &ds = data_service::instance();
 
-	auto status = data_service::instance().get_status(id);
+	auto id = "CS-" + zeep::encode_hex(zeep::sha1(data));
+	auto status = ds.get_status(id);
 
 	if (status.status == CustomStatus::Unknown)
-	{
-		data_service::instance().queue(data, pae, id);
-		status.status = CustomStatus::Queued;
-	}
+		status.status = ds.queue(data, id) ? CustomStatus::Queued : CustomStatus::TooManyRequests;
 
-	return {
+	zeep::http::reply r(status.status == CustomStatus::TooManyRequests ? //
+							static_cast<zeep::http::status_type>(429)
+																	   : //
+							zeep::http::status_type::ok);
+
+	zeep::el::object ro{
 		{ "id", id },
 		{ "status", zeep::value_serializer<CustomStatus>::to_string(status.status) }
 	};
+
+	r.set_content(ro);
+
+	return r;
 }
 
 // --------------------------------------------------------------------
@@ -1095,9 +1103,10 @@ int server_main(int argc, char *const argv[])
 		s->add_error_handler(new db_error_handler());
 		s->add_error_handler(new missing_entry_error_handler());
 
-#if not defined(NDEBUG)
-		s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
-#elif defined(WEBAPP_USES_RESOURCES) and WEBAPP_USES_RESOURCES
+// #if not defined(NDEBUG)
+// 		s->set_template_processor(new zeep::http::file_based_html_template_processor("docroot"));
+// #elif defined(WEBAPP_USES_RESOURCES) and WEBAPP_USES_RESOURCES
+#if defined(WEBAPP_USES_RESOURCES) and WEBAPP_USES_RESOURCES
 		s->set_template_processor(new zeep::http::rsrc_based_html_template_processor());
 #else
 		s->set_template_processor(new zeep::http::file_based_html_template_processor(ALPHAFILL_DATA_DIR "/docroot"));
@@ -1120,7 +1129,7 @@ int server_main(int argc, char *const argv[])
 		if (config.has("no-daemon"))
 			result = server.run_foreground(address, port);
 		else
-			result = server.start(address, port, 16, user);
+			result = server.start(address, port, 128, user);
 	}
 	else if (command == "stop")
 		result = server.stop();

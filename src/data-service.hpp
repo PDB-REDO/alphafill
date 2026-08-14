@@ -33,7 +33,7 @@
 
 #include <zeep/el/serializer.hpp>
 
-#include <cif++.hpp>
+#include <cif++/cif++.hpp>
 
 #include "queue.hpp"
 
@@ -82,6 +82,7 @@ enum class CustomStatus
 {
 	Unknown,
 	Queued,
+	TooManyRequests,
 	Running,
 	Finished,
 	Error
@@ -125,11 +126,11 @@ class data_service
 	// On demand services
 
 	bool exists_in_afdb(const std::string &id) const;
-	std::tuple<std::filesystem::path, std::string, std::string> fetch_from_afdb(const std::string &id) const;
+	std::tuple<std::filesystem::path, std::string/* , std::string */> fetch_from_afdb(const std::string &id) const;
 
 	status_reply get_status(const std::string &id) const;
 
-	void queue(const std::string &data, const std::optional<std::string> pae, const std::string &id);
+	bool queue(const std::string &data, const std::string &id);
 	std::string queue_af_id(const std::string &id);
 
   private:
@@ -137,8 +138,8 @@ class data_service
 
 	void run();
 
-	void process_queued(const std::filesystem::path &xyzin, const std::filesystem::path &paein,
-		const std::filesystem::path &xyzout, const std::filesystem::path &jsonout);
+	void process_queued(const std::filesystem::path &xyzin, const std::filesystem::path &xyzout,
+		const std::filesystem::path &jsonout);
 
 	std::filesystem::path m_in_dir;
 	std::filesystem::path m_out_dir;
@@ -146,7 +147,7 @@ class data_service
 
 	// threads processing AF entries
 	std::vector<std::thread> m_threads;
-	blocking_queue<std::string, 100> m_queue;
+	blocking_queue<std::string, 10> m_queue;
 
 	std::mutex m_mutex;
 	std::string m_running;
