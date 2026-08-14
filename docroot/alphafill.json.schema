@@ -156,7 +156,6 @@
                 "asym_id",
                 "clash",
                 "compound_id",
-                "pae",
                 "pdb_asym_id",
                 "pdb_auth_asym_id",
                 "pdb_auth_ins_code",

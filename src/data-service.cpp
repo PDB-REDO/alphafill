@@ -32,7 +32,9 @@
 #include "utilities.hpp"
 
 #include <cif++/cif++.hpp>
+#include <exception>
 #include <mcfp/mcfp.hpp>
+#include <stdexcept>
 #include <zeep/el/object.hpp>
 #include <zeep/uri.hpp>
 
@@ -456,6 +458,55 @@ int data_service::rebuild()
 
 // --------------------------------------------------------------------
 
+std::string bestAFModel(const zeep::el::object &structures)
+{
+	// // Select best based on HOMO-OLIGOMER > HOMODIMER > MONOMER > HETERODIMER > HETERO-OLIGOMER
+	// static std::array<std::string_view, 5> kPriority{ "HOMO-OLIGOMER", "HOMODIMER", "MONOMER", "HETERODIMER", "HETERO-OLIGOMER" };
+
+	// int bestIx = structures.size();
+	// int bestScore = kPriority.size();
+
+	// for (const auto [ix, s] : std::views::enumerate(structures))
+	// {
+	// 	auto &summary = s["summary"];
+
+	// 	auto score = std::ranges::find(kPriority, summary["oligomeric_state"].get<std::string>()) - kPriority.begin();
+	// 	if (score < bestScore)
+	// 	{
+	// 		bestIx = ix;
+	// 		bestScore = score;
+	// 	}
+	// }
+
+	// return bestIx < structures.size() ? structures[bestIx]["summary"]["model_url"].get<std::string>() : std::string{};
+
+	std::regex rx(R"(AF-.+?-model_v(\d+).*\.cif$)");
+
+	int bestScore = 0;
+	std::string bestUrl;
+
+	for (const auto &s : structures)
+	{
+		auto &summary = s["summary"];
+		zeep::uri url = summary["model_url"].get<std::string>();
+
+		std::string filename = std::filesystem::path(url.get_path().string()).filename().string();
+		
+		std::smatch m;
+		if (not std::regex_match(filename, m, rx))
+			continue;
+
+		auto score = std::stoi(m[1].str());
+		if (score > bestScore)
+		{
+			bestUrl = url.string();
+			bestScore = score;
+		}
+	}
+
+	return bestUrl;
+}
+
 bool data_service::exists_in_afdb(const std::string &id) const
 {
 	bool result = false;
@@ -474,17 +525,20 @@ bool data_service::exists_in_afdb(const std::string &id) const
 	{
 		zeep::el::object rep_j = zeep::el::object::parse_JSON(rep.get_content());
 
-		url = rep_j["structures"][0]["summary"]["model_url"].get<std::string>();
+		if (rep_j["structures"].is_array())
+		{
+			url = bestAFModel(rep_j["structures"]);
 
-		rep = head_request(url, { { "Accept-Encoding", "gzip" } });
+			rep = head_request(url, { { "Accept-Encoding", "gzip" } });
 
-		result = rep.get_status() == zeep::http::ok;
+			result = rep.get_status() == zeep::http::ok or rep.get_status() == zeep::http::found;
+		}
 	}
 
 	return result;
 }
 
-std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_from_afdb(const std::string &id) const
+std::tuple<std::filesystem::path, std::string/* , std::string */> data_service::fetch_from_afdb(const std::string &id) const
 {
 	auto &config = mcfp::config::instance();
 
@@ -501,7 +555,7 @@ std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_
 
 	zeep::el::object rep_j = zeep::el::object::parse_JSON(rep.get_content());
 
-	url = rep_j["structures"][0]["summary"]["model_url"].get<std::string>();
+	url = bestAFModel(rep_j["structures"]);
 
 	zeep::uri uri(url);
 
@@ -513,69 +567,32 @@ std::tuple<std::filesystem::path, std::string, std::string> data_service::fetch_
 	if (rep.get_status() != zeep::http::ok)
 		throw std::runtime_error("Error requesting alphafold structure file: " + zeep::http::get_status_description(rep.get_status()));
 
-	std::string enc = rep.get_header("Content-Encoding");
-
-	if (enc != "gzip")
-		throw std::runtime_error("Unexpected content encoding from server: " + enc);
-
 	const std::string &content = rep.get_content();
-
-	struct membuf : public std::streambuf
-	{
-		membuf(char *text, size_t length)
-		{
-			this->setg(text, text, text + length);
-		}
-	} buffer(const_cast<char *>(content.data()), content.length());
-
-	cif::gzio::istream in(&buffer);
+	if (content.empty())
+		throw std::runtime_error(std::format("Server replied with empty file for URL {}", uri.string()));
 
 	std::ostringstream result;
-	result << in.rdbuf();
 
-	std::ostringstream pae_data;
-
-	// Try PAE data
-	auto o = url.find("-model_v");
-	if (o != std::string::npos)
+	if (std::string enc = rep.get_header("Content-Encoding"); enc == "gzip")
 	{
-		url.replace(o + 1, 5, "predicted_aligned_error");
-
-		o = url.rfind(".cif");
-		if (o != std::string::npos)
-			url.replace(o + 1, 3, "json");
-
-		rep = simple_request(url, { { "Accept-Encoding", "gzip" } });
-
-		try
+		struct membuf : public std::streambuf
 		{
-			if (rep.get_status() != zeep::http::ok)
-				throw std::runtime_error("Could not download PAE data");
-
-			std::string enc = rep.get_header("Content-Encoding");
-			if (enc != "gzip")
-				throw std::runtime_error("Unexpected content encoding from server");
-
-			const std::string &content = rep.get_content();
-
-			struct membuf : public std::streambuf
+			membuf(char *text, size_t length)
 			{
-				membuf(char *text, size_t length)
-				{
-					this->setg(text, text, text + length);
-				}
-			} buffer(const_cast<char *>(content.data()), content.length());
+				this->setg(text, text, text + length);
+			}
+		} buffer(const_cast<char *>(content.data()), content.length());
 
-			cif::gzio::istream in(&buffer);
-			pae_data << in.rdbuf();
-		}
-		catch (const std::exception &ex)
-		{
-			std::cerr << "Error loading PAE data from " << std::quoted(url) << ": " << ex.what() << '\n';
-		}
+		cif::gzio::istream in(&buffer);
+
+		result << in.rdbuf();
 	}
+	else if (enc.empty())
+		result << content;
+	else
+		throw std::runtime_error(std::format("Unexpected content encoding {}", enc));
 
-	return { uri.get_path().get_segments().back(), result.str(), pae_data.str() };
+	return { uri.get_path().get_segments().back(), result.str() };
 }
 
 // --------------------------------------------------------------------
@@ -599,7 +616,7 @@ struct data_service_progress : public alphafill_progress_cb
 		m_cur_1 = 0;
 	}
 
-	void consumed(size_t n = 1) override
+	void consumed(size_t n) override
 	{
 		++m_cur_1;
 
@@ -632,56 +649,67 @@ void print_what(std::ostream &os, const std::exception &e)
 	}
 }
 
-void data_service::process_queued(const std::filesystem::path &xyzin, const std::filesystem::path &paein,
+void data_service::process_queued(const std::filesystem::path &xyzin,
 	const std::filesystem::path &xyzout, const std::filesystem::path &jsonout)
 {
 	std::error_code ec;
 
-	if (not fs::exists(xyzin, ec))
-		throw std::runtime_error("Input file '" + xyzin.string() + "' does not exist");
-
-	cif::file f(xyzin);
-	if (f.empty())
-		throw std::runtime_error("mmCIF file seems to be empty or invalid");
-
-	m_progress = 0;
-
-	if (cif::VERBOSE > 0)
-		std::cerr << "Running ID " << m_running << '\n';
-
-	fs::rename(xyzin, m_work_dir / xyzin.filename(), ec);
-	if (ec)
-		std::cerr << "Error moving input file to work dir: " << ec.message() << '\n';
-
-	std::vector<PAE_matrix> pae_data;
-
-	if (not paein.empty() and fs::exists(paein))
-	{
-		pae_data = load_pae_from_file(paein);
-		fs::rename(paein, m_work_dir / paein.filename(), ec);
-	}
-
-	auto metadata = alphafill(f.front(), "user", pae_data, data_service_progress{ m_progress });
-
 	try
 	{
-		f.save(xyzout);
+		if (not fs::exists(xyzin, ec))
+			throw std::runtime_error("Input file '" + xyzin.string() + "' does not exist");
+
+		cif::file f(xyzin);
+
+		if (f.empty())
+			throw std::runtime_error("mmCIF file seems to be empty\n");
+		else
+		{
+			f.front().load_dictionary();
+			if (f.front().get_validator() == nullptr)
+				f.front().load_dictionary("mmcif_pdbx.dic");
+
+			m_progress = 0;
+
+			if (cif::VERBOSE > 0)
+				std::cerr << "Running ID " << m_running << '\n';
+
+			fs::rename(xyzin, m_work_dir / xyzin.filename(), ec);
+			if (ec)
+				std::cerr << "Error moving input file to work dir: " << ec.message() << '\n';
+
+			auto metadata = alphafill(f.front(), "user", data_service_progress{ m_progress });
+
+			f.save(xyzout);
+
+			std::ofstream metadataFile(jsonout);
+			metadataFile << metadata;
+		}
 	}
 	catch (const std::exception &ex)
 	{
-		std::cerr << "Error writing output file " << std::quoted(xyzout.string()) << ": " << ex.what() << '\n';
-		throw;
-	}
+		std::clog << std::chrono::system_clock::now() << '\n';
+		print_what(std::clog, ex);
 
-	std::ofstream metadataFile(jsonout);
-	metadataFile << metadata;
+		std::ofstream errorFile(std::filesystem::path(xyzout).replace_extension(".error"));
+		print_what(errorFile, ex);
+
+		std::string filename = xyzout.filename().string();
+		std::regex rx(R"((AF-.+?-model_v\d+).*\.cif\.gz$)");
+		std::smatch m;
+
+		if (std::regex_match(filename, m, rx))
+		{
+			auto name = m[1].str() + ".error";
+
+			std::ofstream errorFile2(m_out_dir / name);
+			print_what(errorFile2, ex);
+		}
+	}
 
 	// Clean up work files
 	if (fs::exists(m_work_dir / xyzin.filename(), ec))
 		fs::remove(m_work_dir / xyzin.filename(), ec);
-
-	if (not paein.empty() and fs::exists(m_work_dir / paein.filename(), ec))
-		fs::remove(m_work_dir / paein.filename(), ec);
 }
 
 void data_service::run()
@@ -693,7 +721,7 @@ void data_service::run()
 	for (;;)
 	{
 		std::error_code ec;
-		std::filesystem::path xyzin, paein;
+		std::filesystem::path xyzin;
 
 		auto next = m_queue.pop();
 
@@ -712,13 +740,6 @@ void data_service::run()
 			continue;
 		}
 
-		paein = xyzin;
-
-		if (paein.extension() == ".gz")
-			paein.replace_extension();
-		if (paein.extension() == ".cif")
-			paein.replace_extension("pae.gz");
-
 		const auto &[type, afId, chunkNr, version] = parse_af_id(next);
 		fs::path jsonout = file_locator::get_metadata_file(type, afId, chunkNr, version);
 		fs::path xyzout = file_locator::get_structure_file(type, afId, chunkNr, version);
@@ -727,8 +748,6 @@ void data_service::run()
 		{
 			// results already exist. Skip this.
 			fs::remove(xyzin, ec);
-			if (not paein.empty())
-				fs::remove(paein, ec);
 			continue;
 		}
 
@@ -737,7 +756,7 @@ void data_service::run()
 		try
 		{
 			std::clog << system_clock::now() << ' ' << "process: " << xyzin.string() << '\n';
-			process_queued(xyzin, paein, xyzout, jsonout);
+			process_queued(xyzin, xyzout, jsonout);
 		}
 		catch (const std::exception &ex)
 		{
@@ -815,7 +834,7 @@ status_reply data_service::get_status(const std::string &af_id) const
 	return reply;
 }
 
-bool data_service::queue(const std::string &data, const std::optional<std::string> pae, const std::string &id)
+bool data_service::queue(const std::string &data, const std::string &id)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -844,19 +863,6 @@ bool data_service::queue(const std::string &data, const std::optional<std::strin
 	f.save(out);
 	out.close();
 
-	if (pae.has_value())
-	{
-		membuf b2(const_cast<char *>(pae->data()), pae->length());
-		cif::gzio::istream in(&b2);
-
-		cif::gzio::ofstream out(m_in_dir / (id + ".pae.gz"));
-		if (not out.is_open())
-			throw std::runtime_error("Could not create temporary file");
-
-		out << in.rdbuf();
-		out.close();
-	}
-
 	m_queue.push(id);
 	return true;
 }
@@ -866,7 +872,7 @@ std::string data_service::queue_af_id(const std::string &id)
 	if (m_queue.is_full())
 		throw std::runtime_error("The server is too busy to handle your request, please try again later");
 
-	auto &&[filename, data, pae] = fetch_from_afdb(id);
+	auto &&[filename, data] = fetch_from_afdb(id);
 
 	if (filename.extension() == ".cif")
 		filename.replace_extension();
@@ -879,19 +885,6 @@ std::string data_service::queue_af_id(const std::string &id)
 
 	out << data;
 	out.close();
-
-	if (not pae.empty())
-	{
-		auto paefile = m_in_dir / filename;
-		paefile.replace_extension().replace_extension("pae.gz");
-
-		cif::gzio::ofstream out(m_in_dir / paefile.filename());
-		if (not out.is_open())
-			throw std::runtime_error("Could not create temporary PAE file");
-
-		out << pae;
-		out.close();
-	}
 
 	// create output directory, if needed.
 

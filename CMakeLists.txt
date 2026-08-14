@@ -172,9 +172,11 @@ if(BUILD_WEB_APPLICATION)
 
 	add_custom_command(
 		OUTPUT ${webpack_output}
+		BYPRODUCTS 
 		DEPENDS ${webpack_input}
 		COMMAND ${YARN} run $<IF:$<CONFIG:Debug>,build,build-production>
-		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+		VERBATIM)
 
 	add_custom_target(webpack DEPENDS ${PROJECT_SOURCE_DIR}/node_modules
 		${webpack_output})

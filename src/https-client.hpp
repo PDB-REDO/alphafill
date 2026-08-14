@@ -1,17 +1,17 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
- * 
+ *
  * Copyright (c) 2021 Maarten L. Hekkelman
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
  *    list of conditions and the following disclaimer
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -29,9 +29,8 @@
 #pragma once
 
 #include <zeep/http/reply.hpp>
-#include <zeep/el/object.hpp>
+#include <zeep/uri.hpp>
 
-zeep::http::reply simple_request(std::string url, std::vector<zeep::http::header> headers = {});
-zeep::http::reply head_request(std::string url, std::vector<zeep::http::header> headers = {});
-
-zeep::http::reply post_request(std::string url, std::vector<zeep::http::header> headers, zeep::el::object&& payload);
+zeep::http::reply simple_request(const zeep::uri &uri, std::vector<zeep::http::header> headers = {});
+zeep::http::reply head_request(const zeep::uri &uri, std::vector<zeep::http::header> headers = {});
+zeep::http::reply post_request(const zeep::uri &uri, std::vector<zeep::http::header> headers, const std::string &payload);
