@@ -61,7 +61,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
-		throw std::system_error(std::error_code(zeep::http::not_found, zeep::http::status_type_category()));
+		throw std::system_error(zeep::http::status_type::not_found);
 
 	// optionally remove asyms whose blast origin's identity is too low
 	if (identity > 0)
@@ -69,7 +69,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 		fs::path jsonFile = file_locator::get_metadata_file(type, id, chunkNr, version);
 
 		if (not fs::exists(jsonFile))
-			throw std::system_error(std::error_code(zeep::http::not_found, zeep::http::status_type_category()));
+			throw std::system_error(zeep::http::status_type::not_found);
 
 		std::ifstream is(jsonFile);
 		auto data = zeep::el::object::parse_JSON(is);

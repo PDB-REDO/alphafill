@@ -201,8 +201,7 @@ if(BUILD_WEB_APPLICATION)
         ${PROJECT_SOURCE_DIR}/src/db-connection.cpp
         ${PROJECT_SOURCE_DIR}/src/data-service.cpp
         ${PROJECT_SOURCE_DIR}/src/server.cpp
-        ${PROJECT_SOURCE_DIR}/src/structure.cpp
-        ${PROJECT_SOURCE_DIR}/src/https-client.cpp)
+        ${PROJECT_SOURCE_DIR}/src/structure.cpp)
 endif()
 
 # The alphafill executable

@@ -27,7 +27,6 @@
 #include "data-service.hpp"
 #include "alphafill.hpp"
 #include "db-connection.hpp"
-#include "https-client.hpp"
 #include "queue.hpp"
 #include "utilities.hpp"
 
@@ -37,6 +36,7 @@
 #include <stdexcept>
 #include <zeep/el/object.hpp>
 #include <zeep/uri.hpp>
+#include <zeep/http/client.hpp>
 
 #include <forward_list>
 #include <fstream>
@@ -519,9 +519,9 @@ bool data_service::exists_in_afdb(const std::string &id) const
 	while ((i = url.find("${id}")) != std::string::npos)
 		url.replace(i, strlen("${id}"), id);
 
-	auto rep = simple_request(url);
+	auto rep = zeep::http::get_request(url);
 
-	if (rep.get_status() == zeep::http::ok)
+	if (rep.get_status() == zeep::http::status_type::ok)
 	{
 		zeep::el::object rep_j = zeep::el::object::parse_JSON(rep.get_content());
 
@@ -529,9 +529,9 @@ bool data_service::exists_in_afdb(const std::string &id) const
 		{
 			url = bestAFModel(rep_j["structures"]);
 
-			rep = head_request(url, { { "Accept-Encoding", "gzip" } });
+			rep = zeep::http::head_request(url, { { "Accept-Encoding", "gzip" } });
 
-			result = rep.get_status() == zeep::http::ok or rep.get_status() == zeep::http::found;
+			result = rep.get_status() == zeep::http::status_type::ok or rep.get_status() == zeep::http::status_type::found;
 		}
 	}
 
@@ -548,9 +548,9 @@ std::tuple<std::filesystem::path, std::string/* , std::string */> data_service::
 	while ((i = url.find("${id}")) != std::string::npos)
 		url.replace(i, strlen("${id}"), id);
 
-	auto rep = simple_request(url);
+	auto rep = zeep::http::get_request(url);
 
-	if (rep.get_status() != zeep::http::ok)
+	if (rep.get_status() != zeep::http::status_type::ok)
 		throw std::runtime_error("The ID " + id + " was not found at AlphaFold");
 
 	zeep::el::object rep_j = zeep::el::object::parse_JSON(rep.get_content());
@@ -562,9 +562,9 @@ std::tuple<std::filesystem::path, std::string/* , std::string */> data_service::
 	if (uri.get_path().get_segments().empty())
 		throw std::runtime_error("Empy uri returned");
 
-	rep = simple_request(url, { { "Accept-Encoding", "gzip" } });
+	rep = zeep::http::get_request(url, { { "Accept-Encoding", "gzip" } });
 
-	if (rep.get_status() != zeep::http::ok)
+	if (rep.get_status() != zeep::http::status_type::ok)
 		throw std::runtime_error("Error requesting alphafold structure file: " + zeep::http::get_status_description(rep.get_status()));
 
 	const std::string &content = rep.get_content();

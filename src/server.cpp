@@ -484,7 +484,7 @@ zh::reply affd_html_controller::model(const zh::scope &scope, std::string af_id,
 	{
 		cif::file file(cifFile);
 		if (file.empty())
-			throw zeep::http::not_found;
+			throw zeep::http::status_type::not_found;
 
 		std::string title = file.front()["entity"].find1<std::string>("id"_key == 1, "pdbx_description");
 		sub.put("title", title);
@@ -534,7 +534,7 @@ zh::reply affd_html_controller::optimized(const zh::scope &scope, std::string af
 			auto cif = file_locator::get_structure_file(type, afId, chunkNr, version);
 			cif::file cf(cif);
 			if (cf.empty())
-				throw zeep::http::not_found;
+				throw zeep::http::status_type::not_found;
 
 			auto &db = cf.front();
 			auto entity_id = db["struct_asym"].find1<std::string>("id"_key == asymID, "entity_id");
@@ -575,7 +575,7 @@ zh::reply affd_html_controller::optimized(const zh::scope &scope, std::string af
 zh::reply affd_html_controller::schema(const zh::scope &scope)
 {
 	auto result = html_controller::handle_file(scope);
-	if (result.get_status() == zeep::http::ok)
+	if (result.get_status() == zeep::http::status_type::ok)
 		result.set_header("Content-Disposition", R"(attachment; filename="alphafill.json.schema")");
 	return result;
 }
@@ -650,18 +650,18 @@ status_reply affd_rest_controller::get_aff_status(const std::string &af_id)
 
 zh::reply affd_rest_controller::get_aff_structure(const zeep::http::scope &scope, const std::string &af_id)
 {
-	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
+	zeep::http::reply rep(zeep::http::status_type::ok, { 1, 1 });
 
 	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
 
 	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
-		return zeep::http::reply(zeep::http::not_found, { 1, 1 });
+		return zeep::http::reply(zeep::http::status_type::not_found, { 1, 1 });
 
 	if (scope.get_header("accept-encoding").find("gzip") != std::string::npos)
 	{
-		rep.set_content(new std::ifstream(file, std::ios::binary), "text/plain");
+		rep.set_content(std::make_unique<std::ifstream>(file, std::ios::binary), "text/plain");
 		rep.set_header("content-encoding", "gzip");
 	}
 	else
@@ -669,7 +669,7 @@ zh::reply affd_rest_controller::get_aff_structure(const zeep::http::scope &scope
 		cif::gzio::ifstream in(file);
 
 		if (not in.is_open())
-			return zeep::http::reply(zeep::http::not_found, { 1, 1 });
+			return zeep::http::reply(zeep::http::status_type::not_found, { 1, 1 });
 
 		std::ostringstream os;
 		os << in.rdbuf();
@@ -685,7 +685,7 @@ zh::reply affd_rest_controller::get_aff_structure(const zeep::http::scope &scope
 
 zh::reply affd_rest_controller::get_aff_structure_stripped(const zeep::http::scope &scope, const std::string &af_id, const std::optional<std::string> &asyms, int identity)
 {
-	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
+	zeep::http::reply rep(zeep::http::status_type::ok, { 1, 1 });
 
 	std::set<std::string> requestedAsymSet;
 	if (asyms.has_value())
@@ -711,7 +711,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const zeep::http::sco
 	else
 		stripCifFile(af_id, requestedAsymSet, identity, *s);
 
-	rep.set_content(s.release(), "text/plain");
+	rep.set_content(std::move(s), "text/plain");
 
 	const auto &[type, id, chunkNr, version] = parse_af_id(af_id);
 	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
@@ -729,7 +729,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const zeep::http::sco
 
 zh::reply affd_rest_controller::get_aff_structure_optimized(const zeep::http::scope &scope, const std::string &af_id, const std::string &asyms)
 {
-	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
+	zeep::http::reply rep(zeep::http::status_type::ok, { 1, 1 });
 
 	auto requestedAsyms = cif::split(asyms, ",");
 	std::set<std::string> requestedAsymSet{ requestedAsyms.begin(), requestedAsyms.end() };
@@ -749,14 +749,14 @@ zh::reply affd_rest_controller::get_aff_structure_optimized(const zeep::http::sc
 	else
 		optimizeWithYasara(af_id, requestedAsymSet, *s);
 
-	rep.set_content(s.release(), "text/plain");
+	rep.set_content(std::move(s), "text/plain");
 
 	return rep;
 }
 
 zh::reply affd_rest_controller::get_aff_structure_optimized_with_stats(const zeep::http::scope &scope, const std::string &af_id, const std::string &asyms)
 {
-	zeep::http::reply rep(zeep::http::ok, { 1, 1 });
+	zeep::http::reply rep(zeep::http::status_type::ok, { 1, 1 });
 
 	auto requestedAsyms = cif::split(asyms, ",");
 	std::set<std::string> requestedAsymSet{ requestedAsyms.begin(), requestedAsyms.end() };
@@ -782,7 +782,7 @@ zh::reply affd_rest_controller::get_aff_structure_optimized_with_stats(const zee
 	else
 		*s << stats;
 
-	rep.set_content(s.release(), "application/json");
+	rep.set_content(std::move(s), "application/json");
 
 	return rep;
 }
@@ -794,7 +794,7 @@ zeep::el::object affd_rest_controller::get_aff_structure_json(const std::string 
 	fs::path file = file_locator::get_metadata_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
-		throw zeep::http::not_found;
+		throw zeep::http::status_type::not_found;
 
 	std::ifstream is(file);
 	return zeep::el::object::parse_JSON(is);
@@ -819,7 +819,7 @@ zeep::el::object affd_rest_controller::get_aff_3d_beacon(std::string af_id, std:
 		// auto &data_service = data_service::instance();
 		// data_service.queue_3d_beacon_request(id);
 
-		throw zeep::http::not_found;
+		throw zeep::http::status_type::not_found;
 	}
 
 	int version_major = 1 /* , version_minor = 0 */;
@@ -845,7 +845,7 @@ zeep::el::object affd_rest_controller::get_aff_3d_beacon(std::string af_id, std:
 
 	cif::file cf(file);
 	if (cf.empty())
-		throw zeep::http::not_found;
+		throw zeep::http::status_type::not_found;
 	auto &db = cf.front();
 	auto &struct_ref = db["struct_ref"];
 	auto &struct_ref_seq = db["struct_ref_seq"];
@@ -1098,7 +1098,7 @@ int server_main(int argc, char *const argv[])
 		auto s = new zeep::http::server(/*sc*/);
 
 		if (config.has("context"))
-			s->set_context_name(config.get("context"));
+			s->set_context_path(config.get("context"));
 
 		s->add_error_handler(new db_error_handler());
 		s->add_error_handler(new missing_entry_error_handler());
