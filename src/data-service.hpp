@@ -150,7 +150,7 @@ class data_service
 	std::vector<std::thread> m_threads;
 	blocking_queue<std::string, 10> m_queue;
 
-	std::mutex m_mutex;
+	mutable std::mutex m_mutex;
 	std::string m_running;
 	std::atomic<float> m_progress;
 };

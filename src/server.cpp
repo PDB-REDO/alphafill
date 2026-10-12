@@ -721,7 +721,7 @@ zh::reply affd_rest_controller::get_aff_structure_stripped(const zeep::http::sco
 		if (filename.extension() == ".gz")
 			filename.replace_extension("");
 
-		rep.set_header("content-disposition", "attachement; filename = \"" + filename.string() + "\"");
+		rep.set_header("content-disposition", "attachment; filename=\"" + filename.string() + "\"");
 	}
 
 	return rep;

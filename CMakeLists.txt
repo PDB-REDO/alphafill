@@ -208,7 +208,6 @@ if(BUILD_WEB_APPLICATION)
     list(
         APPEND
         SOURCES
-        ${PROJECT_SOURCE_DIR}/src/bsd-closefrom.c
         ${PROJECT_SOURCE_DIR}/src/db-connection.cpp
         ${PROJECT_SOURCE_DIR}/src/data-service.cpp
         ${PROJECT_SOURCE_DIR}/src/server.cpp
@@ -228,10 +227,6 @@ if(BUILD_WEB_APPLICATION)
 
     target_link_libraries(alphafill libpqxx::pqxx OpenSSL::SSL OpenSSL::Crypto)
 endif()
-
-
-# Create a revision file, containing the current git version info
-write_version_header("${PROJECT_SOURCE_DIR}/src/")
 
 if(HAVE_DIRENT_H)
     target_compile_definitions(alphafill PUBLIC HAVE_DIRENT_H)

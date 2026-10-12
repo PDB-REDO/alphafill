@@ -348,7 +348,7 @@ namespace
 			0.1208650973866179e-2,
 			-0.5395239384953e-5
 		};
-		static std::map<uint64_t, double> sLnFacMap;
+		thread_local static std::map<uint64_t, double> sLnFacMap;
 
 		if (sLnFacMap.find(inN) == sLnFacMap.end())
 		{
