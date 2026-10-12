@@ -235,7 +235,8 @@ int create_index(int argc, char *const argv[])
 		mcfp::make_option<std::string>("pdb-fasta", "The FastA file containing the PDB sequences"),
 		mcfp::make_option<size_t>("threads,t", std::thread::hardware_concurrency(), "Number of threads to use, zero means all available cores"));
 
-	parse_argv(argc, argv, config);
+	if (auto rv = parse_argv(argc, argv, config); rv)
+		return *rv;
 
 	// --------------------------------------------------------------------
 
@@ -913,7 +914,7 @@ zeep::el::object alphafill(cif::datablock &db, const std::string &source, alphaf
 												auto &transplants = hit["transplants"];
 												for (auto ti = transplants.begin(); ti != transplants.end(); ++ti)
 												{
-													if (ti->operator[]("asym_id") != id)
+													if (ti->operator[]("asym_id") != replace_id)
 														continue;
 
 													transplants.erase(ti);
@@ -1223,7 +1224,8 @@ int alphafill_main(int argc, char *const argv[])
 
 	);
 
-	parse_argv(argc, argv, config);
+	if (auto rv = parse_argv(argc, argv, config); rv)
+		return *rv;
 
 	if (config.operands().size() > 2 or config.operands().size() < 1)
 	{

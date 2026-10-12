@@ -33,10 +33,11 @@
 #include <cif++/cif++.hpp>
 #include <exception>
 #include <mcfp/mcfp.hpp>
+#include <mutex>
 #include <stdexcept>
 #include <zeep/el/object.hpp>
-#include <zeep/uri.hpp>
 #include <zeep/http/client.hpp>
+#include <zeep/uri.hpp>
 
 #include <forward_list>
 #include <fstream>
@@ -123,17 +124,17 @@ std::vector<compound> data_service::get_compounds(float min_identity) const
 	std::vector<compound> compounds;
 	for (auto const &[compound_id, analogue_id, s_count, t_count] :
 		tx.stream<std::string, std::string, uint32_t, uint32_t>(
-			R"(
+			std::format(R"(
 		 select t.compound_id,
 		        t.analogue_id,
 				count(distinct h.af_id) as s_count,
 				count(distinct t.id) as t_count
 		   from af_pdb_hit h
 		   join af_transplant t on h.id = t.hit_id
-		  where h.identity >= )" +
-			std::to_string(min_identity) + R"(
+		  where h.identity >= {}
 		  group by t.compound_id, t.analogue_id
-	      order by t.compound_id asc)"))
+	      order by t.compound_id asc)",
+				min_identity)))
 	{
 		compounds.emplace_back(compound{ compound_id, analogue_id, s_count, t_count });
 	}
@@ -152,7 +153,8 @@ std::vector<structure> data_service::get_structures(float min_identity, uint32_t
 	std::vector<structure> structures;
 	for (auto const &[structure_id, chunked, hit_count, transplant_count, distinct] :
 		tx.stream<std::string, bool, uint32_t, uint32_t, uint32_t>(
-			R"(select s.name as name,
+			std::format(R"(
+		   select s.name as name,
 				  s.chunked,
 				  count(distinct h.id) as hit_count,
 				  count(distinct t.id) as transplant_count,
@@ -160,14 +162,14 @@ std::vector<structure> data_service::get_structures(float min_identity, uint32_t
 			 from af_structure s
 			 join af_pdb_hit h on s.id = h.af_id
 			 join af_transplant t on t.hit_id = h.id
-			where h.identity >= )" +
-			std::to_string(min_identity) + R"(
+			where h.identity >= {}
 			group by s.name, s.chunked
 			order by hit_count desc, s.name asc
-		   offset )" +
-			std::to_string(page * pageSize) + R"( rows
-		    fetch first )" +
-			std::to_string(pageSize) + R"( rows only)"))
+		   offset {} rows
+		    fetch first {} rows only)",
+				min_identity,
+				page * pageSize,
+				pageSize)))
 	{
 		const auto &[type, id, chunk, version] = parse_af_id(structure_id);
 		if (chunked)
@@ -188,26 +190,24 @@ std::vector<structure> data_service::get_structures_for_compound(float min_ident
 	std::vector<structure> structures;
 	for (auto const &[structure_id, chunked, hit_count, transplant_count, distinct] :
 		tx.stream<std::string, bool, uint32_t, uint32_t, uint32_t>(
-			R"(select s.name,
-				  s.chunked,
-		          count(distinct h.id) as hit_count,
-				  count(distinct t.id) as transplant_count,
-				  count(distinct t.analogue_id) as dist_transplant_count
-			 from af_structure s
-			 join af_pdb_hit h on s.id = h.af_id
-			 join af_transplant t on t.hit_id = h.id
-			where (t.analogue_id = )" +
-			tx.quote(compound) + R"(
-			   or t.compound_id = )" +
-			tx.quote(compound) + R"()
-			  and h.identity >= )" +
-			std::to_string(min_identity) + R"(
-			group by s.name, s.chunked
-			order by hit_count desc
-		   offset )" +
-			std::to_string(page * pageSize) + R"( rows
-			fetch first )" +
-			std::to_string(pageSize) + R"( rows only)"))
+			std::format(
+				R"(select s.name,
+						s.chunked,
+						count(distinct h.id) as hit_count,
+						count(distinct t.id) as transplant_count,
+						count(distinct t.analogue_id) as dist_transplant_count
+					from af_structure s
+					join af_pdb_hit h on s.id = h.af_id
+					join af_transplant t on t.hit_id = h.id
+					where (t.analogue_id = {} or t.compound_id = {}) and h.identity >= {}
+					group by s.name, s.chunked
+					order by hit_count desc offset {} rows
+					fetch first {} rows only)",
+				tx.quote(compound),
+				tx.quote(compound),
+				min_identity,
+				page * pageSize,
+				pageSize)))
 	{
 		const auto &[type, id, chunk, version] = parse_af_id(structure_id);
 		if (chunked)
@@ -225,13 +225,14 @@ uint32_t data_service::count_structures(float min_identity) const
 {
 	pqxx::work tx(db_connection::instance());
 
-	auto r = tx.exec(R"(
+	auto r = tx.exec(
+				   std::format(R"(
 		  select count(distinct s.id)
 		    from af_structure s
 		   right join af_pdb_hit h on s.id = h.af_id
 		   right join af_transplant t on t.hit_id = h.id
-		   where h.identity >= )" +
-					 std::to_string(min_identity))
+		   where h.identity >= {})",
+					   min_identity))
 	             .one_field();
 
 	tx.commit();
@@ -243,15 +244,17 @@ uint32_t data_service::count_structures(float min_identity, const std::string &c
 {
 	pqxx::work tx(db_connection::instance());
 
-	auto r = tx.exec(R"(
+	auto r = tx.exec(
+				   std::format(R"(
 		  select count(distinct s.id)
 		    from af_structure s
 		   right join af_pdb_hit h on s.id = h.af_id
 		   right join af_transplant t on t.hit_id = h.id
-		   where h.identity >= )" +
-					 std::to_string(min_identity) + R"(
-			 and (t.compound_id = )" +
-					 tx.quote(compound) + " or t.analogue_id = " + tx.quote(compound) + ")")
+		   where h.identity >= {}
+			 and (t.compound_id = {} or t.analogue_id = {})",
+					   min_identity,
+					   tx.quote(compound),
+					   tx.quote(compound)))
 	             .one_field();
 
 	tx.commit();
@@ -491,7 +494,7 @@ std::string bestAFModel(const zeep::el::object &structures)
 		zeep::uri url = summary["model_url"].get<std::string>();
 
 		std::string filename = std::filesystem::path(url.get_path().string()).filename().string();
-		
+
 		std::smatch m;
 		if (not std::regex_match(filename, m, rx))
 			continue;
@@ -538,7 +541,7 @@ bool data_service::exists_in_afdb(const std::string &id) const
 	return result;
 }
 
-std::tuple<std::filesystem::path, std::string/* , std::string */> data_service::fetch_from_afdb(const std::string &id) const
+std::tuple<std::filesystem::path, std::string /* , std::string */> data_service::fetch_from_afdb(const std::string &id) const
 {
 	auto &config = mcfp::config::instance();
 
@@ -649,7 +652,7 @@ void print_what(std::ostream &os, const std::exception &e)
 	}
 }
 
-void data_service::process_queued(const std::filesystem::path &xyzin,
+void data_service::process_queued(const std::string &runID, const std::filesystem::path &xyzin,
 	const std::filesystem::path &xyzout, const std::filesystem::path &jsonout)
 {
 	std::error_code ec;
@@ -672,7 +675,7 @@ void data_service::process_queued(const std::filesystem::path &xyzin,
 			m_progress = 0;
 
 			if (cif::VERBOSE > 0)
-				std::cerr << "Running ID " << m_running << '\n';
+				std::cerr << "Running ID " << runID << '\n';
 
 			fs::rename(xyzin, m_work_dir / xyzin.filename(), ec);
 			if (ec)
@@ -751,12 +754,15 @@ void data_service::run()
 			continue;
 		}
 
-		m_running = afId;
+		{
+			std::lock_guard lock(m_mutex);
+			m_running = afId;
+		}
 
 		try
 		{
 			std::clog << system_clock::now() << ' ' << "process: " << xyzin.string() << '\n';
-			process_queued(xyzin, xyzout, jsonout);
+			process_queued(afId, xyzin, xyzout, jsonout);
 		}
 		catch (const std::exception &ex)
 		{
@@ -766,7 +772,10 @@ void data_service::run()
 		}
 
 		m_progress = 0;
-		m_running.clear();
+		{
+			std::lock_guard lock(m_mutex);
+			m_running.clear();
+		}
 	}
 }
 
@@ -808,9 +817,15 @@ status_reply data_service::get_status(const std::string &af_id) const
 	// 	cifFile = file_locator::get_structure_file(type, id, chunkNr, 3);
 	// }
 
+	std::string runningID;
+	{
+		std::lock_guard lock(m_mutex);
+		runningID = m_running;
+	}
+
 	if (fs::exists(jsonFile) and fs::exists(cifFile))
 		reply.status = CustomStatus::Finished;
-	else if (m_running == id)
+	else if (runningID == id)
 	{
 		reply.status = CustomStatus::Running;
 		reply.progress = m_progress;

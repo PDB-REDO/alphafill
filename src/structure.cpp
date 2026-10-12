@@ -25,7 +25,10 @@
  */
 
 #include "structure.hpp"
-#include "bsd-closefrom.h"
+#include <cstdlib>
+#ifndef HAVE_CLOSEFROM
+# include "bsd-closefrom.h"
+#endif
 #include "utilities.hpp"
 #include "validate.hpp"
 
@@ -292,7 +295,7 @@ json optimizeWithYasara(const std::string &af_id, std::set<std::string> requeste
 
 		const char *env[] = { nullptr };
 		(void)execve(args.front(), const_cast<char *const *>(&args[0]), const_cast<char *const *>(env));
-		exit(-1);
+		_exit(EXIT_FAILURE);
 	}
 
 	if (pid == -1)

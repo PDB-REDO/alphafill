@@ -27,7 +27,7 @@ int main(int argc, char * const argv[])
 	if (ec or config.operands().size() != 2)
 	{
 		std::cerr << config << '\n';
-		exit(1);
+		return 1;
 	}
 
 	auto pdb_id = config.get("pdb-id");
@@ -42,7 +42,7 @@ int main(int argc, char * const argv[])
 	if (not json_in.is_open())
 	{
 		std::cerr << "Could not open json file " << std::quoted(config.operands().back()) << '\n';
-		exit(1);
+		return 1;
 	}
 
 	auto jdata = zeep::el::object::parse_JSON(json_in);
@@ -51,7 +51,7 @@ int main(int argc, char * const argv[])
 	if (not hits.is_array() or hits.empty())
 	{
 		std::cerr << "Unexpected hits array in json\n";
-		exit(1);
+		return 1;
 	}
 
 	const auto& first_hit = hits[0];
@@ -71,7 +71,7 @@ int main(int argc, char * const argv[])
 	if (not transplants.is_array() or transplants.empty())
 	{
 		std::cerr << "Unexpected transplants array in json\n";
-		exit(1);
+		return 1;
 	}
 
 	const auto& first_transplant = transplants[0];

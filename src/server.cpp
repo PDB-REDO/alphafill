@@ -678,7 +678,7 @@ zh::reply affd_rest_controller::get_aff_structure(const zeep::http::scope &scope
 	}
 
 	std::string filename = af_id + ".cif";
-	rep.set_header("content-disposition", "attachement; filename = \"" + filename + '\"');
+	rep.set_header("content-disposition", "attachment; filename=\"" + filename + '\"');
 
 	return rep;
 }
@@ -1028,7 +1028,8 @@ int server_main(int argc, char *const argv[])
 
 	);
 
-	parse_argv(argc, argv, config);
+	if (auto rv = parse_argv(argc, argv, config); rv)
+		return *rv;
 
 	// --------------------------------------------------------------------
 
@@ -1075,7 +1076,7 @@ int server_main(int argc, char *const argv[])
 	if (config.operands().size() != 1)
 	{
 		std::cout << "No command specified, use of of start, stop, status or reload\n";
-		exit(1);
+		return 1;
 	}
 
 	// --------------------------------------------------------------------

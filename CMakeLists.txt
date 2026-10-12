@@ -127,6 +127,17 @@ if(NOT zeep_FOUND)
 	FetchContent_MakeAvailable(zeep)
 endif()
 
+
+# Create a revision file, containing the current git version info
+write_version_header("${PROJECT_SOURCE_DIR}/src/")
+
+find_file(HAVE_DIRENT_H dirent.h)
+find_file(HAVE_FCNTL_H fcntl.h)
+
+check_function_exists(dirfd HAVE_DIRFD)
+check_symbol_exists(closefrom "unistd.h" HAVE_CLOSEFROM)
+check_symbol_exists(sysconf "unistd.h" HAVE_SYSCONF)
+
 if(BUILD_WEB_APPLICATION)
 
     CPMFindPackage(
@@ -202,45 +213,14 @@ if(BUILD_WEB_APPLICATION)
         ${PROJECT_SOURCE_DIR}/src/data-service.cpp
         ${PROJECT_SOURCE_DIR}/src/server.cpp
         ${PROJECT_SOURCE_DIR}/src/structure.cpp)
+
+	if (NOT HAVE_CLOSEFROM)
+		list(APPEND SOURCES ${PROJECT_SOURCE_DIR}/src/bsd-closefrom.c)
+	endif()
 endif()
 
 # The alphafill executable
 add_executable(alphafill ${SOURCES})
-
-# Create a revision file, containing the current git version info
-write_version_header("${PROJECT_SOURCE_DIR}/src/")
-
-find_file(HAVE_DIRENT_H dirent.h)
-
-if(HAVE_DIRENT_H)
-    target_compile_definitions(alphafill PUBLIC HAVE_DIRENT_H)
-endif()
-
-find_file(HAVE_FCNTL_H fcntl.h)
-
-if(HAVE_FCNTL_H)
-    target_compile_definitions(alphafill PUBLIC HAVE_FCNTL_H)
-endif()
-
-check_function_exists(dirfd HAVE_DIRFD)
-
-if(HAVE_DIRFD)
-    target_compile_definitions(alphafill PUBLIC HAVE_DIRFD)
-endif()
-
-check_symbol_exists(closefrom "unistd.h" HAVE_CLOSEFROM)
-
-if(HAVE_CLOSEFROM)
-    target_compile_definitions(alphafill PUBLIC HAVE_CLOSEFROM)
-endif()
-
-check_symbol_exists(sysconf "unistd.h" HAVE_SYSCONF)
-
-if(HAVE_SYSCONF)
-    target_compile_definitions(alphafill PUBLIC HAVE_SYSCONF)
-endif()
-
-target_link_libraries(alphafill mcfp::mcfp cifpp::cifpp zeep::zeep)
 
 if(BUILD_WEB_APPLICATION)
     target_compile_definitions(alphafill PUBLIC BUILD_WEB_APPLICATION)
@@ -248,6 +228,32 @@ if(BUILD_WEB_APPLICATION)
 
     target_link_libraries(alphafill libpqxx::pqxx OpenSSL::SSL OpenSSL::Crypto)
 endif()
+
+
+# Create a revision file, containing the current git version info
+write_version_header("${PROJECT_SOURCE_DIR}/src/")
+
+if(HAVE_DIRENT_H)
+    target_compile_definitions(alphafill PUBLIC HAVE_DIRENT_H)
+endif()
+
+if(HAVE_FCNTL_H)
+    target_compile_definitions(alphafill PUBLIC HAVE_FCNTL_H)
+endif()
+
+if(HAVE_DIRFD)
+    target_compile_definitions(alphafill PUBLIC HAVE_DIRFD)
+endif()
+
+if(HAVE_CLOSEFROM)
+    target_compile_definitions(alphafill PUBLIC HAVE_CLOSEFROM)
+endif()
+
+if(HAVE_SYSCONF)
+    target_compile_definitions(alphafill PUBLIC HAVE_SYSCONF)
+endif()
+
+target_link_libraries(alphafill mcfp::mcfp cifpp::cifpp zeep::zeep)
 
 target_compile_definitions(alphafill
     PUBLIC ALPHAFILL_DATA_DIR="${ALPHAFILL_DATA_DIR}")

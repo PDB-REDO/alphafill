@@ -138,7 +138,8 @@ class data_service
 
 	void run();
 
-	void process_queued(const std::filesystem::path &xyzin, const std::filesystem::path &xyzout,
+	void process_queued(const std::string &runID,
+		const std::filesystem::path &xyzin, const std::filesystem::path &xyzout,
 		const std::filesystem::path &jsonout);
 
 	std::filesystem::path m_in_dir;

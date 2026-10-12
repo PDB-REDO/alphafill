@@ -27,6 +27,7 @@
 #pragma once
 
 #include <mcfp/mcfp.hpp>
+#include <optional>
 
 template <typename... Options>
 mcfp::config &load_and_init_config(std::string usage, Options &&... options)
@@ -48,4 +49,4 @@ mcfp::config &load_and_init_config(std::string usage, Options &&... options)
 	return config;
 }
 
-void parse_argv(int argc, char * const argv[], mcfp::config &config);
+[[nodiscard]] std::optional<int> parse_argv(int argc, char * const argv[], mcfp::config &config);
