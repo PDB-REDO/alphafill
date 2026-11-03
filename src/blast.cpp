@@ -348,7 +348,7 @@ namespace
 			0.1208650973866179e-2,
 			-0.5395239384953e-5
 		};
-		std::map<uint64_t, double> sLnFacMap;
+		thread_local static std::map<uint64_t, double> sLnFacMap;
 
 		if (sLnFacMap.find(inN) == sLnFacMap.end())
 		{
@@ -488,11 +488,17 @@ namespace
 		uint64_t upset = window - downset;
 
 		std::vector<double> e;
-		GetEntropy(inSequence, *alphabet, window, maxbogus, e);
+		if (not GetEntropy(inSequence, *alphabet, window, maxbogus, e))
+			return;
 
 		uint64_t first = downset;
-		auto last = static_cast<uint64_t>(inSequence.length() - upset);
+
+		// GetEntropy() guarantees length >= window >= upset, so this is safe.
+		uint64_t last = inSequence.length() - upset;
 		uint64_t lowlim = first;
+
+		assert(e.size() == inSequence.length());
+		assert(first <= last);
 
 		for (uint64_t i = first; i <= last; ++i)
 		{
@@ -920,7 +926,7 @@ void WordHitIterator<WORDSIZE>::Init(const sequence &inQuery,
 
 	std::vector<std::vector<uint16_t>> test(N);
 
-	for (uint16_t i = 0; std::cmp_less(i, inQuery.length() - WORDSIZE + 1); ++i)
+	for (uint16_t i = 0; std::cmp_less(i + WORDSIZE, inQuery.length() + 1); ++i)
 	{
 		IWord w(inQuery.c_str() + i);
 
@@ -1049,8 +1055,8 @@ struct DPData
 	}
 	~DPData() { delete[] mDPData; }
 
-	int16_t operator()(uint32_t inI, uint32_t inJ) const { return mDPData[inI * mDimY + inJ]; }
-	int16_t &operator()(uint32_t inI, uint32_t inJ) { return mDPData[inI * mDimY + inJ]; }
+	int16_t operator()(uint32_t inI, uint32_t inJ) const { return mDPData[inI * (mDimY + 1) + inJ]; }
+	int16_t &operator()(uint32_t inI, uint32_t inJ) { return mDPData[inI * (mDimY + 1) + inJ]; }
 
 	int16_t *mDPData;
 	size_t mDPDataLength;
@@ -1677,6 +1683,13 @@ int32_t BlastQuery<WORDSIZE>::AlignGapped(
 
 	auto dimX = static_cast<uint32_t>(inQueryEnd - inQueryBegin);
 	auto dimY = static_cast<uint32_t>(inTargetEnd - inTargetBegin);
+
+	// Nothing to align on one side; the seed residue is scored by the caller.
+	if (dimX == 0 or dimY == 0)
+	{
+		outBestX = outBestY = 0;
+		return 0;
+	}
 
 	DPData B(dimX, dimY);
 	DPData Ix(dimX, dimY);

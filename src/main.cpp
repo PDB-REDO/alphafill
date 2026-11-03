@@ -31,10 +31,12 @@
 #include "validate.hpp"
 
 #include <cif++/cif++.hpp>
+#include <cstddef>
 #include <mcfp/mcfp.hpp>
 
 #include <filesystem>
 #include <iostream>
+#include <optional>
 #include <thread>
 
 #if defined(BUILD_WEB_APPLICATION)
@@ -78,7 +80,10 @@ int rebuild_db_main(int argc, char *const argv[])
 
 		mcfp::make_hidden_option<std::string>("custom-dir", (fs::temp_directory_path() / "alphafill").string(), "Directory for custom built entries"));
 
-	parse_argv(argc, argv, config);
+	// --------------------------------------------------------------------
+
+	if (auto rv = parse_argv(argc, argv, config); rv)
+		return *rv;
 
 	// --------------------------------------------------------------------
 
@@ -131,20 +136,20 @@ void print_what(const std::exception &e)
 
 // --------------------------------------------------------------------
 
-void parse_argv(int argc, char *const argv[], mcfp::config &config)
+std::optional<int> parse_argv(int argc, char *const argv[], mcfp::config &config)
 {
 	config.parse(argc, argv);
 
 	if (config.has("version"))
 	{
 		write_version_string(std::cout, config.has("verbose"));
-		exit(0);
+		return 0;
 	}
 
 	if (config.has("help"))
 	{
 		std::cerr << config << '\n';
-		exit(config.has("help") ? 0 : 1);
+		return config.has("help") ? 0 : 1;
 	}
 
 	if (config.has("quiet"))
@@ -158,6 +163,8 @@ void parse_argv(int argc, char *const argv[], mcfp::config &config)
 	config.parse_config_file("config", "alphafill.conf", { fs::current_path().string(), CONFIG_PATH }, ec);
 	if (ec and ec != mcfp::config_error::config_file_not_found)
 		throw std::system_error(ec, "Error parsing config file");
+
+	return std::nullopt;
 }
 
 // --------------------------------------------------------------------
@@ -190,7 +197,7 @@ int main(int argc, char *const argv[])
 			if (config.has("version"))
 			{
 				write_version_string(std::cout, config.has("verbose"));
-				exit(0);
+				return 0;
 			}
 
 			command = exe + 10;
@@ -224,7 +231,7 @@ The following options are always recognized:
 			if (config.has("version"))
 			{
 				write_version_string(std::cout, config.has("verbose"));
-				exit(0);
+				return 0;
 			}
 
 			if (config.operands().empty() or ec)

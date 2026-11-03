@@ -27,17 +27,19 @@
 #include "data-service.hpp"
 #include "alphafill.hpp"
 #include "db-connection.hpp"
-#include "https-client.hpp"
 #include "queue.hpp"
 #include "utilities.hpp"
 
 #include <cif++/cif++.hpp>
 #include <exception>
 #include <mcfp/mcfp.hpp>
+#include <mutex>
 #include <stdexcept>
 #include <zeep/el/object.hpp>
+#include <zeep/http/client.hpp>
 #include <zeep/uri.hpp>
 
+#include <format>
 #include <forward_list>
 #include <fstream>
 #include <regex>
@@ -77,36 +79,46 @@ data_service::data_service()
 
 void data_service::start_queue(size_t nr_of_threads)
 {
-	for (size_t i = 0; i < nr_of_threads; ++i)
-		m_threads.emplace_back(std::bind(&data_service::run, this));
-
-	std::lock_guard<std::mutex> lock(m_mutex);
-	std::regex rx(R"(((?:AF|CS)-.+?)(?:\.cif\.gz))");
-
-	std::vector<std::string> files_in_in;
-	for (fs::directory_iterator iter(m_in_dir); iter != fs::directory_iterator(); ++iter)
+	if (m_threads.empty())
 	{
-		std::smatch m;
+		if (nr_of_threads < 1)
+			nr_of_threads = 1;
 
-		std::string name = iter->path().filename();
-		if (not std::regex_match(name, m, rx))
-			continue;
+		for (size_t i = 0; i < nr_of_threads; ++i)
+			m_threads.emplace_back([this]
+				{ run(); });
 
-		files_in_in.push_back(m[1]);
-	}
-
-	if (not files_in_in.empty())
-	{
-		std::thread pushThread([this, files = files_in_in]()
+		std::vector<std::string> files_in_in;
+		{
+			std::lock_guard<std::mutex> lock(m_mutex);
+			std::regex rx(R"(((?:AF|CS)-.+?)(?:\.cif\.gz))");
+			for (fs::directory_iterator iter(m_in_dir); iter != fs::directory_iterator(); ++iter)
 			{
-			for (auto &file : files)
-				this->m_queue.push(file); });
-		pushThread.detach();
+				std::smatch m;
+
+				std::string name = iter->path().filename();
+				if (not std::regex_match(name, m, rx))
+					continue;
+
+				files_in_in.push_back(m[1]);
+			}
+		}
+
+		if (not files_in_in.empty())
+		{
+			m_producer = std::jthread([this, files = std::move(files_in_in)]
+				{
+					for (auto &file : files)
+						m_queue.push(file); });
+		}
 	}
 }
 
 data_service::~data_service()
 {
+	if (m_producer.joinable())
+		m_producer.join();
+
 	m_queue.push("stop");
 
 	for (auto &t : m_threads)
@@ -123,17 +135,17 @@ std::vector<compound> data_service::get_compounds(float min_identity) const
 	std::vector<compound> compounds;
 	for (auto const &[compound_id, analogue_id, s_count, t_count] :
 		tx.stream<std::string, std::string, uint32_t, uint32_t>(
-			R"(
+			std::format(R"(
 		 select t.compound_id,
 		        t.analogue_id,
 				count(distinct h.af_id) as s_count,
 				count(distinct t.id) as t_count
 		   from af_pdb_hit h
 		   join af_transplant t on h.id = t.hit_id
-		  where h.identity >= )" +
-			std::to_string(min_identity) + R"(
+		  where h.identity >= {}
 		  group by t.compound_id, t.analogue_id
-	      order by t.compound_id asc)"))
+	      order by t.compound_id asc)",
+				min_identity)))
 	{
 		compounds.emplace_back(compound{ compound_id, analogue_id, s_count, t_count });
 	}
@@ -152,22 +164,23 @@ std::vector<structure> data_service::get_structures(float min_identity, uint32_t
 	std::vector<structure> structures;
 	for (auto const &[structure_id, chunked, hit_count, transplant_count, distinct] :
 		tx.stream<std::string, bool, uint32_t, uint32_t, uint32_t>(
-			R"(select s.name as name,
+			std::format(R"(
+		   select s.name as name,
 				  s.chunked,
 				  count(distinct h.id) as hit_count,
 				  count(distinct t.id) as transplant_count,
 				  count(distinct t.analogue_id) as distinct
 			 from af_structure s
-			 join af_pdb_hit h on s.id = h.af_id
-			 join af_transplant t on t.hit_id = h.id
-			where h.identity >= )" +
-			std::to_string(min_identity) + R"(
+	   right join af_pdb_hit h on s.id = h.af_id
+	   right join af_transplant t on t.hit_id = h.id
+			where h.identity >= {}
 			group by s.name, s.chunked
 			order by hit_count desc, s.name asc
-		   offset )" +
-			std::to_string(page * pageSize) + R"( rows
-		    fetch first )" +
-			std::to_string(pageSize) + R"( rows only)"))
+		   offset {} rows
+		    fetch first {} rows only)",
+				min_identity,
+				page * pageSize,
+				pageSize)))
 	{
 		const auto &[type, id, chunk, version] = parse_af_id(structure_id);
 		if (chunked)
@@ -188,26 +201,25 @@ std::vector<structure> data_service::get_structures_for_compound(float min_ident
 	std::vector<structure> structures;
 	for (auto const &[structure_id, chunked, hit_count, transplant_count, distinct] :
 		tx.stream<std::string, bool, uint32_t, uint32_t, uint32_t>(
-			R"(select s.name,
-				  s.chunked,
-		          count(distinct h.id) as hit_count,
-				  count(distinct t.id) as transplant_count,
-				  count(distinct t.analogue_id) as dist_transplant_count
-			 from af_structure s
-			 join af_pdb_hit h on s.id = h.af_id
-			 join af_transplant t on t.hit_id = h.id
-			where (t.analogue_id = )" +
-			tx.quote(compound) + R"(
-			   or t.compound_id = )" +
-			tx.quote(compound) + R"()
-			  and h.identity >= )" +
-			std::to_string(min_identity) + R"(
-			group by s.name, s.chunked
-			order by hit_count desc
-		   offset )" +
-			std::to_string(page * pageSize) + R"( rows
-			fetch first )" +
-			std::to_string(pageSize) + R"( rows only)"))
+			std::format(
+				R"(
+				   select s.name,
+						  s.chunked,
+						  count(distinct h.id) as hit_count,
+						  count(distinct t.id) as transplant_count,
+						  count(distinct t.analogue_id) as dist_transplant_count
+					 from af_structure s
+			   right join af_pdb_hit h on s.id = h.af_id
+			   right join af_transplant t on t.hit_id = h.id
+					where (t.analogue_id = {} or t.compound_id = {}) and h.identity >= {}
+					group by s.name, s.chunked
+					order by hit_count desc offset {} rows
+					fetch first {} rows only)",
+				tx.quote(compound),
+				tx.quote(compound),
+				min_identity,
+				page * pageSize,
+				pageSize)))
 	{
 		const auto &[type, id, chunk, version] = parse_af_id(structure_id);
 		if (chunked)
@@ -225,13 +237,14 @@ uint32_t data_service::count_structures(float min_identity) const
 {
 	pqxx::work tx(db_connection::instance());
 
-	auto r = tx.exec(R"(
+	auto r = tx.exec(
+				   std::format(R"(
 		  select count(distinct s.id)
 		    from af_structure s
 		   right join af_pdb_hit h on s.id = h.af_id
 		   right join af_transplant t on t.hit_id = h.id
-		   where h.identity >= )" +
-					 std::to_string(min_identity))
+		   where h.identity >= {})",
+					   min_identity))
 	             .one_field();
 
 	tx.commit();
@@ -243,15 +256,17 @@ uint32_t data_service::count_structures(float min_identity, const std::string &c
 {
 	pqxx::work tx(db_connection::instance());
 
-	auto r = tx.exec(R"(
+	auto r = tx.exec(
+				   std::format(R"(
 		  select count(distinct s.id)
 		    from af_structure s
 		   right join af_pdb_hit h on s.id = h.af_id
 		   right join af_transplant t on t.hit_id = h.id
-		   where h.identity >= )" +
-					 std::to_string(min_identity) + R"(
-			 and (t.compound_id = )" +
-					 tx.quote(compound) + " or t.analogue_id = " + tx.quote(compound) + ")")
+		   where h.identity >= {}
+			 and (t.compound_id = {} or t.analogue_id = {})",
+					   min_identity,
+					   tx.quote(compound),
+					   tx.quote(compound)))
 	             .one_field();
 
 	tx.commit();
@@ -458,28 +473,18 @@ int data_service::rebuild()
 
 // --------------------------------------------------------------------
 
+std::string queue_key(EntryType type, const std::string &id, int chunk_nr, int version)
+{
+	if (type == EntryType::Custom)
+		return "CS-" + id;
+
+	return std::format("AF-{}-F{}-model_v{}", id, chunk_nr, version);
+}
+
+// --------------------------------------------------------------------
+
 std::string bestAFModel(const zeep::el::object &structures)
 {
-	// // Select best based on HOMO-OLIGOMER > HOMODIMER > MONOMER > HETERODIMER > HETERO-OLIGOMER
-	// static std::array<std::string_view, 5> kPriority{ "HOMO-OLIGOMER", "HOMODIMER", "MONOMER", "HETERODIMER", "HETERO-OLIGOMER" };
-
-	// int bestIx = structures.size();
-	// int bestScore = kPriority.size();
-
-	// for (const auto [ix, s] : std::views::enumerate(structures))
-	// {
-	// 	auto &summary = s["summary"];
-
-	// 	auto score = std::ranges::find(kPriority, summary["oligomeric_state"].get<std::string>()) - kPriority.begin();
-	// 	if (score < bestScore)
-	// 	{
-	// 		bestIx = ix;
-	// 		bestScore = score;
-	// 	}
-	// }
-
-	// return bestIx < structures.size() ? structures[bestIx]["summary"]["model_url"].get<std::string>() : std::string{};
-
 	std::regex rx(R"(AF-.+?-model_v(\d+).*\.cif$)");
 
 	int bestScore = 0;
@@ -491,7 +496,7 @@ std::string bestAFModel(const zeep::el::object &structures)
 		zeep::uri url = summary["model_url"].get<std::string>();
 
 		std::string filename = std::filesystem::path(url.get_path().string()).filename().string();
-		
+
 		std::smatch m;
 		if (not std::regex_match(filename, m, rx))
 			continue;
@@ -519,9 +524,9 @@ bool data_service::exists_in_afdb(const std::string &id) const
 	while ((i = url.find("${id}")) != std::string::npos)
 		url.replace(i, strlen("${id}"), id);
 
-	auto rep = simple_request(url);
+	auto rep = zeep::http::get_request(url);
 
-	if (rep.get_status() == zeep::http::ok)
+	if (rep.get_status() == zeep::http::status_type::ok)
 	{
 		zeep::el::object rep_j = zeep::el::object::parse_JSON(rep.get_content());
 
@@ -529,16 +534,16 @@ bool data_service::exists_in_afdb(const std::string &id) const
 		{
 			url = bestAFModel(rep_j["structures"]);
 
-			rep = head_request(url, { { "Accept-Encoding", "gzip" } });
+			rep = zeep::http::head_request(url, { { "Accept-Encoding", "gzip" } });
 
-			result = rep.get_status() == zeep::http::ok or rep.get_status() == zeep::http::found;
+			result = rep.get_status() == zeep::http::status_type::ok or rep.get_status() == zeep::http::status_type::found;
 		}
 	}
 
 	return result;
 }
 
-std::tuple<std::filesystem::path, std::string/* , std::string */> data_service::fetch_from_afdb(const std::string &id) const
+std::tuple<std::filesystem::path, std::string /* , std::string */> data_service::fetch_from_afdb(const std::string &id) const
 {
 	auto &config = mcfp::config::instance();
 
@@ -548,9 +553,9 @@ std::tuple<std::filesystem::path, std::string/* , std::string */> data_service::
 	while ((i = url.find("${id}")) != std::string::npos)
 		url.replace(i, strlen("${id}"), id);
 
-	auto rep = simple_request(url);
+	auto rep = zeep::http::get_request(url);
 
-	if (rep.get_status() != zeep::http::ok)
+	if (rep.get_status() != zeep::http::status_type::ok)
 		throw std::runtime_error("The ID " + id + " was not found at AlphaFold");
 
 	zeep::el::object rep_j = zeep::el::object::parse_JSON(rep.get_content());
@@ -562,9 +567,9 @@ std::tuple<std::filesystem::path, std::string/* , std::string */> data_service::
 	if (uri.get_path().get_segments().empty())
 		throw std::runtime_error("Empy uri returned");
 
-	rep = simple_request(url, { { "Accept-Encoding", "gzip" } });
+	rep = zeep::http::get_request(url, { { "Accept-Encoding", "gzip" } });
 
-	if (rep.get_status() != zeep::http::ok)
+	if (rep.get_status() != zeep::http::status_type::ok)
 		throw std::runtime_error("Error requesting alphafold structure file: " + zeep::http::get_status_description(rep.get_status()));
 
 	const std::string &content = rep.get_content();
@@ -631,7 +636,7 @@ struct data_service_progress : public alphafill_progress_cb
 	}
 
 	std::atomic<float> &m_progress;
-	size_t m_max_0 = 1, m_max_1 = 1000, m_cur_0 = 0, m_cur_1;
+	size_t m_max_0 = 1, m_max_1 = 1000, m_cur_0 = 0, m_cur_1 = 0;
 };
 
 // recursively print exception whats:
@@ -649,7 +654,7 @@ void print_what(std::ostream &os, const std::exception &e)
 	}
 }
 
-void data_service::process_queued(const std::filesystem::path &xyzin,
+void data_service::process_queued(const std::string &runID, const std::filesystem::path &xyzin,
 	const std::filesystem::path &xyzout, const std::filesystem::path &jsonout)
 {
 	std::error_code ec;
@@ -672,7 +677,7 @@ void data_service::process_queued(const std::filesystem::path &xyzin,
 			m_progress = 0;
 
 			if (cif::VERBOSE > 0)
-				std::cerr << "Running ID " << m_running << '\n';
+				std::cerr << "Running ID " << runID << '\n';
 
 			fs::rename(xyzin, m_work_dir / xyzin.filename(), ec);
 			if (ec)
@@ -694,17 +699,8 @@ void data_service::process_queued(const std::filesystem::path &xyzin,
 		std::ofstream errorFile(std::filesystem::path(xyzout).replace_extension(".error"));
 		print_what(errorFile, ex);
 
-		std::string filename = xyzout.filename().string();
-		std::regex rx(R"((AF-.+?-model_v\d+).*\.cif\.gz$)");
-		std::smatch m;
-
-		if (std::regex_match(filename, m, rx))
-		{
-			auto name = m[1].str() + ".error";
-
-			std::ofstream errorFile2(m_out_dir / name);
-			print_what(errorFile2, ex);
-		}
+		std::ofstream errorFile2(m_out_dir / (runID + ".error"));
+		print_what(errorFile2, ex);
 	}
 
 	// Clean up work files
@@ -751,12 +747,15 @@ void data_service::run()
 			continue;
 		}
 
-		m_running = afId;
+		{
+			std::lock_guard lock(m_mutex);
+			m_running = next;
+		}
 
 		try
 		{
 			std::clog << system_clock::now() << ' ' << "process: " << xyzin.string() << '\n';
-			process_queued(xyzin, xyzout, jsonout);
+			process_queued(next, xyzin, xyzout, jsonout);
 		}
 		catch (const std::exception &ex)
 		{
@@ -766,7 +765,10 @@ void data_service::run()
 		}
 
 		m_progress = 0;
-		m_running.clear();
+		{
+			std::lock_guard lock(m_mutex);
+			m_running.clear();
+		}
 	}
 }
 
@@ -801,27 +803,28 @@ status_reply data_service::get_status(const std::string &af_id) const
 	fs::path jsonFile = file_locator::get_metadata_file(type, id, chunkNr, version);
 	fs::path cifFile = file_locator::get_structure_file(type, id, chunkNr, version);
 
-	// // See if this ID might have been processed already
-	// if ((not fs::exists(jsonFile) or not fs::exists(cifFile)) and not m[4].matched)
-	// {
-	// 	jsonFile = file_locator::get_metadata_file(type, id, chunkNr, 3);
-	// 	cifFile = file_locator::get_structure_file(type, id, chunkNr, 3);
-	// }
+	auto key = queue_key(type, id, chunkNr, version);
+
+	std::string runningID;
+	{
+		std::lock_guard lock(m_mutex);
+		runningID = m_running;
+	}
 
 	if (fs::exists(jsonFile) and fs::exists(cifFile))
 		reply.status = CustomStatus::Finished;
-	else if (m_running == id)
+	else if (runningID == key)
 	{
 		reply.status = CustomStatus::Running;
 		reply.progress = m_progress;
 	}
-	else if (fs::exists(m_in_dir / (af_id + ".cif.gz")))
+	else if (fs::exists(m_in_dir / (key + ".cif.gz")))
 		reply.status = CustomStatus::Queued;
-	else if (fs::exists(m_out_dir / (af_id + ".error")))
+	else if (fs::exists(m_out_dir / (key + ".error")))
 	{
 		reply.status = CustomStatus::Error;
 
-		std::ifstream in(m_out_dir / (af_id + ".error"));
+		std::ifstream in(m_out_dir / (key + ".error"));
 
 		std::stringstream s;
 		s << in.rdbuf();
@@ -873,6 +876,9 @@ std::string data_service::queue_af_id(const std::string &id)
 		throw std::runtime_error("The server is too busy to handle your request, please try again later");
 
 	auto &&[filename, data] = fetch_from_afdb(id);
+
+	if (filename.extension() == ".gz")
+		filename.replace_extension();
 
 	if (filename.extension() == ".cif")
 		filename.replace_extension();

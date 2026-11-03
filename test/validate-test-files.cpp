@@ -1,3 +1,6 @@
+#include <cif++/utilities.hpp>
+#include <cif++/validate.hpp>
+#include <filesystem>
 #include <mcfp/mcfp.hpp>
 
 #include <cif++/cif++.hpp>
@@ -24,18 +27,22 @@ int main(int argc, char * const argv[])
 	if (ec or config.operands().size() != 2)
 	{
 		std::cerr << config << '\n';
-		exit(1);
+		return 1;
 	}
 
 	auto pdb_id = config.get("pdb-id");
 	auto pdb_asym_id = config.get("pdb-asym-id");
+
+	// the cif dictionary may be missing...
+	if (not cif::load_resource("mmcif_ma.dic"))
+		cif::add_file_resource("mmcif_ma.dic", "../rsrc/mmcif_ma.dic");
 
 	// JSON first
 	std::ifstream json_in(config.operands().back());
 	if (not json_in.is_open())
 	{
 		std::cerr << "Could not open json file " << std::quoted(config.operands().back()) << '\n';
-		exit(1);
+		return 1;
 	}
 
 	auto jdata = zeep::el::object::parse_JSON(json_in);
@@ -44,7 +51,7 @@ int main(int argc, char * const argv[])
 	if (not hits.is_array() or hits.empty())
 	{
 		std::cerr << "Unexpected hits array in json\n";
-		exit(1);
+		return 1;
 	}
 
 	const auto& first_hit = hits[0];
@@ -64,7 +71,7 @@ int main(int argc, char * const argv[])
 	if (not transplants.is_array() or transplants.empty())
 	{
 		std::cerr << "Unexpected transplants array in json\n";
-		exit(1);
+		return 1;
 	}
 
 	const auto& first_transplant = transplants[0];

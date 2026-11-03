@@ -25,7 +25,10 @@
  */
 
 #include "structure.hpp"
-#include "bsd-closefrom.h"
+#include <cstdlib>
+#ifndef HAVE_CLOSEFROM
+# include "bsd-closefrom.h"
+#endif
 #include "utilities.hpp"
 #include "validate.hpp"
 
@@ -61,7 +64,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	fs::path file = file_locator::get_structure_file(type, id, chunkNr, version);
 
 	if (not fs::exists(file))
-		throw std::system_error(std::error_code(zeep::http::not_found, zeep::http::status_type_category()));
+		throw std::system_error(zeep::http::status_type::not_found);
 
 	// optionally remove asyms whose blast origin's identity is too low
 	if (identity > 0)
@@ -69,7 +72,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 		fs::path jsonFile = file_locator::get_metadata_file(type, id, chunkNr, version);
 
 		if (not fs::exists(jsonFile))
-			throw std::system_error(std::error_code(zeep::http::not_found, zeep::http::status_type_category()));
+			throw std::system_error(zeep::http::status_type::not_found);
 
 		std::ifstream is(jsonFile);
 		auto data = zeep::el::object::parse_JSON(is);
@@ -89,7 +92,7 @@ void stripCifFile(const std::string &af_id, std::set<std::string> requestedAsyms
 	auto &db = cif.front();
 
 	if (db.get_validator() == nullptr)
-		db.load_dictionary("mmcif_af");
+		db.load_dictionary();
 
 	auto &struct_asym = db["struct_asym"];
 	auto &atom_site = db["atom_site"];
@@ -292,7 +295,7 @@ json optimizeWithYasara(const std::string &af_id, std::set<std::string> requeste
 
 		const char *env[] = { nullptr };
 		(void)execve(args.front(), const_cast<char *const *>(&args[0]), const_cast<char *const *>(env));
-		exit(-1);
+		_exit(EXIT_FAILURE);
 	}
 
 	if (pid == -1)

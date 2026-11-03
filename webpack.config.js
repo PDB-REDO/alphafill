@@ -1,4 +1,3 @@
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const path = require('path');
 const glob = require('glob-all');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
