@@ -149,6 +149,7 @@ class data_service
 	// threads processing AF entries
 	std::vector<std::thread> m_threads;
 	blocking_queue<std::string, 10> m_queue;
+	std::jthread m_producer;
 
 	mutable std::mutex m_mutex;
 	std::string m_running;
