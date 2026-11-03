@@ -112,7 +112,7 @@ find_package(mcfp 1.3.4 QUIET)
 if(NOT mcfp_FOUND)
 	FetchContent_Declare(
 		mcfp
-		GIT_REPOSITORY https://github.com/mhekkel/libmcfp.git
+		GIT_REPOSITORY https://codeberg.org/mlhekkelman/mcfp.git
 		GIT_TAG v1.3.4)
 	FetchContent_MakeAvailable(mcfp)
 endif()
@@ -122,7 +122,7 @@ find_package(zeep 7.2.0 QUIET)
 if(NOT zeep_FOUND)
 	FetchContent_Declare(
 		zeep
-		GIT_REPOSITORY https://github.com/mhekkel/libzeep.git
+		GIT_REPOSITORY https://codeberg.org/mlhekkelman/zeep.git
 		GIT_TAG v7.2.0)
 	FetchContent_MakeAvailable(zeep)
 endif()
