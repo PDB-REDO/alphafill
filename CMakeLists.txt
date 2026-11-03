@@ -62,6 +62,10 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS
         "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers"
     )
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers"
+    )
 elseif(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 endif()
@@ -110,21 +114,21 @@ find_package(cifpp 9.0.4 REQUIRED)
 find_package(mcfp 1.3.4 QUIET)
 
 if(NOT mcfp_FOUND)
-	FetchContent_Declare(
-		mcfp
-		GIT_REPOSITORY https://codeberg.org/mlhekkelman/mcfp.git
-		GIT_TAG v1.3.4)
-	FetchContent_MakeAvailable(mcfp)
+    FetchContent_Declare(
+        mcfp
+        GIT_REPOSITORY https://codeberg.org/mlhekkelman/mcfp.git
+        GIT_TAG v1.3.4)
+    FetchContent_MakeAvailable(mcfp)
 endif()
 
-find_package(zeep 7.2.0 QUIET)
+find_package(zeep 8.4.2 QUIET)
 
 if(NOT zeep_FOUND)
-	FetchContent_Declare(
-		zeep
-		GIT_REPOSITORY https://codeberg.org/mlhekkelman/zeep.git
-		GIT_TAG v7.2.0)
-	FetchContent_MakeAvailable(zeep)
+    FetchContent_Declare(
+        zeep
+        GIT_REPOSITORY https://codeberg.org/mlhekkelman/zeep.git
+        GIT_TAG v8.4.2)
+    FetchContent_MakeAvailable(zeep)
 endif()
 
 
@@ -213,9 +217,9 @@ if(BUILD_WEB_APPLICATION)
         ${PROJECT_SOURCE_DIR}/src/server.cpp
         ${PROJECT_SOURCE_DIR}/src/structure.cpp)
 
-	if (NOT HAVE_CLOSEFROM)
-		list(APPEND SOURCES ${PROJECT_SOURCE_DIR}/src/bsd-closefrom.c)
-	endif()
+    if(NOT HAVE_CLOSEFROM)
+        list(APPEND SOURCES ${PROJECT_SOURCE_DIR}/src/bsd-closefrom.c)
+    endif()
 endif()
 
 # The alphafill executable
@@ -254,8 +258,8 @@ target_compile_definitions(alphafill
     PUBLIC ALPHAFILL_DATA_DIR="${ALPHAFILL_DATA_DIR}")
 
 if(USE_RSRC)
-	message("Using resources compiled with ${MRC_EXECUTABLE}")
-	add_compile_definitions(WEBAPP_USES_RESOURCES USE_RSRC)
+    message("Using resources compiled with ${MRC_EXECUTABLE}")
+    add_compile_definitions(WEBAPP_USES_RESOURCES USE_RSRC)
 
     list(APPEND RESOURCES ${PROJECT_SOURCE_DIR}/rsrc/mmcif_af.dic
         ${PROJECT_SOURCE_DIR}/rsrc/mmcif_ma.dic)
@@ -356,10 +360,10 @@ if(BUILD_TESTING)
             PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
         set_property(TEST validate_files_test
             PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${CIFPP_SHARE_DIR}")
-	else()
+    else()
         set_property(TEST run_process_test
             PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${PROJECT_SOURCE_DIR}/rsrc")
         set_property(TEST validate_files_test
             PROPERTY ENVIRONMENT "LIBCIFPP_DATA_DIR=${PROJECT_SOURCE_DIR}/rsrc")
-	endif()
+    endif()
 endif()
