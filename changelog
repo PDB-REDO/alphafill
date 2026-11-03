@@ -1,3 +1,15 @@
+Version 2.3.1
+- Fixed memory safety issues in the BLAST implementation (SEG masking,
+  short queries and alignment buffer boundaries)
+- Fixed a use-after-free risk and thread lifetime in the on-demand queue
+- Limited the number of simultaneous Yasara jobs and the queue size
+- Fixed inconsistent job status reporting for queued entries
+- Improved error reporting and avoid crashing on empty data files
+- Completed the migration to libzeep 7 and removed the bundled HTTP client
+- Removed PAE calculations and the PAE requirement from the JSON schema
+- Updated JavaScript and documentation dependencies
+- Repository URLs moved to Codeberg
+
 Version 2.3.0
 - Using new libcifpp, version 9
 - Using new libzeep, version 7.2
